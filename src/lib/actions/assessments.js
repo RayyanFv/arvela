@@ -1,0 +1,291 @@
+'use server'
+
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
+import crypto from 'crypto'
+import { sendEmail } from '@/lib/email/resend'
+
+/**
+ * Fetch all assessments for the current user's company
+ */
+export async function getAssessments() {
+    const supabase = await createServerSupabaseClient()
+    const admin = createAdminSupabaseClient()
+
+    // Get current user's company_id
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data: profile } = await admin
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile) throw new Error('Profile not found')
+
+    const { data: assessments, error } = await admin
+        .from('assessments')
+        .select(`
+            *,
+            questions (count)
+        `)
+        .eq('company_id', profile.company_id)
+        .order('created_at', { ascending: false })
+
+    if (error) throw new Error(error.message)
+
+    return assessments
+}
+
+/**
+ * Create or Update an assessment
+ */
+export async function saveAssessment(payload) {
+    const supabase = await createServerSupabaseClient()
+    const admin = createAdminSupabaseClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data: profile } = await admin
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile) throw new Error('Profile not found')
+
+    const assessmentData = {
+        title: payload.title,
+        description: payload.description,
+        duration_minutes: payload.duration_minutes,
+        show_score: payload.show_score,
+        assessment_type: payload.assessment_type || 'custom',
+        dimension_config: payload.dimension_config || null,
+        company_id: profile.company_id
+    }
+
+    let id = payload.id
+    if (id) {
+        const { error } = await admin
+            .from('assessments')
+            .update(assessmentData)
+            .eq('id', id)
+        if (error) throw new Error(error.message)
+    } else {
+        const { data, error } = await admin
+            .from('assessments')
+            .insert(assessmentData)
+            .select()
+            .single()
+        if (error) throw new Error(error.message)
+        id = data.id
+    }
+
+    revalidatePath('/dashboard/assessments')
+    return { success: true, id }
+}
+
+/**
+ * Delete an assessment
+ */
+export async function deleteAssessment(id) {
+    const admin = createAdminSupabaseClient()
+    const { error } = await admin
+        .from('assessments')
+        .delete()
+        .eq('id', id)
+
+    if (error) throw new Error(error.message)
+    revalidatePath('/dashboard/assessments')
+    return { success: true }
+}
+
+/**
+ * Save questions for an assessment
+ */
+export async function saveQuestions(assessmentId, questions) {
+    const admin = createAdminSupabaseClient()
+
+    // Simple approach: Delete existing and insert new
+    const { error: deleteError } = await admin
+        .from('questions')
+        .delete()
+        .eq('assessment_id', assessmentId)
+
+    if (deleteError) throw new Error(deleteError.message)
+
+    if (questions.length > 0) {
+        const formattedQuestions = questions.map((q, idx) => ({
+            assessment_id: assessmentId,
+            type: q.type,
+            prompt: q.prompt,
+            options: q.options || null,
+            correct_answer: q.correct_answer || null,
+            points: q.points || 10,
+            sort_order: idx
+        }))
+
+        const { error: insertError } = await admin
+            .from('questions')
+            .insert(formattedQuestions)
+
+        if (insertError) throw new Error(insertError.message)
+    }
+
+    revalidatePath(`/dashboard/assessments/${assessmentId}`)
+    return { success: true }
+}
+
+/**
+ * Assign an assessment to a candidate
+ */
+export async function assignAssessment({ assessment_id, application_id }) {
+    const admin = createAdminSupabaseClient()
+
+    // Generate a unique token
+    const token = crypto.randomUUID()
+
+    const { data: assignment, error } = await admin
+        .from('assessment_assignments')
+        .insert({
+            assessment_id,
+            application_id,
+            token,
+            status: 'sent'
+        })
+        .select(`
+            *,
+            assessments (title, duration_minutes),
+            applications (full_name, email)
+        `)
+        .single()
+
+    if (error) {
+        if (error.code === '23505') throw new Error('Kandidat sudah pernah diberikan assessment ini.')
+        throw new Error(error.message)
+    }
+
+    // Send email invitation
+    try {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+        const assessmentLink = `${baseUrl}/assessment/${token}`
+
+        await sendEmail({
+            to: assignment.applications.email,
+            subject: `[Assessment] ${assignment.assessments.title} — Arvela HR`,
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+                    <h2 style="color: #ea580c;">Undangan Assessment Online</h2>
+                    <p>Halo <strong>${assignment.applications.full_name}</strong>,</p>
+                    <p>Terima kasih telah melamar. Sebagai bagian dari tahapan seleksi, kami mengundang Anda untuk mengikuti assessment online berikut:</p>
+                    
+                    <div style="background-color: #f9fafb; padding: 20px; border-radius: 12px; margin: 25px 0; border: 1px solid #e5e7eb;">
+                        <p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; font-weight: bold; letter-spacing: 0.1em;">Nama Assessment</p>
+                        <p style="margin: 5px 0 15px; font-size: 18px; font-weight: bold;">${assignment.assessments.title}</p>
+                        
+                        <p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; font-weight: bold; letter-spacing: 0.1em;">Durasi</p>
+                        <p style="margin: 5px 0 0; font-size: 18px; font-weight: bold;">${assignment.assessments.duration_minutes} Menit</p>
+                    </div>
+
+                    <p>Silakan klik tombol di bawah ini untuk memulai pengerjaan. Pastikan Anda berada di tempat yang tenang dengan koneksi internet yang stabil.</p>
+                    
+                    <a href="${assessmentLink}" style="display: inline-block; background-color: #111827; color: white; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 10px;">Mulai Kerjakan Sekarang</a>
+                    
+                    <p style="margin-top: 30px; font-size: 12px; color: #9ca3af;">Atau salin link ini ke browser Anda: <br/> ${assessmentLink}</p>
+                    <hr style="margin: 40px 0; border: 0; border-top: 1px solid #e5e7eb;" />
+                    <p style="font-size: 12px; color: #9ca3af; text-align: center;">&copy; ${new Date().getFullYear()} Arvela HR System. All rights reserved.</p>
+                </div>
+            `
+        })
+    } catch (emailError) {
+        console.error('Failed to send assessment email:', emailError)
+        // We don't throw here to avoid failing the whole process if only email fails
+    }
+
+    revalidatePath(`/dashboard/candidates/${assignment.application_id}`)
+    return { success: true, assignment }
+}
+
+/**
+ * Bulk assign an assessment to multiple candidates
+ */
+export async function bulkAssignAssessment({ assessment_id, application_ids }) {
+    const results = {
+        success: 0,
+        failed: 0,
+        errors: []
+    }
+
+    for (const app_id of application_ids) {
+        try {
+            await assignAssessment({ assessment_id, application_id: app_id })
+            results.success++
+        } catch (error) {
+            results.failed++
+            results.errors.push({ id: app_id, message: error.message })
+        }
+    }
+
+    revalidatePath(`/dashboard/assessments/${assessment_id}`)
+    return results
+}
+
+/**
+ * Update score for a specific answer (manual review)
+ */
+export async function updateAnswerScore({ answer_id, points, notes, assignment_id }) {
+    const admin = createAdminSupabaseClient()
+
+    // 1. Update the answer
+    const { error: answerError } = await admin
+        .from('answers')
+        .update({
+            points_earned: points,
+            reviewer_notes: notes,
+            is_reviewed: true
+        })
+        .eq('id', answer_id)
+
+    if (answerError) throw new Error(answerError.message)
+
+    // 2. Re-calculate total score for the assignment
+    const { data: allAnswers, error: fetchError } = await admin
+        .from('answers')
+        .select('points_earned')
+        .eq('assignment_id', assignment_id)
+
+    if (fetchError) throw new Error(fetchError.message)
+
+    const newTotal = allAnswers.reduce((sum, a) => sum + (a.points_earned || 0), 0)
+
+    const { error: updateError } = await admin
+        .from('assessment_assignments')
+        .update({ total_score: newTotal })
+        .eq('id', assignment_id)
+
+    if (updateError) throw new Error(updateError.message)
+
+    revalidatePath(`/dashboard/assessments`)
+    return { success: true }
+}
+/**
+ * Update total score for an assignment (manual override)
+ */
+export async function updateAssignmentScore({ assignment_id, points, notes }) {
+    const admin = createAdminSupabaseClient()
+
+    const { error } = await admin
+        .from('assessment_assignments')
+        .update({
+            total_score: points,
+            reviewer_notes: notes // Note: make sure this column exists or use another way
+        })
+        .eq('id', assignment_id)
+
+    if (error) throw new Error(error.message)
+
+    revalidatePath(`/dashboard/assessments`)
+    return { success: true }
+}

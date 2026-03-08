@@ -3,10 +3,16 @@ import { notFound, redirect } from 'next/navigation'
 import { StageBadge } from '@/components/candidates/StageBadge'
 import { STAGE_CONFIG, STAGE_ORDER } from '@/lib/constants/stages'
 import Link from 'next/link'
-import { ArrowLeft, Mail, Phone, FileText, Clock, Download, ChevronRight, Link as LinkIcon } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, FileText, Clock, Download, ChevronRight, Link as LinkIcon, UserCheck, Undo2, ChevronLeft } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
 import StageUpdater from './StageUpdater'
+import CandidateAssessmentBox from './AssessmentBox'
+import HiringModal from './HiringModal'
+import { Button } from '@/components/ui/button'
+import { updateStage, cancelHire } from '@/lib/actions/applications'
+import ClientActionWrapper from './ClientActionWrapper'
+import CopyPortalLinkButton from './CopyPortalLinkButton'
 
 function getPreviewUrl(url) {
     if (!url) return null
@@ -69,6 +75,22 @@ export default async function CandidateDetailPage({ params }) {
         .single()
 
     if (!app) notFound()
+
+    // Fetch assessments and current assignments for this candidate
+    const { data: allAssessments } = await supabase
+        .from('assessments')
+        .select('id, title, duration_minutes')
+        .eq('company_id', profile.company_id)
+
+    const { data: existingAsgn } = await supabase
+        .from('assessment_assignments')
+        .select(`
+            *, 
+            assessments(title, duration_minutes),
+            answers(*, questions(prompt, type, points))
+        `)
+        .eq('application_id', id)
+        .order('created_at', { ascending: false })
 
     const sortedHistory = [...(app.stage_history ?? [])].sort(
         (a, b) => new Date(b.created_at) - new Date(a.created_at)
@@ -219,7 +241,57 @@ export default async function CandidateDetailPage({ params }) {
 
                 {/* Kolom kanan — aksi */}
                 <div className="space-y-4">
-                    <StageUpdater application={app} userRole={profile.role} />
+                    {app.stage !== 'hired' ? (
+                        <div className="space-y-4">
+                            <HiringModal application={app} />
+                            <StageUpdater application={app} userRole={profile.role} />
+                        </div>
+                    ) : (
+                        <div className="bg-white border-2 border-emerald-100 rounded-[40px] p-8 text-center space-y-6 shadow-2xl shadow-emerald-500/5 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10" />
+                            <div className="w-16 h-16 bg-emerald-500 rounded-[24px] flex items-center justify-center mx-auto text-white shadow-xl shadow-emerald-500/30 transform group-hover:rotate-12 transition-transform">
+                                <UserCheck className="w-8 h-8" />
+                            </div>
+                            <div className="space-y-2">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                    Active Employee
+                                </div>
+                                <h3 className="text-xl font-black text-slate-900 leading-tight">Berhasil Direkrut</h3>
+                                <div className="space-y-3">
+                                    <CopyPortalLinkButton email={app.email} />
+                                    <Button variant="ghost" className="w-full text-xs font-black text-slate-400 tracking-widest uppercase py-4">
+                                        Log Panggilan & Catatan
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-slate-500 font-medium leading-relaxed px-4">
+                                    Kandidat telah memiliki akses ke portal karyawan dan sedang dalam tahap onboarding.
+                                </p>
+                            </div>
+
+                            <div className="grid gap-3 pt-2">
+                                <Link href="/dashboard/employees" className="w-full">
+                                    <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white h-12 rounded-2xl font-black gap-2 shadow-lg hover:scale-[1.02] transition-all">
+                                        Data Karyawan <ChevronRight className="w-4 h-4 ml-1" />
+                                    </Button>
+                                </Link>
+
+                                <ClientActionWrapper applicationId={app.id} action={cancelHire}>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full border-slate-200 text-slate-400 hover:text-destructive hover:border-destructive/30 h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest group"
+                                    >
+                                        <Undo2 className="w-3.5 h-3.5 mr-2 transition-transform group-hover:-translate-x-1" /> Ganti Status / Undo Hired
+                                    </Button>
+                                </ClientActionWrapper>
+                            </div>
+                        </div>
+                    )}
+                    <CandidateAssessmentBox
+                        application={app}
+                        assessments={allAssessments || []}
+                        existingAssignments={existingAsgn || []}
+                    />
                 </div>
             </div>
         </div>

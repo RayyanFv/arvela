@@ -1,32 +1,20 @@
-// test.js
-const fs = require('fs')
+const { createClient } = require('@supabase/supabase-js')
+require('dotenv').config({ path: '.env' })
 
-function parseEnv() {
-    const env = fs.readFileSync('.env', 'utf8')
-    const envDict = {}
-    env.split('\n').forEach(line => {
-        if (line.includes('=')) {
-            const [k, v] = line.split('=')
-            envDict[k.trim()] = v.trim().replace(/^"|"$/g, '')
-        }
-    })
-    return envDict
+async function check() {
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+
+    console.log('--- DB Check ---')
+    const { count: profileCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true })
+    const { count: empCount } = await supabase.from('employees').select('*', { count: 'exact', head: true })
+    const { data: emps } = await supabase.from('employees').select('*, profiles(full_name, email, department)')
+
+    console.log('Profiles:', profileCount)
+    console.log('Employees:', empCount)
+    console.log('Employee Data:', JSON.stringify(emps, null, 2))
 }
 
-async function main() {
-    const envData = parseEnv()
-    const url = envData.NEXT_PUBLIC_SUPABASE_URL
-    const key = envData.SUPABASE_SERVICE_ROLE_KEY
-
-    // We can just use standard fetch matching Postgrest
-    const res = await fetch(`${url}/rest/v1/profiles?select=email,full_name,role,company_id,companies(name)&apikey=${key}`, {
-        headers: {
-            'Authorization': `Bearer ${key}`
-        }
-    })
-
-    const data = await res.json()
-    console.log(JSON.stringify(data, null, 2))
-}
-
-main().catch(console.error)
+check()

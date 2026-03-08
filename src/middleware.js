@@ -33,20 +33,57 @@ export async function middleware(request) {
     )
 
     const { data: { user } } = await supabase.auth.getUser()
+
+    // 2. Fetch latest role from Database (Profiles) for absolute security
+    let role = 'user'
+    if (user) {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+        role = profile?.role || 'user'
+    }
+
     const url = request.nextUrl.clone()
 
-    const isProtectedRoute = url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/portal')
+    // Roles detected in Arvela System:
+    // Admin: super_admin, hr, hiring_manager, boss
+    // Staff: employee
+    // Public: candidate, user
 
-    if (isProtectedRoute && !user) {
-        url.pathname = '/login'
+    const ADMIN_ROLES = ['hr', 'super_admin', 'hiring_manager', 'boss']
+    const isAdmin = ADMIN_ROLES.includes(role)
+    const isEmployee = role === 'employee'
+    const isCandidate = role === 'candidate'
+
+    // --- ACCESS CONTROL LOGIC ---
+
+    // 1. Restriction: ONLY Admin can access /dashboard
+    if (url.pathname.startsWith('/dashboard') && !isAdmin) {
+        if (isEmployee) {
+            url.pathname = '/staff'
+        } else {
+            url.pathname = '/portal'
+        }
         return NextResponse.redirect(url)
     }
 
-    const isAuthRoute = url.pathname === '/login' || url.pathname === '/register' || url.pathname === '/reset-password'
-
-    if (isAuthRoute && user) {
-        url.pathname = '/dashboard'
+    // 2. Restriction: ONLY Employees or Admins can access /staff
+    if (url.pathname.startsWith('/staff') && !isEmployee && !isAdmin) {
+        url.pathname = isAdmin ? '/dashboard' : '/portal'
         return NextResponse.redirect(url)
+    }
+
+    // 3. Handle Login Page Redirection (Redirect authenticated users away from /login)
+    if (url.pathname === '/login' || url.pathname === '/portal/login') {
+        if (user) {
+            if (isAdmin) url.pathname = '/dashboard'
+            else if (isEmployee) url.pathname = '/staff'
+            else if (isCandidate) url.pathname = '/portal'
+            else url.pathname = '/dashboard'
+            return NextResponse.redirect(url)
+        }
     }
 
     return response

@@ -13,9 +13,10 @@ function AlertDialog({
 }
 
 function AlertDialogTrigger({
+  render,
   ...props
 }) {
-  return (<AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props} />);
+  return (<AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" render={render} {...props} />);
 }
 
 function AlertDialogPortal({

@@ -56,8 +56,8 @@
 
 @layer base {
     :root {
-        /* Main Shadcn Default Variables From SKILL.md */
-        --background: 0 0% 97%;
+        /* Main Shadcn Default Variables */
+        --background: 0 0% 98%;
         --foreground: 222 47% 11%;
         --card: 0 0% 100%;
         --card-foreground: 222 47% 11%;
@@ -68,7 +68,7 @@
         --secondary: 220 14% 96%;
         --secondary-foreground: 222 47% 11%;
         --muted: 220 14% 96%;
-        --muted-foreground: 215 20% 65%;
+        --muted-foreground: 215 20% 45%;
         --accent: 33 100% 96%;
         --accent-foreground: 21 90% 48%;
         --destructive: 0 72% 51%;
@@ -76,16 +76,41 @@
         --border: 214 32% 91%;
         --input: 214 32% 91%;
         --ring: 25 95% 53%;
-        --radius: 0.5rem;
+        --radius: 0.75rem;
     }
-}
 
-@layer base {
     * {
         @apply border-border outline-ring/50;
     }
 
+    html,
     body {
-        @apply bg-background text-foreground;
+        font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+        @apply bg-background text-foreground antialiased selection:bg-primary/10 selection:text-primary;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-bold tracking-tight text-slate-900;
+        font-style: normal !important;
+        text-transform: none !important;
+    }
+
+    /* Neutralize unintended italics and all-caps */
+    p,
+    span,
+    label,
+    input,
+    button {
+        font-style: normal !important;
+    }
+
+    /* Dedicated Utility for Uppercase labels */
+    .text-overline {
+        @apply text-[10px] font-extrabold uppercase tracking-widest text-slate-400;
     }
 }

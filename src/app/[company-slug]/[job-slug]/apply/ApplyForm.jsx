@@ -12,7 +12,7 @@ import * as z from 'zod'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { CheckCircle2, Upload, X, FileText, Loader2, ArrowLeft, Link as LinkIcon } from 'lucide-react'
 import Link from 'next/link'
-import { uploadCVFile } from '@/lib/actions/applications'
+import { uploadCVFile, submitApplication } from '@/lib/actions/applications'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ACCEPTED = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
@@ -67,7 +67,7 @@ export default function ApplyForm({ job, company }) {
             return
         }
 
-        const supabase = createClient()
+        // const supabase = createClient() // No longer needed as we use server actions
         let cvUrl = null
 
         // Upload CV jika mode upload
@@ -90,28 +90,27 @@ export default function ApplyForm({ job, company }) {
             cvUrl = values.cv_drive_url
         }
 
-        // Submit application
-        const { error } = await supabase.from('applications').insert({
-            job_id: job.id,
-            company_id: company.id,
-            full_name: values.full_name,
-            email: values.email,
-            phone: values.phone || null,
-            portfolio_url: values.portfolio_url || null,
-            cover_letter: values.cover_letter || null,
-            cv_url: cvUrl,
-        })
-
-        if (error) {
-            if (error.code === '23505') {
+        // Submit application via Server Action
+        try {
+            await submitApplication({
+                job_id: job.id,
+                company_id: company.id,
+                full_name: values.full_name,
+                email: values.email,
+                phone: values.phone || null,
+                portfolio_url: values.portfolio_url || null,
+                cover_letter: values.cover_letter || null,
+                cv_url: cvUrl,
+            })
+            setSubmitted(true)
+        } catch (error) {
+            if (error.message === 'DUPLICATE_APPLY') {
                 setSubmitError('Anda sudah pernah melamar posisi ini sebelumnya dengan email yang sama.')
             } else {
                 setSubmitError(`Terjadi kesalahan: ${error.message}`)
             }
             return
         }
-
-        setSubmitted(true)
     }
 
     // Success state

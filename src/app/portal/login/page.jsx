@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, TicketPercent, CheckCircle2, ArrowRight } from 'lucide-react'
+import { Loader2, Briefcase, CheckCircle2, ArrowRight, Mail } from 'lucide-react'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
 export default function CandidateLoginPage() {
     const [email, setEmail] = useState('')
@@ -21,72 +21,80 @@ export default function CandidateLoginPage() {
         setError('')
 
         const supabase = createClient()
-        const { error } = await supabase.auth.signInWithOtp({
+        const { error: otpError } = await supabase.auth.signInWithOtp({
             email,
             options: {
                 emailRedirectTo: `${window.location.origin}/portal/auth/callback`
             }
         })
 
-        if (error) {
-            setError(error.message)
+        if (otpError) {
+            setError(otpError.message)
         } else {
             setSuccess(true)
         }
-
         setLoading(false)
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-            <div className="mb-8 flex items-center gap-2">
-                <TicketPercent className="w-8 h-8 text-primary" />
-                <span className="text-2xl font-bold tracking-tight text-foreground">Arvela<span className="text-primary">HR</span> Candidate</span>
-            </div>
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4">
+            <Link href="/portal" className="mb-8 flex items-center gap-2">
+                <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center">
+                    <Briefcase className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="font-bold text-xl tracking-tight text-slate-900 leading-none">
+                        Arvela <span className="text-blue-600">Career</span>
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">Candidate Portal</span>
+                </div>
+            </Link>
 
-            <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-6 md:p-8 shadow-sm">
+            <div className="w-full max-w-sm bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
 
                 {success ? (
-                    <div className="text-center space-y-4">
-                        <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                            <CheckCircle2 className="w-6 h-6 text-green-600" />
+                    <div className="text-center space-y-6">
+                        <div className="mx-auto w-16 h-16 bg-blue-50 border border-blue-100 rounded-full flex items-center justify-center">
+                            <Mail className="w-8 h-8 text-blue-600" />
                         </div>
-                        <h2 className="text-xl font-bold text-foreground">Cek Email Anda!</h2>
-                        <p className="text-sm text-muted-foreground">
-                            Kami telah mengirimkan <i>Magic Link</i> ke <strong>{email}</strong>. Silakan klik link tersebut untuk masuk ke portal.
-                        </p>
-                        <Button variant="outline" className="mt-4 w-full" onClick={() => setSuccess(false)}>
+                        <div className="space-y-2">
+                            <h2 className="text-2xl font-bold text-slate-900 leading-tight">Cek Email Anda!</h2>
+                            <p className="text-sm text-slate-500 font-medium">
+                                Kami telah mengirimkan <i>Magic Link</i> ke <strong>{email}</strong>. Silakan klik link tersebut untuk masuk ke portal.
+                            </p>
+                        </div>
+                        <Button variant="outline" className="mt-4 w-full h-11 border-slate-200 font-bold" onClick={() => setSuccess(false)}>
                             Gunakan Email Lain
                         </Button>
                     </div>
                 ) : (
                     <>
-                        <div className="text-center mb-6">
-                            <h1 className="text-xl font-bold text-foreground mb-2">Pantau Lamaran Anda</h1>
-                            <p className="text-sm text-muted-foreground">
-                                Masuk tanpa password. Masukkan email yang Anda gunakan saat melamar.
+                        <div className="text-center mb-8">
+                            <h1 className="text-2xl font-bold text-slate-900 mb-2">Pantau Lamaran</h1>
+                            <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                                Masuk tanpa password. Gunakan email yang Anda gunakan saat melamar pekerjaan.
                             </p>
                         </div>
 
-                        <form onSubmit={handleLogin} className="space-y-4">
+                        <form onSubmit={handleLogin} className="space-y-5">
                             <div className="space-y-2">
-                                <label htmlFor="email" className="text-sm font-medium text-foreground">Email</label>
+                                <label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Kandidat</label>
                                 <Input
                                     id="email"
                                     type="email"
                                     placeholder="nama@email.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="h-11"
+                                    className="h-12 rounded-lg border-slate-200 text-sm font-medium focus:ring-blue-500/10 focus:border-blue-500 transition-all"
                                     required
                                 />
                             </div>
 
-                            {error && <p className="text-xs text-destructive">{error}</p>}
+                            {error && <p className="text-xs text-destructive font-bold">{error}</p>}
 
-                            <Button type="submit" className="w-full h-11" disabled={loading}>
+                            <Button type="submit" className="w-full h-12 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all shadow-md shadow-blue-500/10" disabled={loading}>
                                 {loading ? (
-                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Mengirim Link...</>
+                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sedang Mengirim Link...</>
                                 ) : (
                                     <>Kirim Link Login <ArrowRight className="w-4 h-4 ml-2" /></>
                                 )}
@@ -96,8 +104,8 @@ export default function CandidateLoginPage() {
                 )}
             </div>
 
-            <p className="text-xs text-muted-foreground mt-8">
-                &copy; {new Date().getFullYear()} ArvelaHR Portal. All rights reserved.
+            <p className="text-xs font-bold text-slate-400 mt-8">
+                &copy; {new Date().getFullYear()} Arvela Career Portal. All rights reserved.
             </p>
         </div>
     )
