@@ -1,40 +1,34 @@
 "use client"
 
+import { Suspense } from 'react'
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { KeyRound, Mail, CheckCircle2, ArrowRight } from 'lucide-react'
+import { KeyRound, Mail, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card } from '@/components/ui/card'
 
-export default function ResetPasswordPage() {
+// Komponen utama yang pakai useSearchParams dipindah ke sini
+function ResetPasswordContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const [mode, setMode] = useState('request') // 'request' or 'update'
+    const [mode, setMode] = useState('request')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState({ type: '', text: '' })
     const supabase = createClient()
 
-    // Cek apakah user datang dari link recovery (biasanya ada hash atau session otomatis)
     useEffect(() => {
         async function checkSession() {
             const { data: { session } } = await supabase.auth.getSession()
-            // Jika ada session, berarti user sudah terautentikasi (mungkin via link recovery)
-            if (session) {
-                setMode('update')
-            }
+            if (session) setMode('update')
         }
         checkSession()
 
-        // Supabase secara otomatis menangani hash fragment untuk recovery links
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'PASSWORD_RECOVERY') {
-                setMode('update')
-            }
+            if (event === 'PASSWORD_RECOVERY') setMode('update')
         })
 
         return () => subscription.unsubscribe()
@@ -44,11 +38,9 @@ export default function ResetPasswordPage() {
         e.preventDefault()
         setLoading(true)
         setMessage({ type: '', text: '' })
-
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
             redirectTo: `${window.location.origin}/reset-password`,
         })
-
         if (error) {
             setMessage({ type: 'error', text: error.message })
         } else {
@@ -61,16 +53,12 @@ export default function ResetPasswordPage() {
         e.preventDefault()
         setLoading(true)
         setMessage({ type: '', text: '' })
-
         const { error } = await supabase.auth.updateUser({ password })
-
         if (error) {
             setMessage({ type: 'error', text: error.message })
         } else {
             setMessage({ type: 'success', text: 'Password berhasil diperbarui! Mengalihkan...' })
-            setTimeout(() => {
-                router.push('/login')
-            }, 2000)
+            setTimeout(() => router.push('/login'), 2000)
         }
         setLoading(false)
     }
@@ -92,7 +80,9 @@ export default function ResetPasswordPage() {
             </div>
 
             {message.text && (
-                <div className={`p-4 rounded-2xl mb-6 flex gap-3 ${message.type === 'error' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                <div className={`p-4 rounded-2xl mb-6 flex gap-3 ${message.type === 'error'
+                        ? 'bg-red-50 text-red-600 border border-red-100'
+                        : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                     }`}>
                     {message.type === 'success' && <CheckCircle2 className="w-5 h-5 shrink-0" />}
                     <p className="text-sm font-bold">{message.text}</p>
@@ -102,7 +92,9 @@ export default function ResetPasswordPage() {
             {mode === 'request' ? (
                 <form onSubmit={handleRequest} className="space-y-5">
                     <div className="space-y-2">
-                        <Label htmlFor="email" className="text-slate-900 font-black text-xs uppercase tracking-widest">Email Terdaftar</Label>
+                        <Label htmlFor="email" className="text-slate-900 font-black text-xs uppercase tracking-widest">
+                            Email Terdaftar
+                        </Label>
                         <Input
                             id="email"
                             type="email"
@@ -113,19 +105,13 @@ export default function ResetPasswordPage() {
                             onChange={(e) => setEmail(e.target.value)}
                         />
                     </div>
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full h-12 bg-primary hover:bg-brand-600 text-white font-black rounded-2xl shadow-lg shadow-primary/20 transition-all"
-                    >
+                    <Button type="submit" disabled={loading}
+                        className="w-full h-12 bg-primary hover:bg-brand-600 text-white font-black rounded-2xl shadow-lg shadow-primary/20 transition-all">
                         {loading ? 'Mengirim...' : 'Kirim Instruksi'}
                     </Button>
                     <div className="text-center">
-                        <button
-                            type="button"
-                            onClick={() => router.push('/login')}
-                            className="text-xs font-bold text-slate-400 hover:text-primary transition-colors"
-                        >
+                        <button type="button" onClick={() => router.push('/login')}
+                            className="text-xs font-bold text-slate-400 hover:text-primary transition-colors">
                             Kembali ke Login
                         </button>
                     </div>
@@ -133,7 +119,9 @@ export default function ResetPasswordPage() {
             ) : (
                 <form onSubmit={handleUpdate} className="space-y-5">
                     <div className="space-y-2">
-                        <Label htmlFor="password" className="text-slate-900 font-black text-xs uppercase tracking-widest">Password Baru</Label>
+                        <Label htmlFor="password" className="text-slate-900 font-black text-xs uppercase tracking-widest">
+                            Password Baru
+                        </Label>
                         <Input
                             id="password"
                             type="password"
@@ -143,17 +131,25 @@ export default function ResetPasswordPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />
-                        <p className="text-[10px] text-slate-400 font-medium italic">Gunakan minimal 6 karakter dengan kombinasi huruf dan angka.</p>
+                        <p className="text-[10px] text-slate-400 font-medium italic">
+                            Gunakan minimal 6 karakter dengan kombinasi huruf dan angka.
+                        </p>
                     </div>
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl shadow-lg transition-all"
-                    >
+                    <Button type="submit" disabled={loading}
+                        className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl shadow-lg transition-all">
                         {loading ? 'Menyimpan...' : 'Simpan Password Baru'}
                     </Button>
                 </form>
             )}
         </div>
+    )
+}
+
+// Page export — wrap dengan Suspense di sini
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={<div className="w-full max-w-sm mx-auto">Loading...</div>}>
+            <ResetPasswordContent />
+        </Suspense>
     )
 }
