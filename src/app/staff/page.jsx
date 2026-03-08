@@ -20,13 +20,17 @@ export default function StaffDashboard() {
     const [okrs, setOkrs] = useState([])
     const [courses, setCourses] = useState([])
     const [loading, setLoading] = useState(true)
+    const [userRole, setUserRole] = useState('user')
     const supabase = createClient()
 
     async function fetchData() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        // 1. Employee data
+        // 1. Employee data and Role verification
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        if (profile) setUserRole(profile.role)
+
         const { data: emp, error: empError } = await supabase
             .from('employees')
             .select('*, profiles!employees_profile_id_fkey(full_name, avatar_url, department)')
@@ -103,7 +107,7 @@ export default function StaffDashboard() {
             </div>
             <h1 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">Akses Terbatas</h1>
             <p className="text-slate-500 font-medium leading-relaxed">
-                Anda login sebagai <span className="font-bold text-slate-900 italic">User</span>, namun belum terdaftar sebagai <span className="text-primary font-black underline decoration-2 decoration-primary/20">Karyawan Aktif</span>.
+                Anda login dengan role <span className="font-bold text-slate-900 italic capitalize">{userRole}</span>, namun belum memiliki data di tabel <span className="text-primary font-black underline decoration-2 decoration-primary/20">Karyawan (Employees)</span>.
             </p>
             <div className="mt-10 p-4 rounded-3xl bg-slate-50 border border-slate-100 italic text-[11px] text-slate-400 font-medium">
                 Jika Anda baru saja diterima, silakan beri waktu 5-10 menit untuk sinkronisasi sistem atau hubungi Administrator Arvela.

@@ -60,19 +60,19 @@ export async function middleware(request) {
     // --- ACCESS CONTROL LOGIC ---
 
     // 1. Restriction: ONLY Admin can access /dashboard
-    if (url.pathname.startsWith('/dashboard') && !isAdmin) {
-        if (isEmployee) {
-            url.pathname = '/staff'
-        } else {
-            url.pathname = '/portal'
+    if (url.pathname.startsWith('/dashboard')) {
+        if (!isAdmin) {
+            url.pathname = isEmployee ? '/staff' : '/portal'
+            return NextResponse.redirect(url)
         }
-        return NextResponse.redirect(url)
     }
 
     // 2. Restriction: ONLY Employees or Admins can access /staff
-    if (url.pathname.startsWith('/staff') && !isEmployee && !isAdmin) {
-        url.pathname = isAdmin ? '/dashboard' : '/portal'
-        return NextResponse.redirect(url)
+    if (url.pathname.startsWith('/staff')) {
+        if (!isEmployee && !isAdmin) {
+            url.pathname = '/portal'
+            return NextResponse.redirect(url)
+        }
     }
 
     // 3. Handle Login Page Redirection (Redirect authenticated users away from /login)
@@ -80,8 +80,7 @@ export async function middleware(request) {
         if (user) {
             if (isAdmin) url.pathname = '/dashboard'
             else if (isEmployee) url.pathname = '/staff'
-            else if (isCandidate) url.pathname = '/portal'
-            else url.pathname = '/dashboard'
+            else url.pathname = '/portal'
             return NextResponse.redirect(url)
         }
     }

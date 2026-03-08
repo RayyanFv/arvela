@@ -40,7 +40,7 @@ export default function LoginPage() {
 
     async function onSubmit(values) {
         setError('')
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
             email: values.email,
             password: values.password,
         })
@@ -50,7 +50,23 @@ export default function LoginPage() {
             return
         }
 
-        router.push('/dashboard')
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single()
+
+        const role = profile?.role || 'user'
+        const ADMIN_ROLES = ['hr', 'super_admin', 'hiring_manager', 'boss']
+
+        if (ADMIN_ROLES.includes(role)) {
+            router.push('/dashboard')
+        } else if (role === 'employee') {
+            router.push('/staff')
+        } else {
+            router.push('/portal')
+        }
+
         router.refresh()
     }
 
@@ -61,7 +77,7 @@ export default function LoginPage() {
                     <LogIn className="w-6 h-6 text-primary" />
                 </div>
                 <h1 className="text-3xl font-bold text-sidebar-bg mb-2">Selamat Datang</h1>
-                <p className="text-sidebar-muted text-sm">Masuk ke akun HR Anda untuk mengelola rekrutmen.</p>
+                <p className="text-sidebar-muted text-sm">Masuk ke akun Anda untuk melanjutkan ke platform.</p>
             </div>
 
             <Form {...form}>
@@ -71,7 +87,7 @@ export default function LoginPage() {
                         name="email"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-sidebar-bg font-semibold">Email Kerja</FormLabel>
+                                <FormLabel className="text-sidebar-bg font-semibold">Email</FormLabel>
                                 <FormControl>
                                     <Input
                                         placeholder="hr@perusahaan.com"

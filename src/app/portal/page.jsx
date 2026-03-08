@@ -9,6 +9,7 @@ import { STAGE_CONFIG } from '@/lib/constants/stages'
 import JobBoardUI from './JobBoardUI'
 
 export const metadata = { title: 'Portal Karir — Arvela' }
+export const dynamic = 'force-dynamic'
 
 export default async function CandidatePortalPage({ searchParams }) {
     const { view = 'jobs' } = await searchParams
@@ -28,18 +29,32 @@ export default async function CandidatePortalPage({ searchParams }) {
     let applications = []
     let assignments = []
 
-    if (user) {
-        // PERBAIKAN: Cek apakah user ini juga staff/karyawan
-        const { data: staffCheck } = await adminSupabase
-            .from('employees')
-            .select('id')
-            .eq('profile_id', user.id)
-            .maybeSingle()
+    let isStaffOrAdmin = false
+    let autoRedirectPath = '/portal'
+    let staffLabel = 'Portal Staff'
+    let roleName = 'Kandidat Terverifikasi'
 
-        // Jika view bukan 'jobs' dan user adalah staff, arahkan ke /staff agar tidak bingung
-        if (staffCheck && view === 'apps') {
-            const { redirect } = await import('next/navigation')
-            redirect('/staff')
+    if (user) {
+        // PERBAIKAN: Cek apakah user ini punya akses staff/admin lewat roles di profile
+        const { data: profile } = await adminSupabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+
+        const role = profile?.role || 'user'
+        const ADMIN_ROLES = ['hr', 'super_admin', 'hiring_manager', 'boss']
+
+        if (role === 'employee') {
+            isStaffOrAdmin = true
+            autoRedirectPath = '/staff'
+            staffLabel = 'Portal Staff'
+            roleName = 'Karyawan'
+        } else if (ADMIN_ROLES.includes(role)) {
+            isStaffOrAdmin = true
+            autoRedirectPath = '/dashboard'
+            staffLabel = 'Dashboard Utama'
+            roleName = 'Administrator / HR'
         }
 
         const { data: apps } = await adminSupabase
@@ -109,9 +124,16 @@ export default async function CandidatePortalPage({ searchParams }) {
                     <div className="flex items-center gap-4 shrink-0">
                         {user ? (
                             <div className="flex items-center gap-3">
+                                {isStaffOrAdmin && (
+                                    <Link href={autoRedirectPath} className="hidden sm:block">
+                                        <Button variant="outline" className="rounded-lg h-9 px-4 font-bold border-primary text-primary hover:bg-brand-50 shadow-sm whitespace-nowrap">
+                                            {staffLabel}
+                                        </Button>
+                                    </Link>
+                                )}
                                 <div className="hidden sm:flex flex-col items-end">
                                     <span className="text-xs font-bold text-slate-900">{user.email.split('@')[0]}</span>
-                                    <span className="text-[10px] font-medium text-slate-400">Kandidat Terverifikasi</span>
+                                    <span className="text-[10px] font-medium text-slate-400">{roleName}</span>
                                 </div>
                                 <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block" />
                                 <form action="/portal/auth/logout" method="POST">
@@ -319,9 +341,9 @@ export default async function CandidatePortalPage({ searchParams }) {
                                                 {applications.map(app => {
                                                     const stageCfg = STAGE_CONFIG[app.stage] || { label: 'Diproses', dotColor: 'bg-muted-foreground' }
                                                     return (
-                                                        <Link key={app.id} href={`/${app.companies?.slug}/${app.jobs?.slug}`} className="p-8 hover:bg-slate-50/70 transition-all flex flex-col sm:flex-row items-start sm:items-center gap-8 justify-between group">
+                                                        <div key={app.id} className="p-8 hover:bg-slate-50/70 transition-all flex flex-col sm:flex-row items-start sm:items-center gap-8 justify-between group cursor-default">
                                                             <div className="flex items-center gap-6 flex-1 min-w-0">
-                                                                <div className="w-16 h-16 bg-white border border-slate-200 rounded-2xl flex items-center justify-center shrink-0 shadow-sm overflow-hidden group-hover:scale-110 transition-transform">
+                                                                <div className="w-16 h-16 bg-white border border-slate-200 rounded-2xl flex items-center justify-center shrink-0 shadow-sm overflow-hidden transition-transform">
                                                                     {app.companies?.logo_url ? (
                                                                         <img src={app.companies.logo_url} alt={app.companies.name} className="w-full h-full object-cover" />
                                                                     ) : (
@@ -334,7 +356,7 @@ export default async function CandidatePortalPage({ searchParams }) {
                                                                         <span className="text-slate-300">•</span>
                                                                         <span className="text-xs font-medium text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" />{app.jobs?.location || 'Remote'}</span>
                                                                     </div>
-                                                                    <h3 className="font-extrabold text-slate-900 text-xl sm:text-2xl truncate group-hover:text-primary transition-colors">
+                                                                    <h3 className="font-extrabold text-slate-900 text-xl sm:text-2xl truncate transition-colors">
                                                                         {app.jobs?.title}
                                                                     </h3>
                                                                 </div>
@@ -348,11 +370,11 @@ export default async function CandidatePortalPage({ searchParams }) {
                                                                         <div className={`w-3 h-3 rounded-full ${stageCfg.dotColor} shadow-sm border-2 border-white`} />
                                                                     </div>
                                                                 </div>
-                                                                <div className="h-12 w-12 rounded-2xl bg-slate-50 group-hover:bg-primary group-hover:text-white flex items-center justify-center transition-all shadow-sm group-hover:translate-x-1">
-                                                                    <ChevronRight className="w-7 h-7" />
+                                                                <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center shadow-sm">
+                                                                    <ClipboardCheck className="w-6 h-6 text-slate-400" />
                                                                 </div>
                                                             </div>
-                                                        </Link>
+                                                        </div>
                                                     )
                                                 })}
                                             </div>

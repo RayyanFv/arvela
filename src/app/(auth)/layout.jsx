@@ -12,12 +12,12 @@ export default function AuthLayout({ children }) {
                 <div className="hidden md:flex flex-col justify-between w-1/2 bg-sidebar-bg p-10 text-white relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-sidebar-bg/0 z-0" />
 
-                    <div className="relative z-10 font-bold text-3xl tracking-tight">
+                    <div className="relative z-10 font-bold text-3xl tracking-tight text-white">
                         Arvela<span className="text-primary">HR</span>
                     </div>
 
                     <div className="relative z-10 space-y-4">
-                        <h2 className="text-3xl font-bold leading-tight">
+                        <h2 className="text-3xl font-bold leading-tight text-white">
                             Satu platform untuk <br />
                             semua proses rekrutmen.
                         </h2>

@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
 
 export const metadata = { title: 'Assessment System — Arvela HR' }
+export const dynamic = 'force-dynamic'
 
 export default async function AssessmentsPage() {
     const assessments = await getAssessments().catch(e => {
