@@ -31,6 +31,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 async function runSeeder() {
+    const today = new Date().toISOString().split('T')[0];
     console.log('🚀 Memulai Proses Hard Reset & Seeder Arvela...');
 
     // ==========================================
@@ -45,7 +46,7 @@ async function runSeeder() {
         'onboarding_progress', 'onboarding_tasks',
         'job_scorecards', 'interviews',
         'assessment_assignments', 'assessment_questions', 'assessments',
-        'employees', 'applications', 'jobs'
+        'attendances', 'employees', 'applications', 'jobs'
     ];
 
     for (const t of tablesToClear) {
@@ -115,11 +116,14 @@ async function runSeeder() {
 
         companyId = company.id;
 
-        // Update company logo dummy
+        // Update company logo dummy & office loc (Monas as dummy office)
         await supabase.from('companies').update({
             logo_url: 'https://i.ibb.co/6nd0xM3/arvela-logo-dummy.png',
             industry: 'Technology',
-            size: '50-100'
+            size: '50-100',
+            office_lat: -6.1754,
+            office_lng: 106.8272,
+            office_radius_meters: 500 // 500m radius
         }).eq('id', companyId);
 
         console.log(`- Berhasil menginisialisasi perusahaan: ${company.name}`);
@@ -150,19 +154,18 @@ async function runSeeder() {
 
         await new Promise(r => setTimeout(r, 1000));
 
-        // Create Employee record explicitly
-        const { data: empRecord, error: empRecordErr } = await supabase.from('employees').insert({
+        // Create Employee record
+        const { data: employeeRecord, error: empRecordErr } = await supabase.from('employees').insert({
             profile_id: empProfileId,
             company_id: companyId,
-            job_title: 'Software Engineer',
-            department: 'Engineering',
-            joined_at: new Date('2025-01-10').toISOString(),
-            status: 'onboarding'
+            job_title: 'Fullstack Developer',
+            status: 'active', // Lolos onboarding
+            joined_at: new Date(Date.now() - 86400000 * 30).toISOString() // 30 days ago
         }).select().single();
         if (empRecordErr) throw empRecordErr;
-        employeeRecordId = empRecord.id;
+        employeeRecordId = employeeRecord.id;
 
-        console.log(`- Berhasil membuat Karyawan: oyanrayan01@gmail.com (Role: Staff)`);
+        console.log(`- Berhasil membuat Karyawan: oyanrayan01@gmail.com (Role: Staff - Status: Aktif)`);
 
         // --- Seed Employee Ecosystem (OKR, LMS) ---
         // Onboarding skipped due to complex template relations in remote schema that's mismatched
@@ -178,6 +181,22 @@ async function runSeeder() {
             { okr_id: okr.id, title: '0 Critical Bugs', target_value: 0, current_value: 0, unit: 'bugs' }
         ]);
         if (krErr) throw new Error('Key Results error: ' + krErr.message);
+
+        // --- Attendance Skipped per User Request ---
+        /*
+        const { error: attErr } = await supabase.from('attendances').insert({
+            employee_id: employeeRecordId,
+            company_id: companyId,
+            date: today,
+            clock_in: new Date(new Date().setHours(8, 0, 0)).toISOString(),
+            status: 'present',
+            lat_in: -6.1754,
+            lng_in: 106.8272,
+            photo_in_url: 'https://i.pravatar.cc/150?u=' + empProfileId
+        });
+        if (attErr) console.warn('   ⚠️ Gagal membuat data absensi dummy:', attErr.message);
+        */
+
         console.log(`- Berhasil men-setup ecosystem Staff (OKR, LMS, Onboarding)`);
 
     } catch (e) {

@@ -107,7 +107,7 @@ function ContentViewer({ content, employeeId, onComplete }) {
                     className={`h-9 font-bold rounded-xl gap-2 ${completed ? 'bg-emerald-100 text-emerald-600' : 'bg-primary text-white'}`}
                 >
                     <CheckCircle2 className="w-4 h-4" />
-                    {completed ? 'Selesai ✓' : 'Tandai Selesai'}
+                    {completed ? 'Sudah Selesai' : 'Tandai Selesai'}
                 </Button>
             </div>
         </div>

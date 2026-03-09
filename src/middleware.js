@@ -34,15 +34,18 @@ export async function middleware(request) {
 
     const { data: { user } } = await supabase.auth.getUser()
 
-    // 2. Fetch latest role from Database (Profiles) for absolute security
-    let role = 'user'
+    let role = user?.user_metadata?.role || 'user'
     if (user) {
         const { data: profile } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', user.id)
             .single()
-        role = profile?.role || 'user'
+
+        // If DB profile found, it takes precedence
+        if (profile?.role) {
+            role = profile.role
+        }
     }
 
     const url = request.nextUrl.clone()

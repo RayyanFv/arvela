@@ -1,0 +1,1 @@
+const { createClient } = require('@supabase/supabase-js'); const s = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY); const fs=require('fs'); const sql=fs.readFileSync('supabase/migrations/20260309000200_fase8_attendance_manual.sql','utf-8'); console.log(sql);  

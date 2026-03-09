@@ -208,7 +208,7 @@ export default function HRDashboardOverview() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Weekly Bar — Shadcn Chart */}
-                <Card className="p-6 border-none shadow-sm rounded-2xl lg:col-span-1">
+                <Card className="p-6 border-none shadow-sm rounded-2xl lg:col-span-1 !overflow-visible">
                     <div className="flex items-start justify-between mb-5">
                         <div>
                             <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Pelamar 7 Hari Terakhir</p>
@@ -252,7 +252,7 @@ export default function HRDashboardOverview() {
                 </Card>
 
                 {/* Pipeline Donut — Shadcn Chart */}
-                <Card className="p-6 border-none shadow-sm rounded-2xl lg:col-span-1">
+                <Card className="p-6 border-none shadow-sm rounded-2xl lg:col-span-1 !overflow-visible">
                     <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-5">Distribusi Pipeline</p>
                     {loading
                         ? <div className="flex gap-6 items-center"><Skeleton className="w-28 h-28 rounded-full" /><Skeleton className="flex-1 h-24" /></div>
@@ -317,15 +317,15 @@ export default function HRDashboardOverview() {
                                 <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
                                     <Target className="w-4 h-4 text-amber-500" />
                                 </div>
-                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">OKR Performance</p>
+                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Target & Performa</p>
                             </div>
                             {loading ? <Skeleton className="h-12 w-full" /> : (
                                 <>
                                     <p className="text-xl font-black text-foreground mb-3">
-                                        {okrStats.total} <span className="text-sm font-semibold text-muted-foreground">objektif aktif</span>
+                                        {okrStats.total} <span className="text-sm font-semibold text-muted-foreground">sasaran aktif</span>
                                     </p>
                                     <div className="flex justify-between text-xs font-bold text-muted-foreground mb-1.5">
-                                        <span>Avg. Progress</span><span>{okrStats.avgProgress}%</span>
+                                        <span>Progres Rata-rata</span><span>{Math.round(okrStats.avgProgress)}%</span>
                                     </div>
                                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                                         <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${okrStats.avgProgress}%` }} />

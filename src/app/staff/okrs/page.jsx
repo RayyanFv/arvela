@@ -17,34 +17,34 @@ import { Card } from '@/components/ui/card'
 // ─── Penjelasan OKR ───────────────────────────────────────────────────────────
 const OKR_CONCEPTS = [
     {
-        tag: 'O',
+        tag: 'SU',
         tagColor: 'bg-emerald-100 text-emerald-800',
         icon: Target,
         iconColor: 'text-emerald-600',
         iconBg: 'bg-emerald-50',
-        title: 'Objective (O)',
-        short: 'Tujuan besar yang ingin dicapai',
-        detail: 'Objective adalah pernyataan arah yang inspiratif, kualitatif, dan terikat waktu — biasanya 1 kuartal. Objective menjawab pertanyaan "Kita ingin jadi seperti apa di akhir kuartal ini?" Contoh: "Menjadi platform layanan pelanggan terbaik di kategori kami."',
+        title: 'Sasaran Utama',
+        short: 'Tujuan besar yang ingin kita capai',
+        detail: 'Sasaran Utama adalah arah yang ingin dituju dalam periode tertentu (misal: 1 kuartal). Ini menjawab pertanyaan "Apa pencapaian terbesar kita periode ini?". Contoh: "Menjadi pilihan utama pelanggan di Jakarta."',
     },
     {
-        tag: 'KR',
+        tag: 'IK',
         tagColor: 'bg-blue-100 text-blue-800',
         icon: KeyRound,
         iconColor: 'text-blue-600',
         iconBg: 'bg-blue-50',
-        title: 'Key Result (KR)',
-        short: 'Indikator terukur yang membuktikan Objective tercapai',
-        detail: 'Key Result adalah angka spesifik yang mengindikasikan seberapa dekat kita dengan Objective. Bersifat kuantitatif — selalu ada baseline, current, dan target. Progres rata-rata seluruh KR dari satu Objective menentukan progres Objective tersebut secara otomatis. Contoh: "Tingkatkan NPS dari 40 → 70" atau "Capai 500 transaksi/hari."',
+        title: 'Indikator Keberhasilan',
+        short: 'Ukuran angka yang membuktikan sasaran tercapai',
+        detail: 'Indikator adalah angka nyata untuk mengukur progres. Setiap sasaran biasanya punya 2-3 indikator. Jika angka ini tercapai, maka Sasaran Utama otomatis dianggap sukses. Contoh: "Skor kepuasan pelanggan mencapai 90" atau "Menyelesaikan 10 project tepat waktu."',
     },
     {
-        tag: 'IN',
+        tag: 'RA',
         tagColor: 'bg-slate-100 text-slate-600',
         icon: ListChecks,
         iconColor: 'text-slate-500',
         iconBg: 'bg-slate-50',
-        title: 'Initiative / Action Plan (IN)',
-        short: 'Rencana aksi konkret untuk mendorong Key Result',
-        detail: 'Initiative adalah aktivitas atau proyek yang kamu lakukan untuk memperbaiki angka KR. Berbeda dengan KR yang mengukur hasil (outcome), Initiative mengukur output — apa yang kamu kerjakan. Contoh: "Revamp halaman checkout", "Conduct 10 customer interviews", "Deploy fitur live chat." Setiap Initiative punya status: Not started, In progress, atau Done.',
+        title: 'Rencana Aksi',
+        short: 'Langkah nyata atau tugas yang harus dikerjakan',
+        detail: 'Rencana aksi adalah daftar pekerjaan konkret untuk menggerakkan angka indikator. Jika Indikator adalah "Hasil", maka Rencana Aksi adalah "Usaha". Contoh: "Memperbaiki fitur pembayaran", "Melakukan survei ke 20 orang", atau "Riset teknologi baru."',
     },
 ]
 
@@ -104,10 +104,10 @@ export default function StaffOKRsPage() {
                     </div>
                     <div>
                         <h1 className="text-3xl font-black text-foreground tracking-tight">
-                            Sasaran <span className="text-primary italic">Kinerja</span>
+                            Target & <span className="text-primary italic">Rencana Kerja</span>
                         </h1>
                         <p className="text-muted-foreground font-medium text-sm mt-1 max-w-xl">
-                            Pantau target kuartal dan update Key Results secara berkala untuk mencapai ekspektasi performa.
+                            Pantau target kuartal dan update progres indikator secara berkala untuk menjaga performa kerja.
                         </p>
                     </div>
                 </div>
@@ -116,7 +116,7 @@ export default function StaffOKRsPage() {
                     className="flex items-center gap-2 px-4 h-9 rounded-xl border border-border text-sm font-bold text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-brand-50 transition-all shrink-0"
                 >
                     <Info className="w-4 h-4" />
-                    Apa itu OKR?
+                    Panduan Target
                     {showGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 </button>
             </div>
@@ -127,9 +127,9 @@ export default function StaffOKRsPage() {
                     {/* Title bar */}
                     <div className="bg-gradient-to-r from-primary/5 to-transparent px-6 py-4 border-b border-border flex items-center justify-between">
                         <div>
-                            <h2 className="font-black text-foreground">Panduan OKR — Objectives & Key Results</h2>
+                            <h2 className="font-black text-foreground">Sistem Pengukuran Kinerja (Target & Indikator)</h2>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                                Framework manajemen kinerja yang digunakan oleh Google, Intel, dan ribuan perusahaan terkemuka.
+                                Kami menggunakan sistem pengukuran hasil nyata untuk memastikan setiap usaha memberikan dampak bagi perusahaan.
                             </p>
                         </div>
                         <button
@@ -167,10 +167,10 @@ export default function StaffOKRsPage() {
                         <Zap className="w-4 h-4 text-primary shrink-0" />
                         <p className="text-xs text-muted-foreground leading-relaxed">
                             <span className="font-black text-foreground">Cara kerja:</span>{' '}
-                            Progres <span className="font-bold text-blue-600">KR</span> (Key Results) dihitung dari{' '}
-                            <code className="bg-muted px-1 rounded text-[10px]">current / target × 100%</code>.{' '}
-                            Progres <span className="font-bold text-emerald-600">Objective</span> dihitung otomatis dari rata-rata seluruh KR di dalamnya.{' '}
-                            <span className="font-bold text-slate-500">Inisiatif (IN)</span> adalah langkah aksi — selesaikan dan tandai statusnya untuk membantu KR terpenuhi.
+                            Progres <span className="font-bold text-blue-600">Indikator</span> dihitung dari{' '}
+                            <code className="bg-muted px-1 rounded text-[10px]">aktual / target × 100%</code>.{' '}
+                            Progres <span className="font-bold text-emerald-600">Sasaran Utama</span> dihitung otomatis dari rata-rata seluruh indikator di dalamnya.{' '}
+                            <span className="font-bold text-slate-500">Rencana Aksi</span> adalah aktivitas pendukung — tandai SELESAI jika tugas sudah dilakukan.
                         </p>
                     </div>
                 </Card>
@@ -185,9 +185,9 @@ export default function StaffOKRsPage() {
                 <div className="space-y-0.5">
                     <p className="text-xs font-black text-foreground">Cara Kerja Perhitungan Progres</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                        Progres Objective dihitung otomatis dari rata-rata pencapaian seluruh Key Result (KR).
-                        Update nilai <strong>Aktual</strong> pada baris KR dengan klik angkanya — progres Objective akan ikut berubah.
-                        Inisiatif (IN) tidak mempengaruhi progres, namun mencerminkan effort tim.
+                        Progres Sasaran Utama dihitung otomatis dari rata-rata pencapaian seluruh Indikator Keberhasilan.
+                        Update nilai <strong>Aktual</strong> pada baris indikator dengan klik angkanya — progres Sasaran akan ikut berubah.
+                        Rencana Aksi tidak mempengaruhi persentase, namun mencerminkan usaha nyata Anda di lapangan.
                     </p>
                 </div>
             </div>

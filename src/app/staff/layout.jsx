@@ -13,7 +13,8 @@ import {
     X,
     Bell,
     GraduationCap,
-    Briefcase
+    Briefcase,
+    Clock
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -21,9 +22,9 @@ import { Button } from '@/components/ui/button'
 
 const NAV_ITEMS = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/staff' },
-    { name: 'Lowongan', icon: Briefcase, path: '/portal?view=jobs' },
+    { name: 'Presensi', icon: Clock, path: '/staff/attendance' },
     { name: 'Onboarding', icon: BookOpen, path: '/staff/onboarding' },
-    { name: 'OKR Saya', icon: Target, path: '/staff/okrs' },
+    { name: 'Target Kerja', icon: Target, path: '/staff/okrs' },
     { name: 'Kursus Saya', icon: GraduationCap, path: '/staff/courses' },
     { name: 'Profil', icon: User, path: '/staff/profile' },
 ]

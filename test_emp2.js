@@ -1,0 +1,1 @@
+const { createClient } = require('@supabase/supabase-js'); const s = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY); s.from('employees').select('id, profile_id, status, companies(office_lat)').eq('profile_id', 'f921b990-949a-4d96-b3e3-d444a25713f4').then(console.log);  

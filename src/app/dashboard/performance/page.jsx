@@ -327,8 +327,8 @@ export default function PerformanceDashboardPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Performa & <span className="text-primary italic">Review</span></h1>
-                    <p className="text-slate-500 font-medium">Pantau OKR seluruh karyawan dan beri skor kuartal di sini.</p>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Target & <span className="text-primary italic">Performa</span></h1>
+                    <p className="text-slate-500 font-medium">Pantau target kerja seluruh karyawan dan beri penilaian kuartal di sini.</p>
                 </div>
                 <div className="flex gap-3">
                     <Badge className="h-9 px-4 rounded-xl bg-amber-50 text-amber-600 border-amber-200 font-black text-xs">
@@ -358,7 +358,7 @@ export default function PerformanceDashboardPage() {
                 <div className="flex items-center gap-3 bg-white flex-1 p-2 pr-4 rounded-2xl border border-slate-100 shadow-sm">
                     <Search className="w-4 h-4 ml-2 text-slate-400 shrink-0" />
                     <input
-                        placeholder="Cari karyawan atau objektif..."
+                        placeholder="Cari karyawan atau sasaran..."
                         className="flex-1 border-none bg-transparent text-sm font-medium outline-none p-1"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
@@ -388,8 +388,8 @@ export default function PerformanceDashboardPage() {
                 {/* Table Header */}
                 <div className="hidden md:grid grid-cols-[192px_1fr_128px_144px_160px] px-4 py-3 bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
                     <span>Karyawan</span>
-                    <span>Objective</span>
-                    <span>Progress</span>
+                    <span>Sasaran Utama</span>
+                    <span>Progres</span>
                     <span>Rating</span>
                     <span className="text-right">Aksi</span>
                 </div>

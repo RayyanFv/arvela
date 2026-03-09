@@ -36,10 +36,10 @@ export function Sidebar({ isOpen, setIsOpen }) {
         { icon: ClipboardCheck, label: 'Assessment', href: '/dashboard/assessments' },
         { icon: CalendarDays, label: 'Interview', href: '/dashboard/interviews' },
         { icon: UserSquare, label: 'Karyawan', href: '/dashboard/employees' },
+        { icon: ClipboardCheck, label: 'Kehadiran', href: '/dashboard/attendance' },
         { icon: LineChart, label: 'Performa', href: '/dashboard/performance' },
         { icon: GraduationCap, label: 'LMS', href: '/dashboard/lms' },
         { icon: BookOpen, label: 'Onboarding', href: '/dashboard/onboarding' },
-
     ]
 
     return (

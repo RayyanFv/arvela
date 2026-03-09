@@ -143,14 +143,14 @@ export default function StaffDashboard() {
                             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
                                 <span className={`w-2.5 h-2.5 rounded-full ${employee.status === 'onboarding' ? 'bg-amber-400 shadow-[0_0_10px_#fbbf24]' : 'bg-emerald-400 shadow-[0_0_10px_#34d399]'}`} />
                                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">
-                                    {employee.status === 'onboarding' ? '👋 Tahap Onboarding' : '🚀 Kontribusi Aktif'}
+                                    {employee.status === 'onboarding' ? 'Tahap Onboarding' : 'Kontribusi Aktif'}
                                 </span>
                             </div>
                             <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[0.9] text-white">
                                 Halo, <span className="text-primary italic">{employee.profiles?.full_name?.split(' ')[0]}</span>!
                             </h1>
                             <p className="text-slate-400 text-base md:text-lg font-medium leading-relaxed">
-                                Siap untuk hari yang produktif? Pantau tugas orientasi dan target kinerja Anda secara real-time.
+                                Siap untuk hari yang produktif? Pantau tugas orientasi dan target kinerja Anda secara langsung.
                             </p>
                         </div>
 
