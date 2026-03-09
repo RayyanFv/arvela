@@ -4,7 +4,7 @@ export default function robots() {
             {
                 userAgent: '*',
                 allow: '/',
-                disallow: ['/api/', '/admin/', '/dashboard/'],
+                disallow: ['/api/', '/admin/', '/dashboard/', '/staff/', '/assessment/'],
             },
         ],
         sitemap: 'https://arvela.id/sitemap.xml',

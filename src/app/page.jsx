@@ -192,8 +192,8 @@ export default function LandingPage() {
                         </div>
                         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-slate-900 leading-[1.1] md:leading-[0.95] tracking-tighter mb-6 md:mb-8">
                             HRIS Terintegrasi.<br className="hidden md:block" />
-                            <span className="text-primary italic">Best ATS</span> & Onboarding.<br className="hidden md:block" />
-                            Monitor Performa.
+                            <span className="text-primary italic">Rekrutmen Cerdas</span> & Onboarding.<br className="hidden md:block" />
+                            Kelola Karyawan.
                         </h1>
                         <p className="text-slate-500 text-lg md:text-xl font-medium leading-relaxed mb-8 md:mb-12 max-w-lg mx-auto lg:mx-0">
                             Ekosistem Talent Management untuk tim yang mengejar pertumbuhan progresif. Kelola seluruh siklus hidup karyawan dalam satu pusat kendali yang elegan.
