@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from 'react'
 import { useProfile } from '@/hooks/use-profile'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -28,59 +29,68 @@ export function Topbar({ onOpenSidebar }) {
         router.refresh()
     }
 
-    return (
-        <header className="h-16 flex items-center justify-between px-4 sm:px-6 bg-white border-b border-sidebar-border shrink-0">
-            {/* Hamburger (Mobile) */}
-            {onOpenSidebar && (
-                <div className="flex items-center lg:hidden mr-2">
-                    <Button variant="ghost" size="icon" onClick={onOpenSidebar} className="text-muted-foreground hover:bg-slate-100">
-                        <Menu className="w-5 h-5" />
-                    </Button>
-                </div>
-            )}
+    const [today, setToday] = useState('')
 
-            {/* Search */}
-            <div className="flex-1 flex max-w-md">
-                <div className="relative w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                        type="text"
-                        placeholder="Search..."
-                        className="w-full pl-9 h-10 bg-slate-50 border-transparent focus-visible:ring-primary/20 focus-visible:bg-white rounded-xl transition-all"
-                    />
+    useEffect(() => {
+        setToday(new Date().toLocaleDateString('id-ID', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        }))
+    }, [])
+
+    return (
+        <header className="h-[72px] flex items-center justify-between px-6 bg-white/50 backdrop-blur-md border-b border-sidebar-border/50 shrink-0 sticky top-0 z-30">
+            <div className="flex items-center gap-4">
+                {/* Hamburger (Mobile) */}
+                {onOpenSidebar && (
+                    <div className="lg:hidden">
+                        <Button variant="ghost" size="icon" onClick={onOpenSidebar} className="text-slate-500 hover:bg-slate-100 rounded-xl">
+                            <Menu className="w-5 h-5" />
+                        </Button>
+                    </div>
+                )}
+                <div className="hidden sm:block">
+                    <div className="text-sm font-black text-slate-800 tracking-tight flex items-center h-5">
+                        {loading ? <Skeleton className="w-32 h-5" /> : `Halo, ${profile?.full_name?.split(' ')[0] || 'Tim'}! 👋`}
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-400 mt-0.5 min-h-[16px]">{today}</p>
                 </div>
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-4 ml-6">
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground hidden sm:flex">
-                    <Bell className="w-5 h-5" />
+            <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-900 bg-white shadow-sm border border-slate-100 rounded-full h-10 w-10">
+                    <Bell className="w-4 h-4" />
                 </Button>
+
+                <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block" />
 
                 {loading ? (
                     <Skeleton className="w-10 h-10 rounded-full" />
                 ) : (
                     <DropdownMenu>
-                        <DropdownMenuTrigger className="relative h-10 w-10 text-left flex items-center justify-center rounded-full hover:bg-transparent cursor-pointer outline-none ring-0">
-                            <Avatar className="h-10 w-10 border border-border">
+                        <DropdownMenuTrigger className="relative h-10 w-10 text-left flex items-center justify-center rounded-full hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer outline-none ring-0 focus:ring-0">
+                            <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
                                 <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name} />
-                                <AvatarFallback className="bg-brand-50 text-brand-700">
+                                <AvatarFallback className="bg-gradient-to-tr from-primary/80 to-primary text-white font-bold text-sm">
                                     {profile?.full_name ? profile.full_name.substring(0, 2).toUpperCase() : 'HR'}
                                 </AvatarFallback>
                             </Avatar>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56" align="end" forceMount>
-                            <DropdownMenuLabel className="font-normal">
+                        <DropdownMenuContent className="w-56 rounded-2xl p-2" align="end" forceMount>
+                            <DropdownMenuLabel className="font-normal px-2 py-1.5">
                                 <div className="flex flex-col space-y-1">
-                                    <p className="text-sm font-medium leading-none">{profile?.full_name}</p>
-                                    <p className="text-xs leading-none text-muted-foreground mt-1">
-                                        {profile?.companies?.name || 'Company Name'}
+                                    <p className="text-sm font-bold text-slate-900 leading-none">{profile?.full_name}</p>
+                                    <p className="text-xs font-semibold text-slate-500 mt-1 truncate">
+                                        {profile?.companies?.name || 'Administrator'}
                                     </p>
                                 </div>
                             </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={handleLogout} className="text-destructive font-medium cursor-pointer">
-                                Log out
+                            <DropdownMenuSeparator className="bg-slate-100 my-1" />
+                            <DropdownMenuItem onClick={handleLogout} className="text-rose-600 font-bold focus:bg-rose-50 focus:text-rose-700 rounded-xl cursor-pointer">
+                                Keluar / Logout
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

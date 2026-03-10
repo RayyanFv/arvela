@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
     Users, Briefcase, Trophy, TrendingUp,
     ArrowUpRight, GraduationCap, Target,
-    CheckCircle2, MapPin, BarChart2
+    CheckCircle2, MapPin, BarChart2, Clock
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -66,6 +66,7 @@ export default function HRDashboardOverview() {
     const [okrStats, setOkrStats] = useState({ total: 0, avgProgress: 0 })
     const [lmsStats, setLmsStats] = useState({ courses: 0, published: 0 })
     const [jobApplicantCounts, setJobApplicantCounts] = useState({})
+    const [attendanceStats, setAttendanceStats] = useState({ present: 0, early_leave: 0, leave: 0, sick: 0, absent: 0, holiday_present: 0 })
 
     useEffect(() => {
         async function load() {
@@ -76,7 +77,7 @@ export default function HRDashboardOverview() {
             const cid = prof?.company_id
             if (!cid) { setLoading(false); return }
 
-            const [jobsRes, appsRes, empRes, okrsRes, coursesRes] = await Promise.all([
+            const [jobsRes, appsRes, empRes, okrsRes, coursesRes, attRes] = await Promise.all([
                 supabase.from('jobs')
                     .select('id, title, work_type, location')
                     .eq('company_id', cid).eq('status', 'published')
@@ -90,6 +91,10 @@ export default function HRDashboardOverview() {
                     .select('id, total_progress, employees(company_id)'),
                 supabase.from('lms_courses')
                     .select('id, status').eq('company_id', cid),
+                supabase.from('attendances')
+                    .select('status')
+                    .eq('company_id', cid)
+                    .eq('date', new Date().toLocaleDateString('en-CA')),
             ])
 
             const jobs = jobsRes.data || []
@@ -140,6 +145,12 @@ export default function HRDashboardOverview() {
             // LMS
             const courses = coursesRes.data || []
             setLmsStats({ courses: courses.length, published: courses.filter(c => c.status === 'published').length })
+
+            // Attendance
+            const atts = attRes.data || []
+            const attMap = { present: 0, early_leave: 0, leave: 0, sick: 0, absent: 0, holiday_present: 0 }
+            atts.forEach(a => { if (attMap[a.status] !== undefined) attMap[a.status]++ })
+            setAttendanceStats(attMap)
 
             setLoading(false)
         }
@@ -331,6 +342,32 @@ export default function HRDashboardOverview() {
                                         <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${okrStats.avgProgress}%` }} />
                                     </div>
                                 </>
+                            )}
+                        </Card>
+                    </Link>
+                    <Link href="/dashboard/attendance">
+                        <Card className="p-5 border-none shadow-sm rounded-2xl hover:shadow-md transition-all cursor-pointer">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="w-9 h-9 bg-rose-50 rounded-xl flex items-center justify-center shrink-0">
+                                    <Clock className="w-4 h-4 text-rose-500" />
+                                </div>
+                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Kehadiran Hari Ini</p>
+                            </div>
+                            {loading ? <Skeleton className="h-12 w-full" /> : (
+                                <div className="flex items-end gap-6">
+                                    <div>
+                                        <p className="text-2xl font-black text-emerald-500">{attendanceStats.present + attendanceStats.early_leave + attendanceStats.holiday_present}</p>
+                                        <p className="text-xs font-bold text-muted-foreground">Hadir</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-black text-amber-500">{attendanceStats.leave + attendanceStats.sick}</p>
+                                        <p className="text-xs font-bold text-muted-foreground">Cuti</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-black text-rose-500">{attendanceStats.absent}</p>
+                                        <p className="text-xs font-bold text-muted-foreground">Alpa</p>
+                                    </div>
+                                </div>
                             )}
                         </Card>
                     </Link>

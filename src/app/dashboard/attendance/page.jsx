@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
     Clock, MapPin, Camera,
     CheckCircle2, AlertCircle, Loader2,
-    Search, Calendar, User, FileText, MonitorPlay
+    Search, Calendar, User, FileText, MonitorPlay, CalendarDays
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -238,7 +238,7 @@ export default function HRAttendancePage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
+            <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
                 {[
                     { id: 'monitoring', label: 'Monitor Kehadiran', icon: MonitorPlay },
                     { id: 'master', label: 'Master Shift', icon: Clock },
@@ -253,6 +253,23 @@ export default function HRAttendancePage() {
                         {tab.label}
                     </button>
                 ))}
+
+                {/* External Link disguised as a Tab */}
+                <a
+                    href="/dashboard/attendance/requests"
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all ml-1 border border-rose-100 bg-white"
+                >
+                    <FileText className="w-3.5 h-3.5" />
+                    Manajemen Izin & Cuti
+                </a>
+
+                <a
+                    href="/dashboard/attendance/holidays"
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 transition-all ml-1 border border-emerald-100 bg-white"
+                >
+                    <CalendarDays className="w-3.5 h-3.5" />
+                    Kalender Libur
+                </a>
             </div>
 
             {activeTab === 'monitoring' && (

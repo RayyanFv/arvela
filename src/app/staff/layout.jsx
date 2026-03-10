@@ -23,7 +23,8 @@ import { Button } from '@/components/ui/button'
 const NAV_ITEMS = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/staff' },
     { name: 'Presensi', icon: Clock, path: '/staff/attendance' },
-    { name: 'Onboarding', icon: BookOpen, path: '/staff/onboarding' },
+    { name: 'Izin & Cuti', icon: BookOpen, path: '/staff/attendance/requests' },
+    { name: 'Onboarding', icon: Briefcase, path: '/staff/onboarding' },
     { name: 'Target Kerja', icon: Target, path: '/staff/okrs' },
     { name: 'Kursus Saya', icon: GraduationCap, path: '/staff/courses' },
     { name: 'Profil', icon: User, path: '/staff/profile' },
