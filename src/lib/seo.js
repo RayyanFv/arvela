@@ -4,6 +4,8 @@
  */
 
 export const SEO_CONFIG = {
+    themeColor: '#FC7E12', // Arvela Orange (Primary)
+    colorScheme: 'light',
     title: {
         default: 'Arvela: HRIS & Talent Management System Terbaik Indonesia',
         template: '%s | Arvela HR'

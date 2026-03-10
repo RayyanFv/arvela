@@ -115,6 +115,7 @@ function Navbar() {
                 </div>
                 <div className="hidden md:flex items-center gap-10 text-[13px] font-bold text-slate-500">
                     <a href="#modul" className="hover:text-primary transition-colors">Solusi</a>
+                    <Link href="/about" className="hover:text-primary transition-colors">Company Profile</Link>
                     <a href="#bandingkan" className="hover:text-primary transition-colors">Perbandingan</a>
                     <a href="#harga" className="hover:text-primary transition-colors">Harga</a>
                 </div>
@@ -530,6 +531,7 @@ export default function LandingPage() {
                     <div>
                         <p className="text-slate-900 font-black text-[11px] mb-6 uppercase tracking-[0.2em]">Navigasi & Legal</p>
                         <div className="space-y-4">
+                            <Link href="/about" className="text-slate-500 hover:text-primary text-sm font-bold block transition-colors">Company Profile & Pitch</Link>
                             <a href="#modul" className="text-slate-500 hover:text-primary text-sm font-bold block transition-colors">Modul Solusi</a>
                             <a href="#" className="text-slate-500 hover:text-primary text-sm font-bold block transition-colors">Kebijakan Privasi</a>
                         </div>
