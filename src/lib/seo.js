@@ -5,10 +5,10 @@
 
 export const SEO_CONFIG = {
     title: {
-        default: 'Arvela — HRIS & Talent Management System Terbaik di Indonesia',
+        default: 'Arvela: HRIS & Talent Management System Terbaik Indonesia',
         template: '%s | Arvela HR'
     },
-    description: 'Platform HRIS terintegrasi: dari Applicant Tracking System (ATS), Onboarding adaptif, Absensi GPS & Selfie, hingga Monitoring Performa OKR. Solusi rekrutmen dan manajemen karyawan modern.',
+    description: 'Platform HRIS Terintegrasi: ATS, Onboarding, Absensi GPS & OKR. Solusi modern untuk rekrutmen dan manajemen performa karyawan Indonesia.',
     keywords: [
         'HRIS Indonesia',
         'Applicant Tracking System Indonesia',

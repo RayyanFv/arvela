@@ -21,23 +21,37 @@ import { getMetadata } from '@/lib/seo'
 export const metadata = getMetadata()
 
 function JsonLd() {
-    const data = {
-        "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Arvela HR",
-        "operatingSystem": "Web",
-        "applicationCategory": "BusinessApplication, HRSoftware",
-        "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "ratingCount": "120"
+    const data = [
+        {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "Arvela HR",
+            "operatingSystem": "Web",
+            "applicationCategory": "BusinessApplication, HRSoftware",
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.9",
+                "ratingCount": "120"
+            }
         },
-        "offers": {
-            "@type": "Offer",
-            "price": "500000",
-            "priceCurrency": "IDR"
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Arvela",
+            "url": "https://arvela.id",
+            "logo": "https://arvela.id/logo.png",
+            "sameAs": [
+                "https://facebook.com/arvelahr",
+                "https://x.com/arvelahr",
+                "https://linkedin.com/company/arvela"
+            ],
+            "contactPoint": {
+                "@type": "ContactPoint",
+                "email": "hey.aicareer@gmail.com",
+                "contactType": "customer service"
+            }
         }
-    };
+    ];
     return (
         <script
             type="application/ld+json"
@@ -191,9 +205,9 @@ export default function LandingPage() {
                             <span className="text-slate-600 text-[10px] md:text-[11px] font-black uppercase tracking-widest leading-none">Terbuka Untuk Pilot Program</span>
                         </div>
                         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-slate-900 leading-[1.1] md:leading-[0.95] tracking-tighter mb-6 md:mb-8">
-                            HRIS Terintegrasi.<br className="hidden md:block" />
+                            Software HRIS Terintegrasi.<br className="hidden md:block" />
                             <span className="text-primary italic">Rekrutmen Cerdas</span> & Onboarding.<br className="hidden md:block" />
-                            Kelola Karyawan.
+                            Kelola Karyawan Modern.
                         </h1>
                         <p className="text-slate-500 text-lg md:text-xl font-medium leading-relaxed mb-8 md:mb-12 max-w-lg mx-auto lg:mx-0">
                             Ekosistem Talent Management untuk tim yang mengejar pertumbuhan progresif. Kelola seluruh siklus hidup karyawan dalam satu pusat kendali yang elegan.
@@ -468,14 +482,14 @@ export default function LandingPage() {
                         ))}
                     </div>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <a href="mailto:hey.aicareer@gmail.com" className="bg-primary hover:bg-white hover:text-primary text-white font-black text-lg px-10 py-5 rounded-2xl transition-all flex items-center gap-3 justify-center shadow-2xl shadow-primary/20">
+                        <a href="mailto:hey.aicareer[at]gmail.com" className="bg-primary hover:bg-white hover:text-primary text-white font-black text-lg px-10 py-5 rounded-2xl transition-all flex items-center gap-3 justify-center shadow-2xl shadow-primary/20">
                             Claim Akses Pilot <ArrowRight className="w-5 h-5" />
                         </a>
                         <a href="https://wa.me/6285727627146?text=halo%20kak%20mau%20coba%2015%20hari%20pilot%20project%20bareng%20Arvela" target="_blank" rel="noopener noreferrer" className="border-2 border-white/10 text-white hover:bg-white/10 font-black text-lg px-10 py-5 rounded-2xl transition-all">
                             WhatsApp Us
                         </a>
                     </div>
-                    <p className="text-slate-500 text-sm font-bold mt-8">hey.aicareer@gmail.com</p>
+                    <p className="text-slate-500 text-sm font-bold mt-8">hey.aicareer [at] gmail.com</p>
                 </div>
             </section>
 
@@ -496,10 +510,16 @@ export default function LandingPage() {
                         <p className="text-slate-400 text-[10px] font-black uppercase mt-3 tracking-widest">— Dian Kusumawati, Founder</p>
                     </div>
                     <div>
-                        <p className="text-slate-900 font-black text-[11px] mb-6 uppercase tracking-[0.2em]">Hubungi Kami</p>
-                        <div className="space-y-4">
-                            <a href="mailto:hey.aicareer@gmail.com" className="text-slate-500 hover:text-primary text-sm font-bold block transition-colors">hey.aicareer@gmail.com</a>
-                            <a href="#" className="text-slate-500 hover:text-primary text-sm font-bold block transition-colors tracking-tight">arvela.id · aicareer.id</a>
+                        <p className="text-slate-900 font-black text-[11px] mb-6 uppercase tracking-[0.2em]">Ikuti Kami</p>
+                        <div className="flex gap-4">
+                            <a href="https://facebook.com/arvelahr" className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-primary hover:bg-white hover:shadow-lg transition-all border border-slate-100 italic font-black text-xs">Fb</a>
+                            <a href="https://linkedin.com/company/arvela" className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-primary hover:bg-white hover:shadow-lg transition-all border border-slate-100 italic font-black text-xs">In</a>
+                            <a href="https://instagram.com/arvela" className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-primary hover:bg-white hover:shadow-lg transition-all border border-slate-100 italic font-black text-xs">Ig</a>
+                        </div>
+                        <div className="mt-8">
+                            <p className="text-slate-900 font-black text-[11px] mb-4 uppercase tracking-[0.2em]">Kontak</p>
+                            <a href="mailto:hey.aicareer[at]gmail.com" className="text-slate-500 hover:text-primary text-sm font-bold block transition-colors">hey.aicareer [at] gmail.com</a>
+                            <p className="text-slate-500 text-sm font-bold mt-2">arvela.id · aicareer.id</p>
                         </div>
                     </div>
                     <div>

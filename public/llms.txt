@@ -1,0 +1,21 @@
+# Arvela HRIS & Talent Management
+
+Arvela is a comprehensive human capital management (HCM) platform designed for Indonesian modern companies. It integrates recruitment, onboarding, performance (OKR), and learning in one elegant ecosystem.
+
+## Key Modules
+- **ATS (Applicant Tracking System)**: Manage job vacancies, candidate assessment, and hiring pipeline.
+- **Onboarding**: Automated orientation checklists for new hires.
+- **Attendance**: GPS Geofencing and Selfie-based presence.
+- **OKR (Performance)**: Quantitative objective and key results tracking.
+- **LMS (Learning Management System)**: Internal training portal with certificates.
+
+## Contact Information
+- Website: https://arvela.id
+- Support: hey.aicareer@gmail.com
+- WhatsApp: +62 857-2762-7146
+
+## Technology Stack
+- Next.js 15
+- Supabase (PostgreSQL, Auth, Storage)
+- Tailwind CSS
+- Mapbox
