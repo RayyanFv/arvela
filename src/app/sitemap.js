@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/server'
 
 export default async function sitemap() {
     const baseUrl = 'https://arvela.id';
-    const supabase = await createClient();
+    const supabase = createAdminSupabaseClient();
 
     // 1. Fetch Dynamic Jobs (Published only)
     const { data: jobs } = await supabase
