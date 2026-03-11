@@ -26,6 +26,7 @@ export default function AttendancePage() {
     const [shift, setShift] = useState(null)
     const [schedule, setSchedule] = useState(null)
     const [history, setHistory] = useState([])
+    const [activeLeave, setActiveLeave] = useState(null)
 
     // Manual / out of radius
     const [isManual, setIsManual] = useState(false)
@@ -76,7 +77,7 @@ export default function AttendancePage() {
                 .or(`day_of_week.eq.${dayOfWeek},specific_date.eq.${today}`)
                 .order('specific_date', { ascending: false }) // Prioritize specific date
                 .limit(1)
-                .single()
+                .maybeSingle()
 
             if (sched) {
                 setSchedule(sched)
@@ -88,7 +89,7 @@ export default function AttendancePage() {
                 .select('*')
                 .eq('employee_id', emp.id)
                 .eq('date', today)
-                .single()
+                .maybeSingle()
 
             if (attErr && attErr.code !== 'PGRST116') { // PGRST116 is 'no rows' which is normal
                 console.error('Error fetching attendance:', attErr)
@@ -104,6 +105,20 @@ export default function AttendancePage() {
                 .order('date', { ascending: false })
                 .limit(7)
             setHistory(hist || [])
+
+            // Fetch Active Approved Leave/Requests Today
+            const { data: reqData } = await supabase
+                .from('attendance_requests')
+                .select('*, leave_types(name)')
+                .eq('employee_id', emp.id)
+                .eq('status', 'APPROVED')
+                .lte('start_date', today)
+                .gte('end_date', today)
+                .limit(1)
+
+            if (reqData && reqData.length > 0) {
+                setActiveLeave(reqData[0])
+            }
         } else {
             console.warn('No employee record found for user:', user.id)
         }
@@ -255,7 +270,7 @@ export default function AttendancePage() {
             targetTime.setHours(targetH, targetM, 0, 0)
 
             if (now < targetTime) {
-                attendanceStatus = 'early_leave'
+                attendanceStatus = activeLeave?.type === 'EARLY_LEAVE' ? 'excused' : 'early_leave'
             }
         }
 
@@ -358,7 +373,22 @@ export default function AttendancePage() {
                         </div>
                     )}
 
-                    {!isClockedOut && (
+                    {activeLeave && ['LEAVE', 'SICK', 'PERMISSION'].includes(activeLeave.type) ? (
+                        <div className="p-8 text-center bg-blue-50/50 rounded-[28px] border border-blue-100 mt-4 animate-in zoom-in-95 duration-500">
+                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm mb-4">
+                                <AlertCircle className="w-8 h-8 text-blue-500" />
+                            </div>
+                            <h3 className="text-xl font-black text-blue-900">
+                                Cuti / Izin Disetujui
+                            </h3>
+                            <p className="text-sm font-medium text-blue-700/70 mt-2">
+                                Status: <span className="font-bold">{activeLeave.leave_types?.name || activeLeave.type}</span><br/>
+                                Keterangan: <span className="font-bold">{activeLeave.reason}</span><br/>
+                                Berakhir: <span className="font-bold">{new Date(activeLeave.end_date).toLocaleDateString('id-ID')}</span>
+                            </p>
+                            <p className="text-sm font-bold mt-4 text-blue-700 bg-white p-3 rounded-xl border border-blue-50/80 shadow-sm inline-block">Tidak perlu absen masuk hari ini. Selamat beristirahat! 🌴</p>
+                        </div>
+                    ) : !isClockedOut && (
                         <div className="space-y-4">
                             <div className="flex flex-col gap-3 p-3 bg-blue-50/50 rounded-2xl border border-blue-100/50">
                                 <div className="flex items-center gap-3">

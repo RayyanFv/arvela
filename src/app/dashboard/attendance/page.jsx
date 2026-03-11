@@ -5,13 +5,14 @@ import { createClient } from '@/lib/supabase/client'
 import {
     Clock, MapPin, Camera,
     CheckCircle2, AlertCircle, Loader2,
-    Search, Calendar, User, FileText, MonitorPlay, CalendarDays
+    Search, Calendar, User, FileText, MonitorPlay, CalendarDays, Timer
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { X, ExternalLink, CheckCircle, XCircle, Settings } from 'lucide-react'
 import MapWrapper from '@/components/ui/MapWrapper'
+import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
 import dynamic from 'next/dynamic'
 
 const OfficeLocationPicker = dynamic(() => import('@/components/ui/OfficeLocationPicker'), {
@@ -212,6 +213,8 @@ export default function HRAttendancePage() {
 
     return (
         <div className="space-y-8 pb-20">
+            <Breadcrumbs />
+
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -269,6 +272,14 @@ export default function HRAttendancePage() {
                 >
                     <CalendarDays className="w-3.5 h-3.5" />
                     Kalender Libur
+                </a>
+
+                <a
+                    href="/dashboard/overtime"
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black text-violet-600 hover:bg-violet-50 hover:text-violet-700 transition-all ml-1 border border-violet-100 bg-white"
+                >
+                    <Timer className="w-3.5 h-3.5" />
+                    Kelola Lembur
                 </a>
             </div>
 

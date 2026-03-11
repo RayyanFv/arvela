@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -16,7 +15,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Search, Bell, Menu } from 'lucide-react'
+import { Menu, LogOut } from 'lucide-react'
 
 export function Topbar({ onOpenSidebar }) {
     const { profile, loading } = useProfile()
@@ -61,12 +60,6 @@ export function Topbar({ onOpenSidebar }) {
 
             {/* Actions */}
             <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-900 bg-white shadow-sm border border-slate-100 rounded-full h-10 w-10">
-                    <Bell className="w-4 h-4" />
-                </Button>
-
-                <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block" />
-
                 {loading ? (
                     <Skeleton className="w-10 h-10 rounded-full" />
                 ) : (
@@ -89,7 +82,8 @@ export function Topbar({ onOpenSidebar }) {
                                 </div>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator className="bg-slate-100 my-1" />
-                            <DropdownMenuItem onClick={handleLogout} className="text-rose-600 font-bold focus:bg-rose-50 focus:text-rose-700 rounded-xl cursor-pointer">
+                            <DropdownMenuItem onClick={handleLogout} className="text-rose-600 font-bold focus:bg-rose-50 focus:text-rose-700 rounded-xl cursor-pointer gap-2">
+                                <LogOut className="w-4 h-4" />
                                 Keluar / Logout
                             </DropdownMenuItem>
                         </DropdownMenuContent>

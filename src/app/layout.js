@@ -1,4 +1,5 @@
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -15,7 +16,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="id">
       <body className={`${plusJakartaSans.variable} font-sans antialiased text-sidebar-bg bg-background`}>
-        {children}
+        <TooltipProvider>
+            {children}
+        </TooltipProvider>
       </body>
     </html>
   );

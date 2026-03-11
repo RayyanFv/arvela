@@ -4,7 +4,6 @@ import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
 function Dialog({
@@ -14,9 +13,16 @@ function Dialog({
 }
 
 function DialogTrigger({
+  asChild,
+  children,
   ...props
 }) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
+  // base-ui uses `render` prop instead of Radix-style `asChild`.
+  // Translate asChild to render for compatibility.
+  if (asChild && React.isValidElement(children)) {
+    return <DialogPrimitive.Trigger data-slot="dialog-trigger" render={children} {...props} />;
+  }
+  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props}>{children}</DialogPrimitive.Trigger>;
 }
 
 function DialogPortal({
@@ -26,9 +32,15 @@ function DialogPortal({
 }
 
 function DialogClose({
+  asChild,
+  children,
   ...props
 }) {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
+  // Translate asChild to render for base-ui compatibility
+  if (asChild && React.isValidElement(children)) {
+    return <DialogPrimitive.Close data-slot="dialog-close" render={children} {...props} />;
+  }
+  return <DialogPrimitive.Close data-slot="dialog-close" {...props}>{children}</DialogPrimitive.Close>;
 }
 
 function DialogOverlay({
@@ -66,10 +78,9 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            render={
-              <Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />
-            }>
-            <XIcon />
+            className="absolute top-3 right-3 inline-flex items-center justify-center rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors outline-none"
+          >
+            <XIcon className="w-4 h-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
@@ -106,7 +117,9 @@ function DialogFooter({
       {...props}>
       {children}
       {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline" />}>
+        <DialogPrimitive.Close
+          className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors outline-none"
+        >
           Close
         </DialogPrimitive.Close>
       )}

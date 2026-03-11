@@ -1,11 +1,10 @@
 'use client'
 
 // ──────────────────────────────────────────────────
-// MODULE  : Dashboard Overview (Mod 0)
+// MODULE  : Dashboard Overview (Mod 0) — Enhanced
 // FILE    : app/dashboard/page.jsx
-// TABLES  : profiles, companies, jobs, applications, employees, okrs, lms_courses
+// TABLES  : profiles, companies, jobs, applications, employees, okrs, lms_courses, overtime_requests
 // ACCESS  : PROTECTED — hr, super_admin
-// SKILL   : baca Arvela/SKILL.md sebelum edit file ini
 // ──────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react'
@@ -13,14 +12,21 @@ import { createClient } from '@/lib/supabase/client'
 import {
     Users, Briefcase, Trophy, TrendingUp,
     ArrowUpRight, GraduationCap, Target,
-    CheckCircle2, MapPin, BarChart2, Clock
+    CheckCircle2, MapPin, BarChart2, Clock,
+    Timer, CalendarDays, Zap, ArrowRight, Info
 } from 'lucide-react'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { StageBadge } from '@/components/candidates/StageBadge'
+import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
 import {
     ChartContainer,
     ChartTooltip,
@@ -28,7 +34,7 @@ import {
 } from '@/components/ui/chart'
 import {
     BarChart, Bar, XAxis, YAxis, ResponsiveContainer,
-    Cell, PieChart, Pie, Tooltip
+    Cell, PieChart, Pie, Tooltip as RechartsTooltip
 } from 'recharts'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -67,6 +73,7 @@ export default function HRDashboardOverview() {
     const [lmsStats, setLmsStats] = useState({ courses: 0, published: 0 })
     const [jobApplicantCounts, setJobApplicantCounts] = useState({})
     const [attendanceStats, setAttendanceStats] = useState({ present: 0, early_leave: 0, leave: 0, sick: 0, absent: 0, holiday_present: 0 })
+    const [overtimeStats, setOvertimeStats] = useState({ pending: 0, approved: 0, totalHours: 0 })
 
     useEffect(() => {
         async function load() {
@@ -77,7 +84,7 @@ export default function HRDashboardOverview() {
             const cid = prof?.company_id
             if (!cid) { setLoading(false); return }
 
-            const [jobsRes, appsRes, empRes, okrsRes, coursesRes, attRes] = await Promise.all([
+            const [jobsRes, appsRes, empRes, okrsRes, coursesRes, attRes, otRes] = await Promise.all([
                 supabase.from('jobs')
                     .select('id, title, work_type, location')
                     .eq('company_id', cid).eq('status', 'published')
@@ -95,6 +102,9 @@ export default function HRDashboardOverview() {
                     .select('status')
                     .eq('company_id', cid)
                     .eq('date', new Date().toLocaleDateString('en-CA')),
+                supabase.from('overtime_requests')
+                    .select('status, total_hours')
+                    .eq('company_id', cid),
             ])
 
             const jobs = jobsRes.data || []
@@ -152,6 +162,14 @@ export default function HRDashboardOverview() {
             atts.forEach(a => { if (attMap[a.status] !== undefined) attMap[a.status]++ })
             setAttendanceStats(attMap)
 
+            // Overtime
+            const otData = otRes.data || []
+            setOvertimeStats({
+                pending: otData.filter(o => o.status === 'pending').length,
+                approved: otData.filter(o => o.status === 'approved').length,
+                totalHours: otData.filter(o => o.status === 'approved').reduce((s, o) => s + (parseFloat(o.total_hours) || 0), 0),
+            })
+
             setLoading(false)
         }
         load()
@@ -173,6 +191,8 @@ export default function HRDashboardOverview() {
     return (
         <div className="space-y-8 pb-24">
 
+            <Breadcrumbs />
+
             {/* ── Header ── */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
@@ -190,46 +210,87 @@ export default function HRDashboardOverview() {
                 </Link>
             </div>
 
-            {/* ── Stat Cards ── */}
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* ── Quick Actions ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 {[
-                    { label: 'Lowongan Aktif', value: stats.totalJobs, icon: Briefcase, color: 'text-blue-500', bg: 'bg-blue-50', href: '/dashboard/jobs' },
-                    { label: 'Total Pelamar', value: stats.totalApplicants, icon: Users, color: 'text-primary', bg: 'bg-brand-50', href: '/dashboard/candidates' },
-                    { label: 'Karyawan Aktif', value: stats.totalEmployees, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50', href: '/dashboard/employees' },
-                    { label: 'Total Hired', value: stats.totalHired, icon: Trophy, color: 'text-amber-500', bg: 'bg-amber-50', href: '/dashboard/candidates' },
-                ].map((s, i) => (
-                    <Link key={i} href={s.href}>
-                        <Card className="p-5 border-none shadow-sm rounded-2xl hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex items-center gap-4">
-                            <div className={`w-12 h-12 ${s.bg} rounded-2xl flex items-center justify-center shrink-0`}>
-                                <s.icon className={`w-5 h-5 ${s.color}`} />
+                    { label: 'Buat Lowongan', href: '/dashboard/jobs/new', icon: Briefcase, gradient: 'from-blue-500 to-indigo-600' },
+                    { label: 'Lihat Kandidat', href: '/dashboard/candidates', icon: Users, gradient: 'from-primary to-orange-500' },
+                    { label: 'Kelola Lembur', href: '/dashboard/overtime', icon: Timer, gradient: 'from-violet-500 to-purple-600' },
+                    { label: 'Monitor Kehadiran', href: '/dashboard/attendance', icon: Clock, gradient: 'from-emerald-500 to-teal-600' },
+                ].map(action => (
+                    <Link key={action.href} href={action.href}>
+                        <div className="group relative overflow-hidden rounded-2xl p-4 bg-white border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer">
+                            <div className={`absolute -top-6 -right-6 w-16 h-16 bg-gradient-to-br ${action.gradient} rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-125 transition-all`} />
+                            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center mb-3`}>
+                                <action.icon className="w-4 h-4 text-white" />
                             </div>
-                            <div className="min-w-0">
-                                <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5">{s.label}</p>
-                                {loading
-                                    ? <Skeleton className="h-7 w-12" />
-                                    : <p className="text-2xl font-black text-foreground">{s.value}</p>
-                                }
-                            </div>
-                        </Card>
+                            <p className="text-xs font-bold text-slate-700 group-hover:text-slate-900 transition-colors">{action.label}</p>
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 absolute top-4 right-4 group-hover:translate-x-0.5 transition-all" />
+                        </div>
                     </Link>
                 ))}
             </div>
 
+            {/* ── Stat Cards ── */}
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+                {[
+                    { label: 'Lowongan Aktif', value: stats.totalJobs, icon: Briefcase, color: 'text-blue-500', bg: 'bg-blue-50', href: '/dashboard/jobs', tooltip: 'Jumlah lowongan pekerjaan yang masih terbuka dan sedang menerima pelamar.' },
+                    { label: 'Total Pelamar', value: stats.totalApplicants, icon: Users, color: 'text-primary', bg: 'bg-brand-50', href: '/dashboard/candidates', tooltip: 'Total seluruh kandidat yang melamar di semua lowongan perusahaan.' },
+                    { label: 'Karyawan Aktif', value: stats.totalEmployees, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50', href: '/dashboard/employees', tooltip: 'Jumlah karyawan aktif yang terdaftar di dalam sistem saat ini.' },
+                    { label: 'Total Hired', value: stats.totalHired, icon: Trophy, color: 'text-amber-500', bg: 'bg-amber-50', href: '/dashboard/candidates', tooltip: 'Jumlah kandidat yang berhasil direkrut dan dipekerjakan melalui platform ini.' },
+                ].map((s, i) => (
+                    <Tooltip key={i}>
+                        <TooltipTrigger asChild>
+                            <Link href={s.href} className="block">
+                                <Card className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex items-center gap-5">
+                                    <div className={`w-14 h-14 ${s.bg} rounded-2xl flex items-center justify-center shrink-0`}>
+                                        <s.icon className={`w-6 h-6 ${s.color}`} />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5 mb-1.5">
+                                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none truncate">{s.label}</p>
+                                        </div>
+                                        {loading
+                                            ? <Skeleton className="h-8 w-14" />
+                                            : <p className="text-3xl font-black text-foreground">{s.value}</p>
+                                        }
+                                    </div>
+                                </Card>
+                            </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[200px] text-center bg-slate-800 text-white font-medium">
+                            <p>{s.tooltip}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                ))}
+            </div>
+
             {/* ── Charts Row ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
 
                 {/* Weekly Bar — Shadcn Chart */}
-                <Card className="p-6 border-none shadow-sm rounded-2xl lg:col-span-1 !overflow-visible">
-                    <div className="flex items-start justify-between mb-5">
+                <Card className="p-8 border-none shadow-sm rounded-3xl lg:col-span-1 !overflow-visible relative">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="absolute top-8 right-8 cursor-help">
+                                <Info className="w-4 h-4 text-slate-300 hover:text-primary transition-colors" />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
+                            Grafik jumlah pelamar baru yang mendaftar ke lowongan perusahaan Anda dalam 7 hari terakhir.
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <div className="flex items-start justify-between mb-8">
                         <div>
-                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Pelamar 7 Hari Terakhir</p>
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Pelamar 7 Hari Terakhir</p>
                             {loading
-                                ? <Skeleton className="h-8 w-16" />
-                                : <p className="text-3xl font-black text-foreground">{totalWeekly}</p>
+                                ? <Skeleton className="h-10 w-20" />
+                                : <p className="text-4xl font-black text-foreground">{totalWeekly}</p>
                             }
                         </div>
-                        <div className="w-8 h-8 bg-brand-50 rounded-xl flex items-center justify-center">
-                            <BarChart2 className="w-4 h-4 text-primary" />
+                        <div className="w-10 h-10 bg-brand-50 rounded-2xl flex items-center justify-center mr-6">
+                            <BarChart2 className="w-5 h-5 text-primary" />
                         </div>
                     </div>
                     {loading
@@ -263,8 +324,19 @@ export default function HRDashboardOverview() {
                 </Card>
 
                 {/* Pipeline Donut — Shadcn Chart */}
-                <Card className="p-6 border-none shadow-sm rounded-2xl lg:col-span-1 !overflow-visible">
-                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-5">Distribusi Pipeline</p>
+                <Card className="p-8 border-none shadow-sm rounded-3xl lg:col-span-1 !overflow-visible relative">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="absolute top-8 right-8 cursor-help">
+                                <Info className="w-4 h-4 text-slate-300 hover:text-primary transition-colors" />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
+                            Proporsi kandidat di berbagai tahap seleksi rekrutmen saat ini.
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-8">Distribusi Pipeline</p>
                     {loading
                         ? <div className="flex gap-6 items-center"><Skeleton className="w-28 h-28 rounded-full" /><Skeleton className="flex-1 h-24" /></div>
                         : (
@@ -286,7 +358,7 @@ export default function HRDashboardOverview() {
                                                     <Cell key={i} fill={entry.color} />
                                                 ))}
                                             </Pie>
-                                            <Tooltip
+                                            <RechartsTooltip
                                                 content={({ active, payload }) => {
                                                     if (!active || !payload?.length) return null
                                                     const d = payload[0]
@@ -320,15 +392,26 @@ export default function HRDashboardOverview() {
                     }
                 </Card>
 
-                {/* OKR + LMS */}
-                <div className="space-y-4 lg:col-span-1">
+                {/* Quick Stats Cards */}
+                <div className="space-y-6 lg:col-span-1">
                     <Link href="/dashboard/performance">
-                        <Card className="p-5 border-none shadow-sm rounded-2xl hover:shadow-md transition-all cursor-pointer">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
-                                    <Target className="w-4 h-4 text-amber-500" />
+                        <Card className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md transition-all cursor-pointer relative group">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="absolute top-6 right-6 cursor-help z-10">
+                                        <Info className="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
+                                    Rata-rata progres penyelesaian dari seluruh target OKR aktif karyawan saat ini.
+                                </TooltipContent>
+                            </Tooltip>
+                            
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
+                                    <Target className="w-5 h-5 text-amber-500" />
                                 </div>
-                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Target & Performa</p>
+                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Target & Performa</p>
                             </div>
                             {loading ? <Skeleton className="h-12 w-full" /> : (
                                 <>
@@ -346,12 +429,23 @@ export default function HRDashboardOverview() {
                         </Card>
                     </Link>
                     <Link href="/dashboard/attendance">
-                        <Card className="p-5 border-none shadow-sm rounded-2xl hover:shadow-md transition-all cursor-pointer">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-9 h-9 bg-rose-50 rounded-xl flex items-center justify-center shrink-0">
-                                    <Clock className="w-4 h-4 text-rose-500" />
+                        <Card className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md transition-all cursor-pointer relative group">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="absolute top-6 right-6 cursor-help z-10">
+                                        <Info className="w-4 h-4 text-slate-300 group-hover:text-rose-500 transition-colors" />
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
+                                    Rekapitulasi absensi seluruh karyawan aktif pada hari ini.
+                                </TooltipContent>
+                            </Tooltip>
+
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center shrink-0">
+                                    <Clock className="w-5 h-5 text-rose-500" />
                                 </div>
-                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Kehadiran Hari Ini</p>
+                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Kehadiran Hari Ini</p>
                             </div>
                             {loading ? <Skeleton className="h-12 w-full" /> : (
                                 <div className="flex items-end gap-6">
@@ -371,23 +465,42 @@ export default function HRDashboardOverview() {
                             )}
                         </Card>
                     </Link>
-                    <Link href="/dashboard/lms">
-                        <Card className="p-5 border-none shadow-sm rounded-2xl hover:shadow-md transition-all cursor-pointer">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-9 h-9 bg-violet-50 rounded-xl flex items-center justify-center shrink-0">
-                                    <GraduationCap className="w-4 h-4 text-violet-500" />
+                    {/* Overtime Quick Card */}
+                    <Link href="/dashboard/overtime">
+                        <Card className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md transition-all cursor-pointer relative overflow-hidden group">
+                            <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full opacity-5 group-hover:opacity-10 transition-opacity" />
+                            
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="absolute top-6 right-6 cursor-help z-10">
+                                        <Info className="w-4 h-4 text-slate-300 group-hover:text-violet-500 transition-colors" />
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
+                                    Data pengajuan lembur karyawan yang disetujui beserta ringkasan jam kerja yang belum dibayar/di-review.
+                                </TooltipContent>
+                            </Tooltip>
+
+                            <div className="flex items-center gap-3 mb-4 z-10 relative">
+                                <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center shrink-0">
+                                    <Timer className="w-5 h-5 text-violet-500" />
                                 </div>
-                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">LMS</p>
+                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Lembur</p>
+                                {overtimeStats.pending > 0 && (
+                                    <Badge className="ml-2 bg-amber-100 text-amber-700 border-amber-200 border text-[10px] font-black rounded-lg px-2 py-0.5">
+                                        {overtimeStats.pending} Pending
+                                    </Badge>
+                                )}
                             </div>
                             {loading ? <Skeleton className="h-12 w-full" /> : (
                                 <div className="flex items-end gap-6">
                                     <div>
-                                        <p className="text-2xl font-black text-foreground">{lmsStats.courses}</p>
-                                        <p className="text-xs font-bold text-muted-foreground">Total Kursus</p>
+                                        <p className="text-2xl font-black text-violet-600">{overtimeStats.approved}</p>
+                                        <p className="text-xs font-bold text-muted-foreground">Disetujui</p>
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-black text-emerald-500">{lmsStats.published}</p>
-                                        <p className="text-xs font-bold text-muted-foreground">Published</p>
+                                        <p className="text-2xl font-black text-foreground">{overtimeStats.totalHours.toFixed(0)}<span className="text-sm text-muted-foreground font-semibold">h</span></p>
+                                        <p className="text-xs font-bold text-muted-foreground">Total Jam</p>
                                     </div>
                                 </div>
                             )}
