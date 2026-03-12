@@ -320,7 +320,7 @@ export default function HRAttendancePage() {
                     className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all ml-1 border border-rose-100 bg-white"
                 >
                     <FileText className="w-3.5 h-3.5" />
-                    Manajemen Izin & Cuti
+                    Manajemen Izin & Eksepsi
                 </a>
 
                 <a

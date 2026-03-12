@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Parser .env.local sederhana agar bisa jalan di semua OS tanpa alat bantu
+// Basic .env parser
 try {
     const envPath = path.resolve(process.cwd(), '.env');
     if (fs.existsSync(envPath)) {
@@ -17,7 +17,7 @@ try {
         });
     }
 } catch (e) {
-    console.warn('Gagal membaca .env.local, pastikan variabel ter-set.', e.message);
+    console.warn('Gagal membaca .env', e.message);
 }
 
 const { createClient } = require('@supabase/supabase-js');
@@ -29,40 +29,24 @@ const supabase = createClient(
 );
 
 async function seed() {
-    console.log('🌱 Memulai proses Seeding Demo Client lengkap...');
+    console.log('🌱 Memulai Seeder Lengkap untuk Alur Bisnis (Recruitment, HR, LMS)...');
 
-    // 1. Buat Perusahaan
-    const companyName = 'PT Inovasi Teknologi Nusantara (Demo)';
-    const companyDesc = 'Perusahaan SaaS yang bergerak di bidang HR Solutions.';
-    const companySlug = 'inovasi-nusantara-demo';
+    // --- HELPER UNTUK PERUSAHAAN ---
+    async function createCompany(name, slug, desc) {
+        const { data: existing } = await supabase.from('companies').select('*').eq('slug', slug).single();
+        if (existing) return existing;
 
-    let { data: company, error: errC } = await supabase
-        .from('companies')
-        .insert({
-            name: companyName,
-            description: companyDesc,
-            slug: companySlug,
-            website: 'https://inovasi.arvela.demo'
-        })
-        .select().single();
-
-    if (errC) {
-        if (errC.code === '23505') {
-            console.log('🏢 Perusahaan sudah ada. Mencari ulang...');
-            const res = await supabase.from('companies').select('*').eq('slug', companySlug).single();
-            company = res.data;
-        } else {
-            console.error('❌ Gagal membuat perusahaan:', errC);
-            return;
-        }
+        const { data, error } = await supabase.from('companies').insert({
+            name, slug, description: desc, website: `https://${slug}.arvela.demo`,
+            office_lat: -6.1751, office_lng: 106.8272, office_radius_meters: 100
+        }).select().single();
+        
+        if (error) console.error(`Error create company ${name}:`, error);
+        return data;
     }
 
-    const cid = company.id;
-    console.log(`✅ Perusahaan Demo Siap: ${companyName}`);
-
-    // --- HELPER FUNCTION UNTUK MEMBUAT USER ---
-    async function createUser(email, name, role, dept) {
-        // Cek jika sudah ada
+    // --- HELPER UNTUK USER & PROFILE ---
+    async function createUser(email, name, role, dept, companyId) {
         const { data: exist } = await supabase.from('profiles').select('id').eq('email', email).single();
         if (exist) return exist.id;
 
@@ -73,7 +57,7 @@ async function seed() {
             user_metadata: { 
                 full_name: name, 
                 role: role,
-                company_id: cid 
+                company_id: companyId 
             }
         });
 
@@ -82,258 +66,156 @@ async function seed() {
             return null;
         }
 
-        const uid = authUser?.user?.id;
-        if (!uid) {
-            const list = await supabase.auth.admin.listUsers();
-            const u = list.data.users.find(u => u.email === email);
-            if (u) return u.id;
-            return null;
-        }
+        const uid = authUser?.user?.id || (await supabase.auth.admin.listUsers()).data.users.find(u => u.email === email)?.id;
+        if (!uid) return null;
 
-        // Tunggu trigger DB (biarkan handle_new_user selesai), lalu upsert profile untuk memastikan data lengkap
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 800));
         await supabase.from('profiles').upsert({
-            id: uid,
-            email,
-            full_name: name,
-            role,
-            company_id: cid,
-            department: dept
+            id: uid, email, full_name: name, role, company_id: companyId, department: dept
         });
 
         return uid;
     }
 
-    // 2. Buat Akun Sistem (Super Admin, Owner, HR, dll)
-    console.log('👤 Menciptakan Akun Sistem Eksekutif & HR...');
-    const superAdminId = await createUser('superadmin@arvelademo.local', 'Budi Harjo', 'super_admin', 'Management');
-    const ownerId = await createUser('owner@arvelademo.local', 'Ibu Kartini', 'owner', 'Board of Directors');
-    const hrAdminId = await createUser('hr@arvelademo.local', 'Indah Pramesti', 'hr_admin', 'Human Resources');
+    // --- 1. SET UP COMPANIES & ADMINS ---
+    const compA = await createCompany('PT Inovasi Nusantara', 'inovasi-nusantara', 'SaaS HR Solutions');
+    const compB = await createCompany('Karya Kreatif Agency', 'karya-kreatif', 'Digital Creative Agency');
 
-    // 3. Buat Lowongan Pekerjaan (Jobs)
-    console.log('💼 Membuat Lowongan Pekerjaan...');
-    const jobsData = [
-        { company_id: cid, title: 'Senior UX Designer', work_type: 'remote', location: 'Jakarta Selatan', description: 'Membuat desain yang indah dan ramah pengguna', requirements: 'Cakap menggunakan Figma', status: 'published', slug: 'senior-ux-designer-demo' },
-        { company_id: cid, title: 'Backend Engineer (Node.js)', work_type: 'onsite', location: 'Bandung', description: 'Mengembangkan sistem backend yang kuat dengan Node.js', requirements: '3+ pengalaman kerja dengan Node.js', status: 'published', slug: 'backend-engineer-node-demo' },
-        { company_id: cid, title: 'Product Manager', work_type: 'hybrid', location: 'Jakarta Pusat', description: 'Mengarahkan visi misi dan roadmap', requirements: 'Memiliki kemampuan komunikasi dan analitik yang superior', status: 'published', slug: 'product-manager-demo' },
-        { company_id: cid, title: 'Customer Support Lead', work_type: 'remote', location: 'Surabaya', description: 'Membangun koneksi humanis dengan klien enterprise.', requirements: 'Pengalaman memimpin tim minimal 2 tahun.', status: 'published', slug: 'cs-lead-demo' },
-    ];
-    let jobs = [];
-    for (const j of jobsData) {
-        let job = null
-        const { data: existing } = await supabase.from('jobs').select('*').eq('slug', j.slug).single()
-        
-        if (existing) {
-            job = existing
-        } else {
-            const { data, error: jErr } = await supabase.from('jobs').insert(j).select().single()
-            if (jErr) console.error('Error inserting job:', jErr)
-            if (data) job = data
-        }
-        
-        if (job) jobs.push(job)
-    }
-
-    // 4. Seeding Karyawan secara acak (beserta profil)
-    console.log('👥 Menginisiasi Tenaga Kerja (Karyawan)...');
-    const departments = ['Engineering', 'Design', 'Marketing', 'Sales', 'Human Resources', 'Finance'];
-    let employees = [];
-    for (let i = 1; i <= 20; i++) {
-        const dept = departments[i % departments.length];
-        const email = `karyawan${i}@arvelademo.local`;
-        const name = `Karyawan Demo ${i}`;
-        const uid = await createUser(email, name, 'employee', dept);
-        
-        if (uid) {
-            const title = `Staff ${dept}`;
-            const { data: emp, error } = await supabase.from('employees')
-                .upsert({ profile_id: uid, company_id: cid, department: dept, job_title: title, status: 'active' }, { onConflict: 'profile_id' })
-                .select().single();
-            if (emp) employees.push(emp);
-        }
-    }
-
-    // 5. Buat OKR untuk setiap karyawan
-    console.log('🎯 Menerbitkan OKR Ke Karyawan...');
-    const periods = ['Q1 2026', 'Q2 2026'];
-    for (const emp of employees) {
-        // Buat 1 atau 2 OKR tiap Karyawan
-        const okrCount = Math.floor(Math.random() * 2) + 1;
-        for (let j = 0; j < okrCount; j++) {
-            const { data: okr } = await supabase.from('okrs').insert({
-                employee_id: emp.id,
-                company_id: cid,
-                title: `Target ${emp.department} - Obj ${j+1}`,
-                period: periods[j % 2],
-                description: `Sasaran kuartal untuk meningkatkan efisiensi proses di tim ${emp.department}.`,
-                status: 'active',
-                total_progress: Math.floor(Math.random() * 80) // Progress acak 0-80%
-            }).select().single();
-
-            // Buat 2-3 Key Results
-            if (okr) {
-                const krCount = 3;
-                let krs = [];
-                for (let k = 0; k < krCount; k++) {
-                    const targetVal = 100;
-                    const currVal = Math.floor(Math.random() * 100);
-                    krs.push({
-                        okr_id: okr.id,
-                        title: `Key Result ${k+1} dari OKR ${okr.title}`,
-                        target_value: targetVal,
-                        current_value: currVal,
-                        unit: '%'
-                    });
-                }
-                await supabase.from('key_results').insert(krs);
-            }
-        }
-    }
-
-    // 6. Buat Assessment dan Penugasan (LMS / Course)
-    console.log('📚 Manufaktur Training LMS dan Assessment...');
-    const { data: lms } = await supabase.from('lms_courses').upsert({
-        company_id: cid,
-        title: 'Pengenalan Budaya Inovasi',
-        description: 'Pahami nilai-nilai dasar dan visi misi perusahaan.',
-        status: 'published'
-    }, { onConflict: 'title' }).select().single();
+    const hrA = await createUser('hr@comp-a.local', 'Indah HR A', 'hr_admin', 'HR', compA.id);
+    const hrB = await createUser('hr@comp-b.local', 'Budi HR B', 'hr_admin', 'HR', compB.id);
     
-    if (lms) {
-        // Assign ke setengah karyawan
-        for (let i = 0; i < employees.length / 2; i++) {
-            await supabase.from('lms_course_assignments').upsert({
-                course_id: lms.id,
-                employee_id: employees[i].id,
-                company_id: cid,
-                status: Math.random() > 0.5 ? 'in_progress' : 'completed'
-            }, { onConflict: 'course_id, employee_id' });
+    await createUser('owner@comp-a.local', 'Owner A', 'owner', 'Executive', compA.id);
+    await createUser('superadmin@arvela.local', 'Super Admin Global', 'super_admin', 'Sistem', compA.id);
+
+    // --- 2. JOBS (LOWONGAN) ---
+    console.log('💼 Membuat Lowongan Kerja...');
+    const jobList = [
+        { company_id: compA.id, title: 'Senior Software Engineer', slug: 'sr-eng-a', status: 'published', work_type: 'onsite', requirements: 'React, Node.js' },
+        { company_id: compA.id, title: 'UI/UX Designer', slug: 'uiux-a', status: 'published', work_type: 'remote', requirements: 'Figma, Prototyping' },
+        { company_id: compA.id, title: 'Marketing Specialist', slug: 'mkt-a', status: 'draft', work_type: 'hybrid' },
+        { company_id: compB.id, title: 'Creative Director', slug: 'cd-b', status: 'published', work_type: 'onsite' },
+        { company_id: compB.id, title: 'Social Media Admin', slug: 'socmed-b', status: 'published', work_type: 'remote' }
+    ];
+
+    for (const j of jobList) {
+        await supabase.from('jobs').upsert(j, { onConflict: 'company_id, slug' });
+    }
+
+    const { data: jobsA } = await supabase.from('jobs').select('*').eq('company_id', compA.id);
+    const { data: jobsB } = await supabase.from('jobs').select('*').eq('company_id', compB.id);
+
+    const srEngJob = jobsA.find(j => j.slug === 'sr-eng-a');
+    const uiuxJob = jobsA.find(j => j.slug === 'uiux-a');
+
+    // --- 3. CANDIDATES (KANDIDAT) ---
+    console.log('👥 Mendaftarkan Pelamar...');
+    const apps = [
+        // Comp A - Senior Eng
+        { company_id: compA.id, job_id: srEngJob.id, full_name: 'Andi Sukarno', email: 'andi@test.com', stage: 'hired' },
+        { company_id: compA.id, job_id: srEngJob.id, full_name: 'Budi Santoso', email: 'budi@test.com', stage: 'interview' },
+        { company_id: compA.id, job_id: srEngJob.id, full_name: 'Citra Lestari', email: 'citra@test.com', stage: 'applied' },
+        // Comp A - UIUX
+        { company_id: compA.id, job_id: uiuxJob.id, full_name: 'Diana Putri', email: 'diana@test.com', stage: 'screening' },
+        // Comp B
+        { company_id: compB.id, job_id: jobsB[0].id, full_name: 'Eko Wijaya', email: 'eko@test.com', stage: 'applied' }
+    ];
+
+    for (const a of apps) {
+        await supabase.from('applications').upsert(a, { onConflict: 'job_id, email' });
+    }
+
+    const { data: allAppsA } = await supabase.from('applications').select('*').eq('company_id', compA.id);
+    const andiApp = allAppsA.find(a => a.email === 'andi@test.com');
+    const budiApp = allAppsA.find(a => a.email === 'budi@test.com');
+
+    // --- 4. INTERVIEWS ---
+    console.log('🤝 Menjadwalkan Interview...');
+    const today = new Date().toISOString().split('T')[0];
+    
+    const interviewList = [
+        // Budi's interview today
+        { application_id: budiApp.id, company_id: compA.id, scheduled_date: today, scheduled_time: '10:00:00', status: 'scheduled', format: 'online' },
+        // Andi's done interview
+        { application_id: andiApp.id, company_id: compA.id, scheduled_date: today, scheduled_time: '09:00:00', status: 'done', format: 'offline' }
+    ];
+
+    for (const iv of interviewList) {
+        // Upsert unique check for interview is not easy because no unique key, 
+        // but for demo we just insert if not exists
+        const { data: existingIv } = await supabase.from('interviews').select('id').eq('application_id', iv.application_id).limit(1);
+        if (!existingIv || existingIv.length === 0) {
+            await supabase.from('interviews').insert(iv);
         }
     }
 
-    const { data: assessment } = await supabase.from('assessments').upsert({
-        company_id: cid,
-        title: 'Tes Psikometri Lanjutan',
-        description: 'Digunakan saat tahapan interview.',
-        duration_minutes: 45,
-        show_score: true
-    }, { onConflict: 'title' }).select().single();
-
-    // 7. Pipeline Rekrutmen (Pelamar dan Tahapannya)
-    console.log('📂 Memasukkan Data Kandidat / Pelamar...');
-    console.log(` > Jumlah lowongan aktif: ${jobs.length}`);
-    const stages = ['applied', 'screening', 'assessment', 'interview', 'offering', 'hired'];
-    if (jobs.length > 0) {
-        let appCount = 0;
-        for (let i = 1; i <= 30; i++) {
-            const jobObj = jobs[i % jobs.length];
-            const stage = stages[Math.floor(Math.random() * stages.length)];
-            const email = `kandidat_demo${i}@gmail.example.com`;
-            const name = `Bagus Pelamar ${i}`;
-            
-            const { data: appData, error: appErr } = await supabase.from('applications').insert({
-                company_id: cid,
-                job_id: jobObj.id,
-                full_name: name,
-                email: email,
-                phone: `08123456789${i}`,
-                stage: stage,
-                internal_notes: 'Kandidat potensial dari job portal lokal.'
-            }).select().single();
-
-            if (appErr) console.error(`Error inserting application ${i}:`, appErr);
-
-            if (appData && stage === 'interview') {
-                // Beri jadwal interview
-                await supabase.from('interviews').insert({
-                    application_id: appData.id,
-                    company_id: cid,
-                    scheduled_date: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0], // 3 days from now
-                    scheduled_time: '14:00',
-                    format: 'Online - Video Call',
-                    status: 'scheduled'
-                });
-            }
-
-            if (appData && stage === 'assessment' && assessment) {
-                // Beri assessment
-                await supabase.from('assessment_assignments').insert({
-                    application_id: appData.id,
-                    assessment_id: assessment.id,
-                    token: crypto.randomUUID(),
-                    status: 'sent'
-                });
-            }
-            appCount++;
-        }
-        console.log(` > ${appCount} data lamaran kandidat berhasil dimasukkan.`);
+    // Scorecard for Andi
+    if (andiApp) {
+        await supabase.from('interview_scorecards').upsert({
+            application_id: andiApp.id,
+            created_by: hrA,
+            score_communication: 5,
+            score_technical: 5,
+            score_problem_solving: 4,
+            score_culture_fit: 5,
+            score_leadership: 4,
+            recommendation: 'Strong Yes',
+            notes: 'Kandidat luar biasa.'
+        }, { onConflict: 'application_id' });
     }
 
-    // 8. Kehadiran Karyawan (Attendance Seeding untuk 7 Hari Terakhir)
-    console.log('⏰ Injecting Record Kehadiran (7 Hari Terakhir)...');
-    const attendances = [];
-    const today = new Date();
-    for (let dayOff = 0; dayOff < 7; dayOff++) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - dayOff);
-        const dateStr = d.toLocaleDateString('en-CA');
-
-        for (const emp of employees) {
-            // Peluang hadir 85%, cuti/sakit 10%, telat 5%
-            const r = Math.random();
-            let stateCode = 'present';
-            if (r > 0.95) stateCode = 'early_leave';
-            else if (r > 0.90) stateCode = 'sick';
-            else if (r > 0.85) stateCode = 'leave';
-
-            let checkIn = '08:00:00';
-            let checkOut = '17:00:00';
-            if (stateCode === 'early_leave') checkOut = '14:30:00';
-            
-            attendances.push({
-                employee_id: emp.id,
-                company_id: cid,
-                date: dateStr,
-                clock_in: ['leave', 'sick'].includes(stateCode) ? null : `2026-03-12T${checkIn}Z`,
-                clock_out: ['leave', 'sick'].includes(stateCode) ? null : `2026-03-12T${checkOut}Z`,
-                status: stateCode
-            });
-        }
+    // --- 5. EMPLOYEES & HR STUFF ---
+    console.log('👤 Setup Karyawan & Simulasi Harian...');
+    
+    // Andi hired -> Make employee
+    const andiUid = await createUser('andi@test.com', 'Andi Sukarno', 'employee', 'Engineering', compA.id);
+    if (andiUid) {
+        await supabase.from('employees').upsert({
+            profile_id: andiUid, company_id: compA.id, job_title: 'Senior Software Engineer', status: 'active', department: 'Engineering'
+        }, { onConflict: 'profile_id' });
     }
-    await supabase.from('attendances').upsert(attendances, { onConflict: 'employee_id, date' });
 
-    // 9. Data Permohonan Lembur
-    console.log('🌙 Mengajukan Data Permohonan Lembur (Overtime)...');
-    const otReqs = [];
-    for (let i = 0; i < 5; i++) {
-        const emp = employees[i];
-        otReqs.push({
-            employee_id: emp.id,
-            company_id: cid,
-            overtime_date: today.toLocaleDateString('en-CA'),
-            start_time: '18:00',
-            end_time: '21:00',
-            reason: 'Mengejar deadline peluncuran fitur baru modul finance.',
-            tasks_completed: 'Modul finance',
-            status: i % 2 === 0 ? 'approved' : 'pending' // Setengah disetujui, setengah pending
+    const otherEmpUid = await createUser('karyawan1@comp-a.local', 'Siti Aminah', 'employee', 'Design', compA.id);
+    if (otherEmpUid) {
+        await supabase.from('employees').upsert({
+            profile_id: otherEmpUid, company_id: compA.id, job_title: 'Junior Designer', status: 'active', department: 'Design'
+        }, { onConflict: 'profile_id' });
+    }
+
+    const { data: empsA } = await supabase.from('employees').select('*').eq('company_id', compA.id);
+    
+    // Attendance simulation
+    for (const emp of empsA) {
+        if (emp.profile_id === andiUid) {
+            // Andi clocked in
+            await supabase.from('attendances').upsert({
+                employee_id: emp.id, company_id: compA.id, date: today, status: 'present', clock_in: new Date().toISOString()
+            }, { onConflict: 'employee_id, date' });
+        }
+        // Siti Aminah NOT clocked in -> Simulation for HR to see missing presence
+    }
+
+    // Leave Request
+    const { data: leaveType } = await supabase.from('leave_types').upsert({
+        company_id: compA.id, name: 'Cuti Tahunan', code: 'ANNUAL'
+    }, { onConflict: 'company_id, code' }).select().single();
+
+    if (leaveType && andiUid) {
+        const andiEmp = empsA.find(e => e.profile_id === andiUid);
+        await supabase.from('attendance_requests').insert({
+            company_id: compA.id, employee_id: andiEmp.id, type: 'LEAVE', leave_type_id: leaveType.id,
+            start_date: today, end_date: today, reason: 'Testing cuti', status: 'PENDING'
         });
     }
-    await supabase.from('overtime_requests').insert(otReqs);
-
 
     console.log('\n=======================================');
-    console.log('🎉 SEEDING DEMO SELESAI 🎉');
-    console.log('Perusahaan  :', companyName);
-    console.log('URL Web     : https://inovasi.arvela.demo');
-    console.log('Super Admin : superadmin@arvelademo.local');
-    console.log('Owner       : owner@arvelademo.local');
-    console.log('HR Admin    : hr@arvelademo.local');
-    console.log('Passwords   : Password123!');
-    console.log('Silakan diujicobakan pada dashboard panel.');
+    console.log('✅ SEEDING LENGKAP SELESAI');
+    console.log('---------------------------------------');
+    console.log('Company A User : hr@comp-a.local / Password123!');
+    console.log('Jobs           : Senior Software Engineer, UI/UX Designer, dsb.');
+    console.log('Kandidat       : Andi (Hired), Budi (Interview), Citra (Applied), Diana (Screening)');
+    console.log('Interview      : Budi (Scheduled @ 10:00 Today)');
+    console.log('Simulasi       : Siti Aminah belum presensi, Andi sudah presensi.');
     console.log('=======================================\n');
-
 }
 
-seed().catch(err => {
-    console.error('Terjadi kesalahan fatal:', err);
-});
+seed().catch(console.error);

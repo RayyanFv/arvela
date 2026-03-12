@@ -82,6 +82,7 @@ export function Sidebar({ isOpen, setIsOpen }) {
             items: [
                 { icon: UserSquare, label: 'Data Karyawan', href: '/dashboard/employees' },
                 { icon: ClipboardCheck, label: 'Kehadiran', href: '/dashboard/attendance' },
+                { icon: CalendarDays, label: 'Izin & Eksepsi', href: '/dashboard/attendance/requests' },
                 { icon: Clock, label: 'Pengajuan Lembur', href: '/dashboard/overtime' },
             ]
         },
@@ -160,9 +161,21 @@ export function Sidebar({ isOpen, setIsOpen }) {
                         {collapsed && <div className="w-6 h-px bg-white/10 mx-auto mb-2" />}
                         <div className="space-y-0.5">
                             {section.items.map((item) => {
+                                // Smart active state logic:
+                                // 1. If exact dashboard, match exact.
+                                // 2. Otherwise, check if current path is item.href OR 
+                                //    starts with item.href + '/' (sub-pages).
+                                // 3. IMPORTANT: If there's a more specific match (longer href) in the SAME section, 
+                                //    this parent item should NOT be active.
+                                const isBestMatch = !section.items.some(other => 
+                                    other.href !== item.href && 
+                                    other.href.length > item.href.length && 
+                                    (pathname === other.href || pathname.startsWith(other.href + '/'))
+                                )
+
                                 const isActive = item.href === '/dashboard'
                                     ? pathname === '/dashboard'
-                                    : pathname.startsWith(item.href)
+                                    : (pathname === item.href || pathname.startsWith(item.href + '/')) && isBestMatch
 
                                 return (
                                     <Link
