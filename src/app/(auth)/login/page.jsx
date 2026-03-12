@@ -6,8 +6,9 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { LogIn } from 'lucide-react'
+import { LogIn, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { ADMIN_ROLES, ROLES } from '@/lib/constants/roles'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -18,7 +19,6 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 const formSchema = z.object({
     email: z.string().email('Format email tidak valid'),
@@ -28,6 +28,7 @@ const formSchema = z.object({
 export default function LoginPage() {
     const router = useRouter()
     const [error, setError] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
     const supabase = createClient()
 
     const form = useForm({
@@ -57,11 +58,10 @@ export default function LoginPage() {
             .single()
 
         const role = profile?.role || 'user'
-        const ADMIN_ROLES = ['hr', 'super_admin', 'hiring_manager', 'boss']
 
         if (ADMIN_ROLES.includes(role)) {
             router.push('/dashboard')
-        } else if (role === 'employee') {
+        } else if (role === ROLES.EMPLOYEE) {
             router.push('/staff')
         } else {
             router.push('/portal')
@@ -109,12 +109,25 @@ export default function LoginPage() {
                                     <Link href="/reset-password" className="text-xs text-primary hover:underline font-medium">Lupa password?</Link>
                                 </div>
                                 <FormControl>
-                                    <Input
-                                        type="password"
-                                        placeholder="••••••••"
-                                        className="h-11 bg-white/50 border-sidebar-text focus:border-primary focus:ring-primary transition-all"
-                                        {...field}
-                                    />
+                                    <div className="relative">
+                                        <Input
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="••••••••"
+                                            className="h-11 bg-white/50 border-sidebar-text focus:border-primary focus:ring-primary transition-all pr-10"
+                                            {...field}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff className="w-5 h-5" />
+                                            ) : (
+                                                <Eye className="w-5 h-5" />
+                                            )}
+                                        </button>
+                                    </div>
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -138,10 +151,7 @@ export default function LoginPage() {
             </Form>
 
             <div className="mt-8 text-center text-sm text-sidebar-muted">
-                Belum mendaftarkan perusahaan?{' '}
-                <Link href="/register" className="text-primary font-semibold hover:underline transition-all">
-                    Daftar di sini
-                </Link>
+                Hubungi administrator perusahaan Anda untuk mendapatkan akun.
             </div>
         </div>
     )

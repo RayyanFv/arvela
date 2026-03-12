@@ -18,15 +18,11 @@ try {
     }
 } catch (e) {}
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 async function check() {
-    const { data: apps } = await supabase.from('applications').select('id, email, company_id').limit(5);
-    console.log('--- ALL APPLICATIONS (service role) ---');
-    console.log(apps);
+    const { data: cols } = await supabase.rpc('get_table_info', { table_name: 'jobs' });
+    console.log(cols);
 }
 
 check();

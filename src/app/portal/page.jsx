@@ -43,7 +43,7 @@ export default async function CandidatePortalPage({ searchParams }) {
             .single()
 
         const role = profile?.role || 'user'
-        const ADMIN_ROLES = ['hr', 'super_admin', 'hiring_manager', 'boss']
+        const ADMIN_ROLES = ['super_admin', 'owner', 'hr_admin']
 
         if (role === 'employee') {
             isStaffOrAdmin = true

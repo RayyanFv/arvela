@@ -53,12 +53,14 @@ export default function HRAttendancePage() {
 
         if (prof?.company_id) {
             const { data: comp } = await supabase.from('companies').select('*').eq('id', prof.company_id).single()
-            setCompany(comp)
-            setFormSettings({
-                lat: comp.office_lat || '',
-                lng: comp.office_lng || '',
-                radius: comp.office_radius_meters || 100
-            })
+            if (comp) {
+                setCompany(comp)
+                setFormSettings({
+                    lat: comp.office_lat || '',
+                    lng: comp.office_lng || '',
+                    radius: comp.office_radius_meters || 100
+                })
+            }
             const { data } = await supabase
                 .from('attendances')
                 .select(`
@@ -93,15 +95,21 @@ export default function HRAttendancePage() {
             if (empErr) console.error('Emp query error:', empErr)
             setEmployees(empData || [])
 
-            // Fetch Current Schedules
-            const { data: schedData } = await supabase
-                .from('schedules')
-                .select(`
-                    id, day_of_week, employee_id, shift_id,
-                    shifts(name)
-                `)
-                .order('day_of_week', { ascending: true })
-            setSchedules(schedData || [])
+            // Fetch Current Schedules (only for this company's employees)
+            const empIds = (empData || []).map(e => e.id)
+            let schedData = []
+            if (empIds.length > 0) {
+                const { data: sd } = await supabase
+                    .from('schedules')
+                    .select(`
+                        id, day_of_week, employee_id, shift_id,
+                        shifts(name)
+                    `)
+                    .in('employee_id', empIds)
+                    .order('day_of_week', { ascending: true })
+                schedData = sd || []
+            }
+            setSchedules(schedData)
         }
         setLoading(false)
     }

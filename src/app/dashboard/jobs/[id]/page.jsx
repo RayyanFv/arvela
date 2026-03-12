@@ -1,4 +1,5 @@
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/server'
+import { getAuthProfile } from '@/lib/actions/auth-helpers'
 import { notFound, redirect } from 'next/navigation'
 import EditJobForm from './EditJobForm'
 
@@ -11,20 +12,7 @@ export async function generateMetadata({ params }) {
 
 export default async function EditJobPage({ params }) {
     const { id } = await params
-    const authClient = await createServerSupabaseClient()
-    const { data: { user } } = await authClient.auth.getUser()
-
-    const db = createAdminSupabaseClient()
-
-    const { data: profile } = await db
-        .from('profiles')
-        .select('company_id, role')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile || !['hr', 'super_admin'].includes(profile.role)) {
-        redirect('/dashboard/jobs')
-    }
+    const { profile, admin: db } = await getAuthProfile({ requireAdmin: true })
 
     const [{ data: job }, { data: company }] = await Promise.all([
         db.from('jobs').select('*').eq('id', id).eq('company_id', profile.company_id).single(),

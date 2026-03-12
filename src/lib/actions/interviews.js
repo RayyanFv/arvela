@@ -1,15 +1,15 @@
 'use server'
 
-import { createAdminSupabaseClient } from '@/lib/supabase/server'
+import { getAuthProfile, assertSameCompany } from '@/lib/actions/auth-helpers'
 import { sendEmail } from '@/lib/email/resend'
 import { getInterviewInvitationTemplate } from '@/lib/email/templates'
 
 export async function scheduleInterview(payload) {
-    const supabase = createAdminSupabaseClient()
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
     try {
-        // 1. Ambil data kandidat & company
-        const { data: app, error: appError } = await supabase
+        // 1. Fetch application — verify it belongs to caller's company
+        const { data: app, error: appError } = await admin
             .from('applications')
             .select(`
                 id, 
@@ -20,12 +20,13 @@ export async function scheduleInterview(payload) {
                 companies (name)
             `)
             .eq('id', payload.application_id)
+            .eq('company_id', profile.company_id)
             .single()
 
-        if (appError) throw new Error('Data lamaran tidak ditemukan: ' + appError.message)
+        if (appError || !app) throw new Error('Data lamaran tidak ditemukan atau akses ditolak.')
 
-        // 2. Insert ke tabel interviews
-        const { data: interview, error: insertError } = await supabase
+        // 2. Insert interview record
+        const { data: interview, error: insertError } = await admin
             .from('interviews')
             .insert({
                 application_id: app.id,
@@ -40,19 +41,18 @@ export async function scheduleInterview(payload) {
             .select()
             .single()
 
-        // Abaikan error jika tabel interviews belum dibikin (fallback)
         if (insertError) {
             console.warn("Failed inserting to interviews:", insertError)
-            // Jangan throw error keras jika tabel belum ada agar alur tetap jalan
         }
 
-        // 3. Pindah stage kandidat ke interview
-        await supabase
+        // 3. Move candidate stage to interview
+        await admin
             .from('applications')
             .update({ stage: 'interview', updated_at: new Date().toISOString() })
             .eq('id', app.id)
+            .eq('company_id', profile.company_id)
 
-        // 4. Kirim email undangan
+        // 4. Send email invitation
         await sendEmail({
             to: app.email,
             subject: `Undangan Wawancara: ${app.jobs.title} di ${app.companies.name}`,

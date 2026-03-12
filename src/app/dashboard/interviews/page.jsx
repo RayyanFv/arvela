@@ -24,7 +24,14 @@ export default function InterviewsDashboardPage() {
 
     useEffect(() => {
         async function fetchInterviews() {
-            // Fetch candidates in 'interview' stage
+            // Get user's company first
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) { setLoading(false); return }
+            const { data: profile } = await supabase
+                .from('profiles').select('company_id').eq('id', user.id).single()
+            if (!profile?.company_id) { setLoading(false); return }
+
+            // Fetch candidates in 'interview' stage FOR THIS COMPANY ONLY
             const { data } = await supabase
                 .from('applications')
                 .select(`
@@ -32,6 +39,7 @@ export default function InterviewsDashboardPage() {
                     jobs (title),
                     companies (name)
                 `)
+                .eq('company_id', profile.company_id)
                 .eq('stage', 'interview')
                 .order('created_at', { ascending: false })
 

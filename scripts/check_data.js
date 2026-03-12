@@ -24,9 +24,17 @@ const supabase = createClient(
 );
 
 async function check() {
-    const { data: apps } = await supabase.from('applications').select('id, email, company_id').limit(5);
-    console.log('--- ALL APPLICATIONS (service role) ---');
-    console.log(apps);
+    console.log('--- COMPANIES ---');
+    const { data: companies } = await supabase.from('companies').select('id, name').limit(3);
+    console.log(companies);
+    
+    console.log('\n--- JOBS ---');
+    const { data: jobs } = await supabase.from('jobs').select('id, title, company_id').limit(3);
+    console.log(jobs);
+
+    console.log('\n--- PROFILES (super admins) ---');
+    const { data: profs } = await supabase.from('profiles').select('id, email, company_id').eq('role', 'super_admin').limit(3);
+    console.log(profs);
 }
 
 check();

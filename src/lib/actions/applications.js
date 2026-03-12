@@ -1,10 +1,13 @@
 'use server'
 
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/server'
+import { getAuthProfile, assertSameCompany } from '@/lib/actions/auth-helpers'
+import { ADMIN_ROLES, ROLES } from '@/lib/constants/roles'
 import { sendEmail } from '@/lib/email/resend'
 import { getAppliedTemplate, getStageUpdateTemplate, getOfferLetterTemplate } from '@/lib/email/templates'
 import { revalidatePath } from 'next/cache'
 
+// ─── Upload CV (public-facing, no company scoping needed) ─────────────────────
 export async function uploadCVFile(formData, path) {
     const file = formData.get('file')
     if (!file) return { error: 'No file provided' }
@@ -23,34 +26,30 @@ export async function uploadCVFile(formData, path) {
     return { url: urlData?.publicUrl }
 }
 
+// ─── Update Application Stage (Admin only + company check) ────────────────────
 export async function updateStage(id, stage, customMessage = '') {
-    const supabase = createAdminSupabaseClient()
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
-    // 1. Ambil data kandidat & job dulu untuk email
-    const { data: app, error: fetchError } = await supabase
+    // Fetch app and VERIFY it belongs to caller's company
+    const { data: app, error: fetchError } = await admin
         .from('applications')
-        .select(`
-            full_name, 
-            email, 
-            jobs (title), 
-            companies (name)
-        `)
+        .select(`full_name, email, company_id, jobs (title), companies (name)`)
         .eq('id', id)
+        .eq('company_id', profile.company_id)
         .single()
 
-    if (fetchError) throw new Error(fetchError.message)
+    if (fetchError || !app) throw new Error('Application not found or access denied')
 
-    // 2. Update stage
-    const { error: updateError } = await supabase
+    // Update stage
+    const { error: updateError } = await admin
         .from('applications')
         .update({ stage, updated_at: new Date().toISOString() })
         .eq('id', id)
+        .eq('company_id', profile.company_id)
 
     if (updateError) throw new Error(updateError.message)
 
-    // 3. Kirim email notifikasi (async)
-    // Jika stage adalah 'offering', kita biarkan UI yang memanggil createOfferLetter secara terpisah
-    // atau di sini kita hanya kirim email update jika stage BUKAN offering
+    // Send email notification (async, non-blocking)
     if (stage !== 'offering') {
         sendEmail({
             to: app.email,
@@ -67,25 +66,20 @@ export async function updateStage(id, stage, customMessage = '') {
     }
 }
 
+// ─── Create Offer Letter (Admin only + company check) ─────────────────────────
 export async function createOfferLetter({ applicationId, salary, startDate, expiryDate, content }) {
-    const supabase = createAdminSupabaseClient()
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
-    // 1. Get Application & Company info
-    const { data: app, error: fetchError } = await supabase
+    const { data: app, error: fetchError } = await admin
         .from('applications')
-        .select(`
-            id, full_name, email, 
-            company_id, 
-            jobs(title), 
-            companies(name)
-        `)
+        .select(`id, full_name, email, company_id, jobs(title), companies(name)`)
         .eq('id', applicationId)
+        .eq('company_id', profile.company_id)
         .single()
 
-    if (fetchError) throw new Error(fetchError.message)
+    if (fetchError || !app) throw new Error('Application not found or access denied')
 
-    // 2. Insert into offer_letters
-    const { data: offer, error: offerError } = await supabase
+    const { data: offer, error: offerError } = await admin
         .from('offer_letters')
         .upsert({
             application_id: applicationId,
@@ -101,12 +95,10 @@ export async function createOfferLetter({ applicationId, salary, startDate, expi
 
     if (offerError) throw new Error(offerError.message)
 
-    // 3. Update main application stage to 'offering' just in case
-    await supabase.from('applications').update({ stage: 'offering' }).eq('id', applicationId)
+    await admin.from('applications').update({ stage: 'offering' }).eq('id', applicationId).eq('company_id', profile.company_id)
 
-    // 4. Send Offer Email
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-    const offerUrl = `${siteUrl}/portal/offer` // Update with actual route later
+    const offerUrl = `${siteUrl}/portal/offer`
 
     await sendEmail({
         to: app.email,
@@ -125,45 +117,34 @@ export async function createOfferLetter({ applicationId, salary, startDate, expi
     return { success: true }
 }
 
+// ─── Submit Application (public-facing — candidate applies for a job) ─────────
 export async function submitApplication(payload) {
     const supabase = createAdminSupabaseClient()
 
     const { data: newApp, error } = await supabase
         .from('applications')
         .insert(payload)
-        .select(`
-            id, 
-            full_name, 
-            email, 
-            jobs (title), 
-            companies (name)
-        `)
+        .select(`id, full_name, email, jobs (title), companies (name)`)
         .single()
 
     if (error) {
-        if (error.code === '23505') {
-            throw new Error('DUPLICATE_APPLY')
-        }
+        if (error.code === '23505') throw new Error('DUPLICATE_APPLY')
         throw new Error(error.message)
     }
 
-    // 2. Auto-Register ke Supabase Auth secara diam-diam (Admin API)
-    // Gunakan password default agar user punya 'credential' awal
-    const defaultPassword = 'ArvelaCandidate123!'
+    // Auto-register candidate to Supabase Auth
+    const tempPassword = crypto.randomUUID().replace(/-/g, '').slice(0, 12) + 'Aa1!'
     const { error: authError } = await supabase.auth.admin.createUser({
         email: payload.email,
-        password: defaultPassword,
-        email_confirm: true, // Langsung aktifkan tanpa verifikasi email lagi
+        password: tempPassword,
+        email_confirm: true,
         user_metadata: {
             full_name: payload.full_name,
             role: 'candidate'
         }
     })
+    // Ignore if user already exists
 
-    // Jika error karena user sudah ada (23505 atau sejenis), kita abaikan saja
-    // Jika user sudah ada, mereka tetap bisa login dengan password lama/OTP mereka
-
-    // 3. Kirim email konfirmasi lamaran diterima + info akses portal
     sendEmail({
         to: newApp.email,
         subject: `Lamaran Diterima: ${newApp.jobs.title} di ${newApp.companies.name}`,
@@ -178,62 +159,53 @@ export async function submitApplication(payload) {
     return { success: true, id: newApp.id }
 }
 
-
+// ─── Update Internal Notes (Admin only + company check) ───────────────────────
 export async function updateNotes(id, internal_notes) {
-    const supabase = createAdminSupabaseClient()
-    const { error } = await supabase
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+
+    const { error } = await admin
         .from('applications')
         .update({ internal_notes })
         .eq('id', id)
+        .eq('company_id', profile.company_id)
 
     if (error) throw new Error(error.message)
 }
 
-/**
- * Hire a candidate: transition from application to employee
- */
+// ─── Hire Candidate (Admin only + company check) ──────────────────────────────
 export async function hireCandidate({ applicationId, department, jobTitle, templateId }) {
-    const supabase = createAdminSupabaseClient()
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
-    // 1. Get Application details
-    const { data: app, error: fetchError } = await supabase
+    // 1. Get Application — verify company ownership
+    const { data: app, error: fetchError } = await admin
         .from('applications')
-        .select(`
-            *,
-            jobs(title),
-            companies(name)
-        `)
+        .select(`*, jobs(title), companies(name)`)
         .eq('id', applicationId)
+        .eq('company_id', profile.company_id)
         .single()
-    if (fetchError) throw new Error(fetchError.message)
+    if (fetchError || !app) throw new Error('Application not found or access denied')
 
-    // 2. Resolve profile — 3 possible paths:
-    //    (a) profile exists → use it
-    //    (b) auth user exists but trigger didn't create profile → sync manually
-    //    (c) completely new → createUser
-    let { data: profile } = await supabase
+    // 2. Resolve profile
+    let { data: candidateProfile } = await admin
         .from('profiles')
         .select('*')
         .eq('email', app.email)
         .single()
 
-    if (!profile) {
-        // Try to find if auth user already exists (candidate registered before)
-        const { data: authUsers } = await supabase.auth.admin.listUsers()
+    if (!candidateProfile) {
+        const { data: authUsers } = await admin.auth.admin.listUsers()
         const existingAuthUser = authUsers?.users?.find(u => u.email === app.email)
 
         let authUserId
         if (existingAuthUser) {
-            // Auth user exists but profile row is missing — create it
             authUserId = existingAuthUser.id
         } else {
-            // Completely new user — create auth account
-            const tempPassword = Math.random().toString(36).slice(2, 10) + 'Aa1!'
-            const { data: newAuth, error: createAuthError } = await supabase.auth.admin.createUser({
+            const tempPassword = crypto.randomUUID().replace(/-/g, '').slice(0, 12) + 'Aa1!'
+            const { data: newAuth, error: createAuthError } = await admin.auth.admin.createUser({
                 email: app.email,
                 password: tempPassword,
                 email_confirm: true,
-                user_metadata: { full_name: app.full_name, role: 'employee' }
+                user_metadata: { full_name: app.full_name, role: ROLES.EMPLOYEE }
             })
             if (createAuthError || !newAuth?.user) {
                 throw new Error('Gagal membuat akun untuk kandidat: ' + (createAuthError?.message ?? 'Unknown error'))
@@ -241,65 +213,60 @@ export async function hireCandidate({ applicationId, department, jobTitle, templ
             authUserId = newAuth.user.id
         }
 
-        // Wait for DB trigger, then fetch or insert profile manually
         await new Promise(r => setTimeout(r, 800))
-        const { data: maybeProfile } = await supabase.from('profiles').select('*').eq('id', authUserId).single()
+        const { data: maybeProfile } = await admin.from('profiles').select('*').eq('id', authUserId).single()
         if (!maybeProfile) {
-            await supabase.from('profiles').upsert({
+            await admin.from('profiles').upsert({
                 id: authUserId,
                 email: app.email,
                 full_name: app.full_name,
                 company_id: app.company_id,
-                role: 'employee'
+                role: ROLES.EMPLOYEE
             }, { onConflict: 'id' })
-            const { data: upserted } = await supabase.from('profiles').select('*').eq('id', authUserId).single()
-            profile = upserted
+            const { data: upserted } = await admin.from('profiles').select('*').eq('id', authUserId).single()
+            candidateProfile = upserted
         } else {
-            profile = maybeProfile
+            candidateProfile = maybeProfile
         }
 
-        if (!profile) throw new Error('Gagal mendapatkan profil setelah pembuatan akun.')
+        if (!candidateProfile) throw new Error('Gagal mendapatkan profil setelah pembuatan akun.')
     }
 
     // 3. Update Profile role to employee (ONLY if not already admin)
-    const adminRoles = ['hr', 'super_admin', 'hiring_manager', 'boss']
-    const isExistingAdmin = adminRoles.includes(profile.role)
+    const isExistingAdmin = ADMIN_ROLES.includes(candidateProfile.role)
 
     if (!isExistingAdmin) {
-        const { error: roleUpdateError } = await supabase
+        await admin
             .from('profiles')
             .update({
-                role: 'employee',
+                role: ROLES.EMPLOYEE,
                 company_id: app.company_id,
                 department: department || 'General'
             })
-            .eq('id', profile.id)
-        if (roleUpdateError) throw new Error(roleUpdateError.message)
+            .eq('id', candidateProfile.id)
 
-        // Sync to auth metadata for middleware (ONLY if not admin)
-        await supabase.auth.admin.updateUserById(profile.id, {
-            user_metadata: { role: 'employee' }
+        await admin.auth.admin.updateUserById(candidateProfile.id, {
+            user_metadata: { role: ROLES.EMPLOYEE }
         })
     } else {
-        // Just update department/company if needed, but keep role
-        await supabase.from('profiles').update({
+        await admin.from('profiles').update({
             company_id: app.company_id,
             department: department || 'General'
-        }).eq('id', profile.id)
+        }).eq('id', candidateProfile.id)
     }
 
     // 4. Update Application Stage to 'hired'
-    const { error: stageError } = await supabase
+    await admin
         .from('applications')
         .update({ stage: 'hired', updated_at: new Date().toISOString() })
         .eq('id', applicationId)
-    if (stageError) throw new Error(stageError.message)
+        .eq('company_id', profile.company_id)
 
     // 5. Create Employee record
-    const { data: employee, error: empError } = await supabase
+    const { data: employee, error: empError } = await admin
         .from('employees')
         .insert({
-            profile_id: profile.id,
+            profile_id: candidateProfile.id,
             company_id: app.company_id,
             application_id: applicationId,
             job_title: jobTitle || app.jobs?.title || 'Team Member',
@@ -316,14 +283,13 @@ export async function hireCandidate({ applicationId, department, jobTitle, templ
 
     // 6. Setup Onboarding
     if (templateId) {
-        // Copy tasks from template
-        const { data: templateTasks } = await supabase
+        const { data: templateTasks } = await admin
             .from('onboarding_tasks')
             .select('*')
             .eq('template_id', templateId)
 
         if (templateTasks?.length > 0) {
-            await supabase.from('onboarding_progress').insert(
+            await admin.from('onboarding_progress').insert(
                 templateTasks.map(task => ({
                     employee_id: employee.id,
                     task_id: task.id,
@@ -331,9 +297,6 @@ export async function hireCandidate({ applicationId, department, jobTitle, templ
                 }))
             )
         }
-    } else {
-        // Create manual/legacy tasks if needed or skip
-        // For now, if no template, we might want a "Generic" template handled in UI
     }
 
     // 7. Send Welcome Email
@@ -341,7 +304,7 @@ export async function hireCandidate({ applicationId, department, jobTitle, templ
     let loginInstruction = `Silakan login menggunakan email Anda untuk memulai proses <strong>Onboarding</strong> dan melihat target <strong>OKR</strong> Anda.`
 
     try {
-        const { data: resetLink } = await supabase.auth.admin.generateLink({
+        const { data: resetLink } = await admin.auth.admin.generateLink({
             type: 'recovery',
             email: app.email,
             options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password` }
@@ -380,47 +343,50 @@ export async function hireCandidate({ applicationId, department, jobTitle, templ
     return { success: true }
 }
 
-/**
- * Undo Hiring: Remove employee record and revert stage
- */
+// ─── Cancel Hire (Admin only + company check) ─────────────────────────────────
 export async function cancelHire({ applicationId }) {
-    const supabase = createAdminSupabaseClient()
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
-    // 1. Get Employee & Application
-    const { data: app } = await supabase.from('applications').select('*, employees(id, profile_id)').eq('id', applicationId).single()
-    if (!app || !app.employees?.[0]) throw new Error('Data karyawan tidak ditemukan untuk kandidat ini.')
+    // Verify application belongs to this company
+    const { data: app } = await admin
+        .from('applications')
+        .select('*, employees(id, profile_id)')
+        .eq('id', applicationId)
+        .eq('company_id', profile.company_id)
+        .single()
+
+    if (!app) throw new Error('Application not found or access denied')
+    if (!app.employees?.[0]) throw new Error('Data karyawan tidak ditemukan untuk kandidat ini.')
 
     const employeeId = app.employees[0].id
     const profileId = app.employees[0].profile_id
 
-    // 2. Delete Employee (Cascades to onboarding_progress & okrs)
-    const { error: delError } = await supabase.from('employees').delete().eq('id', employeeId)
+    const { error: delError } = await admin.from('employees').delete().eq('id', employeeId)
     if (delError) throw new Error('Gagal menghapus data karyawan: ' + delError.message)
 
-    // 3. Reset Profile role back to user (ONLY if they were previously an employee)
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', profileId).single()
-    const adminRoles = ['hr', 'super_admin', 'hiring_manager', 'boss']
-    const isCurrentlyAdmin = adminRoles.includes(profile?.role)
+    const { data: empProfile } = await admin.from('profiles').select('role').eq('id', profileId).single()
+    const isCurrentlyAdmin = ADMIN_ROLES.includes(empProfile?.role)
 
     if (!isCurrentlyAdmin) {
-        await supabase.from('profiles').update({ role: 'user' }).eq('id', profileId)
-        await supabase.auth.admin.updateUserById(profileId, { user_metadata: { role: 'user' } })
+        await admin.from('profiles').update({ role: ROLES.USER }).eq('id', profileId)
+        await admin.auth.admin.updateUserById(profileId, { user_metadata: { role: ROLES.USER } })
     }
 
-    // 4. Update Application Stage back to 'offering'
-    const { error: stageError } = await supabase.from('applications').update({ stage: 'offering' }).eq('id', applicationId)
-    if (stageError) throw new Error('Gagal mengembalikan status kandidat: ' + stageError.message)
+    await admin
+        .from('applications')
+        .update({ stage: 'offering' })
+        .eq('id', applicationId)
+        .eq('company_id', profile.company_id)
 
     revalidatePath(`/dashboard/candidates/${applicationId}`)
     return { success: true }
 }
 
-/**
- * Generate a magic link or recovery link for a user
- */
+// ─── Generate Magic Link (Admin only) ─────────────────────────────────────────
 export async function getMagicLink({ email, type = 'magiclink', redirectTo }) {
-    const supabase = createAdminSupabaseClient()
-    const { data, error } = await supabase.auth.admin.generateLink({
+    const { admin } = await getAuthProfile({ requireAdmin: true })
+
+    const { data, error } = await admin.auth.admin.generateLink({
         email,
         type,
         options: { redirectTo }

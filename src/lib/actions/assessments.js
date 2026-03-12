@@ -1,6 +1,6 @@
 'use server'
 
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
+import { getAuthProfile, assertSameCompany } from '@/lib/actions/auth-helpers'
 import { revalidatePath } from 'next/cache'
 import crypto from 'crypto'
 import { sendEmail } from '@/lib/email/resend'
@@ -9,52 +9,23 @@ import { sendEmail } from '@/lib/email/resend'
  * Fetch all assessments for the current user's company
  */
 export async function getAssessments() {
-    const supabase = await createServerSupabaseClient()
-    const admin = createAdminSupabaseClient()
-
-    // Get current user's company_id
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const { data: profile } = await admin
-        .from('profiles')
-        .select('company_id')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile) throw new Error('Profile not found')
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
     const { data: assessments, error } = await admin
         .from('assessments')
-        .select(`
-            *,
-            questions (count)
-        `)
+        .select(`*, questions (count)`)
         .eq('company_id', profile.company_id)
         .order('created_at', { ascending: false })
 
     if (error) throw new Error(error.message)
-
     return assessments
 }
 
 /**
- * Create or Update an assessment
+ * Create or Update an assessment (company-scoped)
  */
 export async function saveAssessment(payload) {
-    const supabase = await createServerSupabaseClient()
-    const admin = createAdminSupabaseClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
-
-    const { data: profile } = await admin
-        .from('profiles')
-        .select('company_id')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile) throw new Error('Profile not found')
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
     const assessmentData = {
         title: payload.title,
@@ -68,10 +39,12 @@ export async function saveAssessment(payload) {
 
     let id = payload.id
     if (id) {
+        // Update — with company check
         const { error } = await admin
             .from('assessments')
             .update(assessmentData)
             .eq('id', id)
+            .eq('company_id', profile.company_id)
         if (error) throw new Error(error.message)
     } else {
         const { data, error } = await admin
@@ -88,14 +61,16 @@ export async function saveAssessment(payload) {
 }
 
 /**
- * Delete an assessment
+ * Delete an assessment (company-scoped)
  */
 export async function deleteAssessment(id) {
-    const admin = createAdminSupabaseClient()
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+
     const { error } = await admin
         .from('assessments')
         .delete()
         .eq('id', id)
+        .eq('company_id', profile.company_id)
 
     if (error) throw new Error(error.message)
     revalidatePath('/dashboard/assessments')
@@ -103,12 +78,22 @@ export async function deleteAssessment(id) {
 }
 
 /**
- * Save questions for an assessment
+ * Save questions for an assessment (company-scoped)
  */
 export async function saveQuestions(assessmentId, questions) {
-    const admin = createAdminSupabaseClient()
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
-    // Simple approach: Delete existing and insert new
+    // Verify the assessment belongs to caller's company
+    const { data: assessment } = await admin
+        .from('assessments')
+        .select('id')
+        .eq('id', assessmentId)
+        .eq('company_id', profile.company_id)
+        .single()
+
+    if (!assessment) throw new Error('Assessment not found or access denied')
+
+    // Delete existing and insert new
     const { error: deleteError } = await admin
         .from('questions')
         .delete()
@@ -139,12 +124,21 @@ export async function saveQuestions(assessmentId, questions) {
 }
 
 /**
- * Assign an assessment to a candidate
+ * Assign an assessment to a candidate (company-scoped)
  */
 export async function assignAssessment({ assessment_id, application_id }) {
-    const admin = createAdminSupabaseClient()
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
-    // Generate a unique token
+    // Verify assessment belongs to this company
+    const { data: assessment } = await admin
+        .from('assessments').select('id').eq('id', assessment_id).eq('company_id', profile.company_id).single()
+    if (!assessment) throw new Error('Assessment not found or access denied')
+
+    // Verify application belongs to this company
+    const { data: application } = await admin
+        .from('applications').select('id').eq('id', application_id).eq('company_id', profile.company_id).single()
+    if (!application) throw new Error('Application not found or access denied')
+
     const token = crypto.randomUUID()
 
     const { data: assignment, error } = await admin
@@ -189,7 +183,7 @@ export async function assignAssessment({ assessment_id, application_id }) {
                         <p style="margin: 5px 0 0; font-size: 18px; font-weight: bold;">${assignment.assessments.duration_minutes} Menit</p>
                     </div>
 
-                    <p>Silakan klik tombol di bawah ini untuk memulai pengerjaan. Pastikan Anda berada di tempat yang tenang dengan koneksi internet yang stabil.</p>
+                    <p>Silakan klik tombol di bawah ini untuk memulai pengerjaan.</p>
                     
                     <a href="${assessmentLink}" style="display: inline-block; background-color: #111827; color: white; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 10px;">Mulai Kerjakan Sekarang</a>
                     
@@ -201,7 +195,6 @@ export async function assignAssessment({ assessment_id, application_id }) {
         })
     } catch (emailError) {
         console.error('Failed to send assessment email:', emailError)
-        // We don't throw here to avoid failing the whole process if only email fails
     }
 
     revalidatePath(`/dashboard/candidates/${assignment.application_id}`)
@@ -212,11 +205,8 @@ export async function assignAssessment({ assessment_id, application_id }) {
  * Bulk assign an assessment to multiple candidates
  */
 export async function bulkAssignAssessment({ assessment_id, application_ids }) {
-    const results = {
-        success: 0,
-        failed: 0,
-        errors: []
-    }
+    // Auth & company check happens inside assignAssessment for each call
+    const results = { success: 0, failed: 0, errors: [] }
 
     for (const app_id of application_ids) {
         try {
@@ -233,24 +223,28 @@ export async function bulkAssignAssessment({ assessment_id, application_ids }) {
 }
 
 /**
- * Update score for a specific answer (manual review)
+ * Update score for a specific answer (company-scoped via assignment)
  */
 export async function updateAnswerScore({ answer_id, points, notes, assignment_id }) {
-    const admin = createAdminSupabaseClient()
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
-    // 1. Update the answer
+    // Verify assignment belongs to this company (via the assessment)
+    const { data: asgn } = await admin
+        .from('assessment_assignments')
+        .select('id, assessments(company_id)')
+        .eq('id', assignment_id)
+        .single()
+    if (!asgn || asgn.assessments?.company_id !== profile.company_id) {
+        throw new Error('Assignment not found or access denied')
+    }
+
     const { error: answerError } = await admin
         .from('answers')
-        .update({
-            points_earned: points,
-            reviewer_notes: notes,
-            is_reviewed: true
-        })
+        .update({ points_earned: points, reviewer_notes: notes, is_reviewed: true })
         .eq('id', answer_id)
 
     if (answerError) throw new Error(answerError.message)
 
-    // 2. Re-calculate total score for the assignment
     const { data: allAnswers, error: fetchError } = await admin
         .from('answers')
         .select('points_earned')
@@ -270,18 +264,26 @@ export async function updateAnswerScore({ answer_id, points, notes, assignment_i
     revalidatePath(`/dashboard/assessments`)
     return { success: true }
 }
+
 /**
- * Update total score for an assignment (manual override)
+ * Update total score for an assignment (manual override, company-scoped)
  */
 export async function updateAssignmentScore({ assignment_id, points, notes }) {
-    const admin = createAdminSupabaseClient()
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+
+    // Verify assignment belongs to this company
+    const { data: asgn } = await admin
+        .from('assessment_assignments')
+        .select('id, assessments(company_id)')
+        .eq('id', assignment_id)
+        .single()
+    if (!asgn || asgn.assessments?.company_id !== profile.company_id) {
+        throw new Error('Assignment not found or access denied')
+    }
 
     const { error } = await admin
         .from('assessment_assignments')
-        .update({
-            total_score: points,
-            reviewer_notes: notes // Note: make sure this column exists or use another way
-        })
+        .update({ total_score: points, reviewer_notes: notes })
         .eq('id', assignment_id)
 
     if (error) throw new Error(error.message)

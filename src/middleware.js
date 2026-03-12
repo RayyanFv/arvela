@@ -1,6 +1,17 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
 
+// Role constants (duplicated from lib/constants/roles.js because middleware
+// runs in the Edge runtime and can't import from 'use server' modules reliably)
+const ADMIN_ROLES = ['super_admin', 'owner', 'hr_admin']
+
+// --- Granular Permissions Mapping ---
+const ROLE_PERMISSIONS = {
+    super_admin: ['/dashboard', '/dashboard/settings'],
+    owner: ['/dashboard'], // owner typically has access to everything but let's be explicit
+    hr_admin: ['/dashboard'],
+}
+
 export async function middleware(request) {
     let response = NextResponse.next({
         request: {
@@ -18,7 +29,6 @@ export async function middleware(request) {
                 },
                 setAll(cookiesToSet) {
                     cookiesToSet.forEach(({ name, value }) =>
-                        // Using modern header techniques for setting tokens via res.cookie in Next.js ServerActions/Middleware
                         request.cookies.set(name, value)
                     )
                     response = NextResponse.next({
@@ -34,58 +44,59 @@ export async function middleware(request) {
 
     const { data: { user } } = await supabase.auth.getUser()
 
-    let role = user?.user_metadata?.role || 'user'
-    if (user) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-
-        // If DB profile found, it takes precedence
-        if (profile?.role) {
-            role = profile.role
-        }
-    }
+    // IMPORTANT: Only use user_metadata from JWT here.
+    // DO NOT query the profiles table in middleware — it uses the anon key
+    // which triggers RLS evaluation and causes 403 errors.
+    const role = user?.user_metadata?.role || 'user'
 
     const url = request.nextUrl.clone()
+    const path = url.pathname
 
-    // Roles detected in Arvela System:
-    // Admin: super_admin, hr, hiring_manager, boss
-    // Staff: employee
-    // Public: candidate, user
-
-    const ADMIN_ROLES = ['hr', 'super_admin', 'hiring_manager', 'boss']
     const isAdmin = ADMIN_ROLES.includes(role)
     const isEmployee = role === 'employee'
     const isCandidate = role === 'candidate'
 
-    // --- ACCESS CONTROL LOGIC ---
-
-    // 1. Restriction: ONLY Admin can access /dashboard
-    if (url.pathname.startsWith('/dashboard')) {
+    // 1. Dashboard Access Control
+    if (path.startsWith('/dashboard')) {
         if (!isAdmin) {
             url.pathname = isEmployee ? '/staff' : '/portal'
             return NextResponse.redirect(url)
         }
+
+        // Sub-route granular protection
+        // Super Admin can ONLY access dashboard home and settings
+        if (role === 'super_admin') {
+            const allowedForSuperAdmin = ['/dashboard', '/dashboard/settings']
+            const isAllowed = allowedForSuperAdmin.some(p => path === p || path.startsWith(p + '/'))
+            if (!isAllowed) {
+                url.pathname = '/dashboard'
+                return NextResponse.redirect(url)
+            }
+        }
     }
 
-    // 2. Restriction: ONLY Employees or Admins can access /staff
-    if (url.pathname.startsWith('/staff')) {
+    // 2. Staff Access Control
+    if (path.startsWith('/staff')) {
         if (!isEmployee && !isAdmin) {
             url.pathname = '/portal'
             return NextResponse.redirect(url)
         }
     }
 
-    // 3. Handle Login Page Redirection (Redirect authenticated users away from /login)
-    if (url.pathname === '/login' || url.pathname === '/portal/login') {
+    // 3. Auth Page Redirection
+    if (path === '/login' || path === '/portal/login') {
         if (user) {
             if (isAdmin) url.pathname = '/dashboard'
             else if (isEmployee) url.pathname = '/staff'
             else url.pathname = '/portal'
             return NextResponse.redirect(url)
         }
+    }
+    
+    // Block registration
+    if (path === '/register') {
+        url.pathname = '/login'
+        return NextResponse.redirect(url)
     }
 
     return response

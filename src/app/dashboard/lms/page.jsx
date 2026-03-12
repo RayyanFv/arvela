@@ -343,8 +343,9 @@ function AssignModal({ courseId, companyId, onClose }) {
 
     useEffect(() => {
         supabase.from('employees').select('id, job_title, profiles!employees_profile_id_fkey(full_name, email)')
+            .eq('company_id', companyId)
             .then(({ data }) => setEmployees(data || []))
-    }, [])
+    }, [companyId])
 
     async function handleAssign() {
         setSaving(true)

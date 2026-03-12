@@ -1,10 +1,13 @@
 'use server'
 
-import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase/server'
+import { getAuthProfile } from '@/lib/actions/auth-helpers'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { ROLES } from '@/lib/constants/roles'
 import { revalidatePath } from 'next/cache'
 
 /**
  * Update the completion status of an onboarding task
+ * (Employee can toggle their own tasks — uses RLS-respecting client)
  */
 export async function toggleOnboardingTask({ progressId, completed }) {
     const supabase = await createServerSupabaseClient()
@@ -22,15 +25,31 @@ export async function toggleOnboardingTask({ progressId, completed }) {
 }
 
 /**
- * Create a new OKR for an employee
+ * Create a new OKR for an employee (Admin only + company check)
  */
 export async function createOKR({ employeeId, companyId, title, period, description }) {
-    const supabase = createAdminSupabaseClient()
-    const { data, error } = await supabase
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+
+    // Verify companyId matches the caller's company
+    if (companyId !== profile.company_id) {
+        throw new Error('Unauthorized: cross-company access denied')
+    }
+
+    // Verify the employee belongs to this company
+    const { data: employee } = await admin
+        .from('employees')
+        .select('id')
+        .eq('id', employeeId)
+        .eq('company_id', profile.company_id)
+        .single()
+
+    if (!employee) throw new Error('Employee not found or access denied')
+
+    const { data, error } = await admin
         .from('okrs')
         .insert({
             employee_id: employeeId,
-            company_id: companyId,
+            company_id: profile.company_id,
             title,
             period,
             description,
@@ -45,7 +64,8 @@ export async function createOKR({ employeeId, companyId, title, period, descript
 }
 
 /**
- * Update Key Result value and auto-triggers OKR progress change via DB Trigger
+ * Update Key Result value 
+ * (Employee can update their own — uses RLS-respecting client)
  */
 export async function updateKeyResult({ krId, currentValue }) {
     const supabase = await createServerSupabaseClient()
@@ -59,16 +79,32 @@ export async function updateKeyResult({ krId, currentValue }) {
 }
 
 /**
- * LMS: Enroll employee in a course
+ * LMS: Enroll employee in a course (Admin only + company check)
  */
 export async function enrollInCourse({ employeeId, courseId, companyId, dueDate }) {
-    const supabase = createAdminSupabaseClient()
-    const { error } = await supabase
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+
+    // Verify companyId matches caller's company
+    if (companyId !== profile.company_id) {
+        throw new Error('Unauthorized: cross-company access denied')
+    }
+
+    // Verify employee belongs to this company
+    const { data: employee } = await admin
+        .from('employees')
+        .select('id')
+        .eq('id', employeeId)
+        .eq('company_id', profile.company_id)
+        .single()
+
+    if (!employee) throw new Error('Employee not found or access denied')
+
+    const { error } = await admin
         .from('lms_course_assignments')
         .insert({
             employee_id: employeeId,
             course_id: courseId,
-            company_id: companyId,
+            company_id: profile.company_id,
             due_date: dueDate || null,
             status: 'enrolled'
         })

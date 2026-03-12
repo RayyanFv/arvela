@@ -72,7 +72,7 @@ export function Topbar({ onOpenSidebar }) {
                                 </AvatarFallback>
                             </Avatar>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 rounded-2xl p-2" align="end" forceMount>
+                        <DropdownMenuContent className="w-56 rounded-2xl p-2" align="end">
                             <DropdownMenuLabel className="font-normal px-2 py-1.5">
                                 <div className="flex flex-col space-y-1">
                                     <p className="text-sm font-bold text-slate-900 leading-none">{profile?.full_name}</p>

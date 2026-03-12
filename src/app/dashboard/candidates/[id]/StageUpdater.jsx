@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { ADMIN_ROLES } from '@/lib/constants/roles'
 
 export default function StageUpdater({ application, userRole }) {
     const router = useRouter()
@@ -45,7 +46,7 @@ export default function StageUpdater({ application, userRole }) {
         setMounted(true)
     }, [])
 
-    const canEdit = ['hr', 'super_admin', 'hiring_manager', 'boss'].includes(userRole)
+    const canEdit = ADMIN_ROLES.includes(userRole)
 
     async function handlePerformUpdate() {
         if (!newStage || newStage === stage) return

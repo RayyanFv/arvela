@@ -16,56 +16,96 @@ import {
     BookOpen,
     Clock,
     ChevronLeft,
+    Settings,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-
-const NAV_SECTIONS = [
-    {
-        label: 'Menu Utama',
-        items: [
-            { icon: HomeIcon, label: 'Dashboard', href: '/dashboard' },
-        ]
-    },
-    {
-        label: 'Rekrutmen',
-        items: [
-            { icon: Briefcase, label: 'Lowongan', href: '/dashboard/jobs' },
-            { icon: Users, label: 'Kandidat', href: '/dashboard/candidates' },
-            { icon: ClipboardCheck, label: 'Assessment', href: '/dashboard/assessments' },
-            { icon: CalendarDays, label: 'Interview', href: '/dashboard/interviews' },
-        ]
-    },
-    {
-        label: 'Karyawan',
-        items: [
-            { icon: UserSquare, label: 'Data Karyawan', href: '/dashboard/employees' },
-            { icon: ClipboardCheck, label: 'Kehadiran', href: '/dashboard/attendance' },
-            { icon: Clock, label: 'Pengajuan Lembur', href: '/dashboard/overtime' },
-        ]
-    },
-    {
-        label: 'Pengembangan',
-        items: [
-            { icon: LineChart, label: 'Performa', href: '/dashboard/performance' },
-            { icon: GraduationCap, label: 'LMS', href: '/dashboard/lms' },
-            { icon: BookOpen, label: 'Onboarding', href: '/dashboard/onboarding' },
-        ]
-    },
-]
+import { useState, useEffect } from 'react'
+import { ROLES } from '@/lib/constants/roles'
 
 export function Sidebar({ isOpen, setIsOpen }) {
     const pathname = usePathname()
     const router = useRouter()
     const supabase = createClient()
     const [collapsed, setCollapsed] = useState(false)
+    const [userRole, setUserRole] = useState(null)
+
+    useEffect(() => {
+        async function getRole() {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                // Check metadata first
+                let role = user.user_metadata?.role
+                
+                // Fallback to profile
+                if (!role) {
+                    const { data: prof } = await supabase
+                        .from('profiles')
+                        .select('role')
+                        .eq('id', user.id)
+                        .single()
+                    role = prof?.role
+                }
+                setUserRole(role)
+            }
+        }
+        getRole()
+    }, [])
 
     async function handleLogout() {
         await supabase.auth.signOut()
         router.push('/login')
         router.refresh()
     }
+
+    // Dynamic Navigation based on Role
+    const navSections = [
+        {
+            label: 'Menu Utama',
+            items: [
+                { icon: HomeIcon, label: 'Dashboard', href: '/dashboard' },
+            ]
+        },
+        {
+            label: 'Rekrutmen',
+            roles: [ROLES.HR_ADMIN, ROLES.OWNER],
+            items: [
+                { icon: Briefcase, label: 'Lowongan', href: '/dashboard/jobs' },
+                { icon: Users, label: 'Kandidat', href: '/dashboard/candidates' },
+                { icon: ClipboardCheck, label: 'Assessment', href: '/dashboard/assessments' },
+                { icon: CalendarDays, label: 'Interview', href: '/dashboard/interviews' },
+            ]
+        },
+        {
+            label: 'Karyawan',
+            roles: [ROLES.HR_ADMIN, ROLES.OWNER],
+            items: [
+                { icon: UserSquare, label: 'Data Karyawan', href: '/dashboard/employees' },
+                { icon: ClipboardCheck, label: 'Kehadiran', href: '/dashboard/attendance' },
+                { icon: Clock, label: 'Pengajuan Lembur', href: '/dashboard/overtime' },
+            ]
+        },
+        {
+            label: 'Pengembangan',
+            roles: [ROLES.HR_ADMIN, ROLES.OWNER],
+            items: [
+                { icon: LineChart, label: 'Performa', href: '/dashboard/performance' },
+                { icon: GraduationCap, label: 'LMS', href: '/dashboard/lms' },
+                { icon: BookOpen, label: 'Onboarding', href: '/dashboard/onboarding' },
+            ]
+        },
+        {
+            label: 'Konfigurasi',
+            roles: [ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HR_ADMIN],
+            items: [
+                { icon: Settings, label: 'Manajemen User', href: '/dashboard/settings/users' },
+            ]
+        }
+    ]
+
+    const filteredSections = navSections.filter(section => 
+        !section.roles || (userRole && section.roles.includes(userRole))
+    )
 
     return (
         <aside className={cn(
@@ -110,7 +150,7 @@ export function Sidebar({ isOpen, setIsOpen }) {
 
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-6 sidebar-scroll">
-                {NAV_SECTIONS.map((section) => (
+                {filteredSections.map((section) => (
                     <div key={section.label}>
                         {!collapsed && (
                             <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-slate-500 px-3 mb-2">

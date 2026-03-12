@@ -2,24 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
+import { getAuthProfile } from '@/lib/actions/auth-helpers'
 
 async function getHRProfile() {
-    const authClient = await createServerSupabaseClient()
-    const { data: { user } } = await authClient.auth.getUser()
-    if (!user) throw new Error('Unauthenticated')
-
-    const supabase = createAdminSupabaseClient()
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, company_id, role')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile || !['hr', 'super_admin'].includes(profile.role)) {
-        throw new Error('Unauthorized')
-    }
-    return { profile, supabase }
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+    return { profile, supabase: admin }
 }
 
 export async function createJob(formData) {

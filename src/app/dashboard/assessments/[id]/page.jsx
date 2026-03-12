@@ -19,7 +19,7 @@ export default async function AssessmentDetailPage({ params }) {
         .eq('id', user.id)
         .single()
 
-    // Fetch assessment details with assignments and questions
+    // Fetch assessment details with assignments and questions — scoped to company
     const { data: assessment, error } = await admin
         .from('assessments')
         .select(`
@@ -31,6 +31,7 @@ export default async function AssessmentDetailPage({ params }) {
             )
         `)
         .eq('id', id)
+        .eq('company_id', profile.company_id)
         .single()
 
     if (error || !assessment) notFound()
