@@ -115,6 +115,9 @@ function Navbar() {
                 </div>
                 <div className="hidden md:flex items-center gap-10 text-[13px] font-bold text-slate-500">
                     <a href="#modul" className="hover:text-primary transition-colors">Solusi</a>
+                    <Link href="/portal/login" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5" /> Portal Pelamar
+                    </Link>
                     <Link href="/about" className="hover:text-primary transition-colors">Company Profile</Link>
                     <a href="#bandingkan" className="hover:text-primary transition-colors">Perbandingan</a>
                     <a href="#harga" className="hover:text-primary transition-colors">Harga</a>
@@ -532,6 +535,7 @@ export default function LandingPage() {
                         <p className="text-slate-900 font-black text-[11px] mb-6 uppercase tracking-[0.2em]">Navigasi & Legal</p>
                         <div className="space-y-4">
                             <Link href="/about" className="text-slate-500 hover:text-primary text-sm font-bold block transition-colors">Company Profile & Pitch</Link>
+                            <Link href="/portal/login" className="text-slate-500 hover:text-primary text-sm font-bold block transition-colors">Portal Pelamar / Kandidat</Link>
                             <a href="#modul" className="text-slate-500 hover:text-primary text-sm font-bold block transition-colors">Modul Solusi</a>
                             <a href="#" className="text-slate-500 hover:text-primary text-sm font-bold block transition-colors">Kebijakan Privasi</a>
                         </div>
