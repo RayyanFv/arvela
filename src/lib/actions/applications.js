@@ -97,7 +97,7 @@ export async function createOfferLetter({ applicationId, salary, startDate, expi
 
     await admin.from('applications').update({ stage: 'offering' }).eq('id', applicationId).eq('company_id', profile.company_id)
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'
     const offerUrl = `${siteUrl}/portal/offer`
 
     await sendEmail({
@@ -152,7 +152,7 @@ export async function submitApplication(payload) {
             candidateName: newApp.full_name,
             jobTitle: newApp.jobs.title,
             companyName: newApp.companies.name,
-            portalUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/portal`
+            portalUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'}/portal`
         })
     }).catch(console.error)
 
@@ -300,7 +300,7 @@ export async function hireCandidate({ applicationId, department, jobTitle, templ
     }
 
     // 7. Send Welcome Email
-    let loginUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/login`
+    let loginUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'}/login`
     let loginInstruction = `Silakan login menggunakan email Anda untuk memulai proses <strong>Onboarding</strong> dan melihat target <strong>OKR</strong> Anda.`
 
     try {

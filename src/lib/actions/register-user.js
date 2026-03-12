@@ -90,7 +90,7 @@ export async function registerUser(payload) {
         const { data: resetLink } = await admin.auth.admin.generateLink({
             type: 'recovery',
             email,
-            options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/reset-password` }
+            options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'}/reset-password` }
         })
         resetUrl = resetLink?.properties?.action_link || null
     } catch (e) {

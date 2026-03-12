@@ -7,12 +7,21 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 export default function OfficeLocationPicker({ lat, lng, radius, onChange }) {
     const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
+    const mapRef = useRef();
+
     const onMarkerDrag = useCallback((event) => {
         onChange({
             lat: event.lngLat.lat,
             lng: event.lngLat.lng
         });
     }, [onChange]);
+
+    // Fly to location when it changes externally (e.g. Detect Location)
+    React.useEffect(() => {
+        if (mapRef.current && lat && lng && !isNaN(lat) && !isNaN(lng)) {
+            mapRef.current.flyTo({ center: [lng, lat], zoom: 15, duration: 2000 });
+        }
+    }, [lat, lng]);
 
     const circlePolygon = useMemo(() => {
         if (!lat || !lng || !radius) return null;
@@ -59,6 +68,7 @@ export default function OfficeLocationPicker({ lat, lng, radius, onChange }) {
     return (
         <div className="w-full h-64 rounded-2xl overflow-hidden border border-slate-200 shadow-inner relative group">
             <Map
+                ref={mapRef}
                 initialViewState={{
                     longitude: (!lng || isNaN(lng)) ? 106.8272 : lng,
                     latitude: (!lat || isNaN(lat)) ? -6.1751 : lat,

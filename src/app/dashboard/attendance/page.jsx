@@ -37,6 +37,7 @@ export default function HRAttendancePage() {
     const [shifts, setShifts] = useState([])
     const [employees, setEmployees] = useState([])
     const [formSettings, setFormSettings] = useState({ lat: '', lng: '', radius: '' })
+    const [detecting, setDetecting] = useState(false)
     const [newShift, setNewShift] = useState({ name: '', clock_in: '', clock_out: '', late_threshold: 0, days: [1, 2, 3, 4, 5] })
     const [selectedShiftId, setSelectedShiftId] = useState(null)
     const [selectedDay, setSelectedDay] = useState(new Date().getDay())
@@ -140,6 +141,54 @@ export default function HRAttendancePage() {
         await fetchAttendances()
         setShowSettings(false)
         setSavingSettings(false)
+    }
+
+    function detectLocation() {
+        setDetecting(true)
+        if (!navigator.geolocation) {
+            alert('Geolocation tidak didukung browser Anda.')
+            setDetecting(false)
+            return
+        }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setFormSettings(prev => ({
+                    ...prev,
+                    lat: pos.coords.latitude.toFixed(6),
+                    lng: pos.coords.longitude.toFixed(6)
+                }))
+                setDetecting(false)
+            },
+            (err) => {
+                alert('Gagal mendapatkan lokasi: ' + err.message)
+                setDetecting(false)
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        )
+    }
+
+    function detectLocation() {
+        setDetecting(true)
+        if (!navigator.geolocation) {
+            alert('Geolocation tidak didukung browser Anda.')
+            setDetecting(false)
+            return
+        }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setFormSettings(prev => ({
+                    ...prev,
+                    lat: pos.coords.latitude.toFixed(6),
+                    lng: pos.coords.longitude.toFixed(6)
+                }))
+                setDetecting(false)
+            },
+            (err) => {
+                alert('Gagal mendapatkan lokasi: ' + err.message)
+                setDetecting(false)
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        )
     }
 
     async function handleAddShift() {
@@ -824,6 +873,17 @@ export default function HRAttendancePage() {
                                 radius={parseInt(formSettings.radius)}
                                 onChange={({ lat, lng }) => setFormSettings(prev => ({ ...prev, lat: lat.toFixed(6), lng: lng.toFixed(6) }))}
                             />
+                            <div className="flex gap-2 mt-3">
+                                <Button
+                                    onClick={detectLocation}
+                                    disabled={detecting}
+                                    variant="outline"
+                                    className="flex-1 rounded-xl h-10 text-[10px] font-black border-primary/20 text-primary hover:bg-primary/5 gap-2"
+                                >
+                                    {detecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
+                                    Gunakan Lokasi Saya Sekarang
+                                </Button>
+                            </div>
                             <div className="mt-4 p-4 bg-white rounded-2xl border border-slate-200">
                                 <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
                                     <span className="font-black text-primary uppercase mr-2 italic">Tips:</span>

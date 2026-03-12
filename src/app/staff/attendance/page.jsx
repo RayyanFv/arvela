@@ -170,7 +170,8 @@ export default function AttendancePage() {
         }
         navigator.geolocation.getCurrentPosition(
             (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-            (err) => setError('Gagal mendapatkan lokasi: ' + err.message)
+            (err) => setError('Gagal mendapatkan lokasi: ' + err.message),
+            { enableHighAccuracy: true, timeout: 10000 }
         )
     }
 

@@ -50,12 +50,13 @@ BEGIN
         WHERE schemaname = 'public'
           AND tablename IN (
             'profiles', 'companies', 'jobs', 'applications',
-            'employees', 'assessments', 'okrs',
-            'overtime_requests', 'attendances',
+            'employees', 'assessments', 'okrs', 'key_results', 'initiatives',
+            'overtime_requests', 'attendances', 'leave_types', 'leave_balances', 'attendance_requests',
             'lms_courses', 'lms_course_assignments', 'course_modules',
-            'interviews', 'assessment_submissions',
-            'holidays', 'attendance_requests',
-            'shifts', 'shift_days', 'employee_shifts'
+            'interviews', 'interview_scorecards', 'assessment_submissions',
+            'onboarding_templates', 'onboarding_tasks', 'onboarding_progress',
+            'shifts', 'shift_days', 'employee_shifts', 'schedules',
+            'company_holidays', 'offer_letters', 'lms_certificates'
           )
     LOOP
         EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', r.policyname, r.schemaname, r.tablename);
@@ -171,13 +172,32 @@ FOR UPDATE USING (
 
 -- ═══ INTERVIEWS ═══
 CREATE POLICY "int_admin_all" ON public.interviews
-FOR ALL USING (public.is_admin() AND company_id = public.get_my_company_id());
+FOR ALL 
+USING (public.is_admin() AND company_id = public.get_my_company_id())
+WITH CHECK (public.is_admin() AND company_id = public.get_my_company_id());
 
 CREATE POLICY "int_cand_s" ON public.interviews
 FOR SELECT USING (
     application_id IN (
         SELECT id FROM public.applications WHERE email = (auth.jwt() ->> 'email')
     )
+);
+
+-- ═══ INTERVIEW SCORECARDS ═══
+CREATE POLICY "isc_admin_all" ON public.interview_scorecards
+FOR ALL 
+USING (
+    public.is_admin() AND 
+    application_id IN (SELECT id FROM public.applications WHERE company_id = public.get_my_company_id())
+)
+WITH CHECK (
+    public.is_admin() AND 
+    application_id IN (SELECT id FROM public.applications WHERE company_id = public.get_my_company_id())
+);
+
+CREATE POLICY "isc_cand_s" ON public.interview_scorecards
+FOR SELECT USING (
+    application_id IN (SELECT id FROM public.applications WHERE email = (auth.jwt() ->> 'email'))
 );
 
 -- ═══ LMS COURSES ═══
@@ -200,6 +220,143 @@ CREATE POLICY "lms_asn_emp" ON public.lms_course_assignments
 FOR SELECT USING (
     employee_id IN (SELECT id FROM public.employees WHERE profile_id = auth.uid())
 );
+
+-- ═══ KEY RESULTS (OKRs) ═══
+CREATE POLICY "kr_admin" ON public.key_results
+FOR ALL 
+USING (public.is_admin() AND okr_id IN (SELECT id FROM public.okrs WHERE company_id = public.get_my_company_id()))
+WITH CHECK (public.is_admin() AND okr_id IN (SELECT id FROM public.okrs WHERE company_id = public.get_my_company_id()));
+
+CREATE POLICY "kr_emp" ON public.key_results
+FOR SELECT USING (
+    okr_id IN (
+        SELECT id FROM public.okrs 
+        WHERE employee_id IN (SELECT id FROM public.employees WHERE profile_id = auth.uid())
+    )
+);
+
+CREATE POLICY "kr_emp_u" ON public.key_results
+FOR UPDATE USING (
+    okr_id IN (
+        SELECT id FROM public.okrs 
+        WHERE employee_id IN (SELECT id FROM public.employees WHERE profile_id = auth.uid())
+    )
+);
+
+-- ═══ SHIFTS ═══
+CREATE POLICY "sh_admin" ON public.shifts
+FOR ALL 
+USING (public.is_admin() AND company_id = public.get_my_company_id())
+WITH CHECK (public.is_admin() AND company_id = public.get_my_company_id());
+
+CREATE POLICY "sh_select" ON public.shifts
+FOR SELECT USING (company_id = public.get_my_company_id());
+
+-- ═══ SCHEDULES ═══
+CREATE POLICY "sc_admin" ON public.schedules
+FOR ALL 
+USING (
+    public.is_admin() AND 
+    shift_id IN (SELECT id FROM public.shifts WHERE company_id = public.get_my_company_id())
+)
+WITH CHECK (
+    public.is_admin() AND 
+    shift_id IN (SELECT id FROM public.shifts WHERE company_id = public.get_my_company_id())
+);
+
+CREATE POLICY "sc_emp" ON public.schedules
+FOR SELECT USING (
+    employee_id IN (SELECT id FROM public.employees WHERE profile_id = auth.uid())
+);
+
+-- ═══ ONBOARDING TEMPLATES ═══
+CREATE POLICY "otm_admin" ON public.onboarding_templates
+FOR ALL 
+USING (public.is_admin() AND company_id = public.get_my_company_id())
+WITH CHECK (public.is_admin() AND company_id = public.get_my_company_id());
+
+-- ═══ ONBOARDING TASKS ═══
+CREATE POLICY "ots_admin" ON public.onboarding_tasks
+FOR ALL 
+USING (
+    public.is_admin() AND 
+    template_id IN (SELECT id FROM public.onboarding_templates WHERE company_id = public.get_my_company_id())
+)
+WITH CHECK (
+    public.is_admin() AND 
+    template_id IN (SELECT id FROM public.onboarding_templates WHERE company_id = public.get_my_company_id())
+);
+
+-- ═══ ONBOARDING PROGRESS ═══
+CREATE POLICY "op_admin" ON public.onboarding_progress
+FOR ALL 
+USING (
+    public.is_admin() AND 
+    employee_id IN (SELECT id FROM public.employees WHERE company_id = public.get_my_company_id())
+)
+WITH CHECK (
+    public.is_admin() AND 
+    employee_id IN (SELECT id FROM public.employees WHERE company_id = public.get_my_company_id())
+);
+
+CREATE POLICY "op_emp" ON public.onboarding_progress
+FOR SELECT USING (
+    employee_id IN (SELECT id FROM public.employees WHERE profile_id = auth.uid())
+);
+
+CREATE POLICY "op_emp_u" ON public.onboarding_progress
+FOR UPDATE USING (
+    employee_id IN (SELECT id FROM public.employees WHERE profile_id = auth.uid())
+);
+
+-- ═══ INITIATIVES ═══
+CREATE POLICY "init_admin" ON public.initiatives
+FOR ALL 
+USING (public.is_admin() AND okr_id IN (SELECT id FROM public.okrs WHERE company_id = public.get_my_company_id()))
+WITH CHECK (public.is_admin() AND okr_id IN (SELECT id FROM public.okrs WHERE company_id = public.get_my_company_id()));
+
+CREATE POLICY "init_select" ON public.initiatives
+FOR SELECT USING (okr_id IN (SELECT id FROM public.okrs WHERE company_id = public.get_my_company_id()));
+
+-- ═══ LEAVE TYPES ═══
+CREATE POLICY "lt_admin" ON public.leave_types
+FOR ALL 
+USING (public.is_admin() AND company_id = public.get_my_company_id())
+WITH CHECK (public.is_admin() AND company_id = public.get_my_company_id());
+
+CREATE POLICY "lt_select" ON public.leave_types
+FOR SELECT USING (company_id = public.get_my_company_id());
+
+-- ═══ LEAVE BALANCES ═══
+CREATE POLICY "lb_admin" ON public.leave_balances
+FOR ALL 
+USING (public.is_admin() AND company_id = public.get_my_company_id())
+WITH CHECK (public.is_admin() AND company_id = public.get_my_company_id());
+
+CREATE POLICY "lb_emp" ON public.leave_balances
+FOR SELECT USING (
+    employee_id IN (SELECT id FROM public.employees WHERE profile_id = auth.uid())
+);
+
+-- ═══ ATTENDANCE REQUESTS (Leave, Sick, etc) ═══
+CREATE POLICY "ar_admin" ON public.attendance_requests
+FOR ALL 
+USING (public.is_admin() AND company_id = public.get_my_company_id())
+WITH CHECK (public.is_admin() AND company_id = public.get_my_company_id());
+
+CREATE POLICY "ar_emp" ON public.attendance_requests
+FOR ALL 
+USING (employee_id IN (SELECT id FROM public.employees WHERE profile_id = auth.uid()))
+WITH CHECK (employee_id IN (SELECT id FROM public.employees WHERE profile_id = auth.uid()));
+
+-- ═══ COMPANY HOLIDAYS ═══
+CREATE POLICY "hol_admin" ON public.company_holidays
+FOR ALL 
+USING (public.is_admin() AND company_id = public.get_my_company_id())
+WITH CHECK (public.is_admin() AND company_id = public.get_my_company_id());
+
+CREATE POLICY "hol_select" ON public.company_holidays
+FOR SELECT USING (company_id = public.get_my_company_id());
 
 -- ┌──────────────────────────────────────────────────────────────────────┐
 -- │ STEP 5: Explicitly GRANT baseline permissions                      │

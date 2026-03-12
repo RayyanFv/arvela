@@ -163,7 +163,7 @@ export async function assignAssessment({ assessment_id, application_id }) {
 
     // Send email invitation
     try {
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'
         const assessmentLink = `${baseUrl}/assessment/${token}`
 
         await sendEmail({
