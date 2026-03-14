@@ -10,6 +10,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata = {
   title: "Arvela - HR SaaS Platform",
   description: "Modern HR SaaS Platform",
+  icons: {
+    icon: "/arvela-logo.png",
+  },
 };
 
 export default function RootLayout({ children }) {

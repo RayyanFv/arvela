@@ -12,8 +12,9 @@ export default function AuthLayout({ children }) {
                 <div className="hidden md:flex flex-col justify-between w-1/2 bg-sidebar-bg p-10 text-white relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-sidebar-bg/0 z-0" />
 
-                    <div className="relative z-10 font-bold text-3xl tracking-tight text-white">
-                        Arvela<span className="text-primary">HR</span>
+                    <div className="relative z-10 flex items-center gap-3 font-bold text-3xl tracking-tight text-white">
+                        <img src="/arvela-logo.png" alt="" className="w-10 h-10 object-contain" />
+                        <span>Arvela<span className="text-primary">HR</span></span>
                     </div>
 
                     <div className="relative z-10 space-y-4">
@@ -40,8 +41,11 @@ export default function AuthLayout({ children }) {
 
                 {/* Right Side - Form */}
                 <div className="w-full md:w-1/2 p-8 sm:p-12 flex flex-col justify-center bg-white/50">
-                    <div className="md:hidden font-bold text-2xl tracking-tight text-sidebar-bg mb-8 text-center">
-                        Arvela<span className="text-primary">HR</span>
+                    <div className="md:hidden flex flex-col items-center gap-3 mb-8">
+                        <img src="/arvela-logo.png" alt="" className="w-12 h-12 object-contain" />
+                        <div className="font-bold text-2xl tracking-tight text-sidebar-bg">
+                            Arvela<span className="text-primary">HR</span>
+                        </div>
                     </div>
                     {children}
                 </div>

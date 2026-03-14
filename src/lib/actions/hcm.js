@@ -113,3 +113,39 @@ export async function enrollInCourse({ employeeId, courseId, companyId, dueDate 
     revalidatePath(`/dashboard/employees/${employeeId}`)
     return { success: true }
 }
+
+/**
+ * Assign an onboarding template to an employee (Admin only)
+ */
+export async function assignOnboardingTemplate({ employeeId, templateId, companyId }) {
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+
+    if (companyId !== profile.company_id) {
+        throw new Error('Unauthorized: cross-company access denied')
+    }
+
+    // 1. Get tasks for the template
+    const { data: tasks, error: taskError } = await admin
+        .from('onboarding_tasks')
+        .select('id')
+        .eq('template_id', templateId)
+
+    if (taskError) throw new Error(taskError.message)
+    if (!tasks || tasks.length === 0) throw new Error('Template has no tasks')
+
+    // 2. Prepare progress entries
+    const progressData = tasks.map(task => ({
+        employee_id: employeeId,
+        task_id: task.id
+    }))
+
+    // 3. Upsert into onboarding_progress
+    const { error: insertError } = await admin
+        .from('onboarding_progress')
+        .upsert(progressData, { onConflict: 'employee_id, task_id' })
+
+    if (insertError) throw new Error(insertError.message)
+
+    revalidatePath(`/dashboard/employees/${employeeId}`)
+    return { success: true }
+}

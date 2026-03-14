@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Shield, Mail, MoreHorizontal, UserCheck, ShieldAlert } from 'lucide-react'
 import { ROLES, ROLE_LABELS } from '@/lib/constants/roles'
 import { RegisterUserDialog } from '@/components/admin/RegisterUserDialog'
+import { Suspense } from 'react'
 
 export const metadata = { title: 'Manajemen User — Arvela HR' }
 
@@ -51,7 +52,9 @@ export default async function UsersSettingsPage() {
                     description="Kelola hak akses dan akun administrator di perusahaan Anda."
                 />
                 <div className="flex items-center gap-3 pt-2">
-                    <RegisterUserDialog />
+                    <Suspense fallback={<Button disabled>Memuat...</Button>}>
+                        <RegisterUserDialog />
+                    </Suspense>
                 </div>
             </div>
 

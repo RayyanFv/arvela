@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { LogIn, Eye, EyeOff } from 'lucide-react'
+import { LogIn, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ADMIN_ROLES, ROLES } from '@/lib/constants/roles'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,7 @@ export default function LoginPage() {
     const router = useRouter()
     const [error, setError] = useState('')
     const [showPassword, setShowPassword] = useState(false)
+    const [success, setSuccess] = useState(false)
     const supabase = createClient()
 
     const form = useForm({
@@ -41,15 +42,22 @@ export default function LoginPage() {
 
     async function onSubmit(values) {
         setError('')
+        setSuccess(false) // Reset success state on new submission
         const { data, error } = await supabase.auth.signInWithPassword({
             email: values.email,
             password: values.password,
         })
 
         if (error) {
-            setError(error.message)
+            if (error.message === 'Invalid login credentials') {
+                setError('Email atau password yang Anda masukkan salah. Silakan periksa kembali.')
+            } else {
+                setError(error.message)
+            }
             return
         }
+
+        setSuccess(true)
 
         const { data: profile } = await supabase
             .from('profiles')
@@ -59,15 +67,17 @@ export default function LoginPage() {
 
         const role = profile?.role || 'user'
 
-        if (ADMIN_ROLES.includes(role)) {
-            router.push('/dashboard')
-        } else if (role === ROLES.EMPLOYEE) {
-            router.push('/staff')
-        } else {
-            router.push('/portal')
-        }
-
-        router.refresh()
+        // Small delay to show success state
+        setTimeout(() => {
+            if (ADMIN_ROLES.includes(role)) {
+                router.push('/dashboard')
+            } else if (role === ROLES.EMPLOYEE) {
+                router.push('/staff')
+            } else {
+                router.push('/portal')
+            }
+            router.refresh()
+        }, 800)
     }
 
     return (
@@ -135,17 +145,31 @@ export default function LoginPage() {
                     />
 
                     {error && (
-                        <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-sm text-red-600 font-medium">
+                        <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-600 font-bold animate-in fade-in slide-in-from-top-2">
                             {error}
+                        </div>
+                    )}
+                    
+                    {success && (
+                        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-sm text-emerald-600 font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                            <CheckCircle2 className="w-4 h-4" />
+                            Berhasil! Mengalihkan Anda...
                         </div>
                     )}
 
                     <Button
                         type="submit"
-                        className="w-full h-11 text-base font-semibold bg-primary hover:bg-brand-600 text-white shadow-md hover:shadow-lg transition-all"
-                        disabled={form.formState.isSubmitting}
+                        className={`w-full h-11 text-base font-bold shadow-md transition-all ${success ? "bg-emerald-500 hover:bg-emerald-600 text-white" : "bg-primary hover:bg-brand-600 text-white"}`}
+                        disabled={form.formState.isSubmitting || success}
                     >
-                        {form.formState.isSubmitting ? 'Memproses...' : 'Masuk Sekarang'}
+                        {form.formState.isSubmitting ? (
+                            <div className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Verifikasi...</span>
+                            </div>
+                        ) : success ? (
+                            "Berhasil Login"
+                        ) : 'Masuk Sekarang'}
                     </Button>
                 </form>
             </Form>

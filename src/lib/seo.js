@@ -46,6 +46,10 @@ export const SEO_CONFIG = {
         handle: '@arvelahr',
         site: '@arvelahr',
         cardType: 'summary_large_image',
+    },
+    icons: {
+        icon: '/arvela-logo.png',
+        apple: '/arvela-logo.png',
     }
 };
 
@@ -58,6 +62,7 @@ export function getMetadata(overrides = {}) {
         description: overrides.description || SEO_CONFIG.description,
         keywords: overrides.keywords || SEO_CONFIG.keywords.join(', '),
         authors: [{ name: SEO_CONFIG.author }],
+        icons: SEO_CONFIG.icons,
         openGraph: {
             ...SEO_CONFIG.og,
             title: overrides.title || SEO_CONFIG.og.title,

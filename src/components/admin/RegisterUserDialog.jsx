@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { registerUser, getRegisterableRoles } from '@/lib/actions/register-user'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -24,6 +25,11 @@ export function RegisterUserDialog() {
     const [fullName, setFullName] = useState('')
     const [role, setRole] = useState('')
     const [department, setDepartment] = useState('')
+    const [password, setPassword] = useState('')
+    const [jobTitle, setJobTitle] = useState('')
+    const [applicationId, setApplicationId] = useState('')
+
+    const searchParams = useSearchParams()
 
     useEffect(() => {
         if (open) {
@@ -32,11 +38,35 @@ export function RegisterUserDialog() {
             setResult(null)
             setError(null)
             setEmail('')
-            setFullName('')
             setRole('')
             setDepartment('')
+            setPassword('')
+            setJobTitle('')
+            setApplicationId('')
+
+            // Pre-fill from URL if exists
+            const emailParam = searchParams.get('email')
+            const nameParam = searchParams.get('full_name')
+            const roleParam = searchParams.get('role')
+            const deptParam = searchParams.get('department')
+            const jobParam = searchParams.get('job_title')
+            const appIdParam = searchParams.get('app_id')
+
+            if (emailParam) setEmail(emailParam)
+            if (nameParam) setFullName(nameParam)
+            if (roleParam) setRole(roleParam)
+            if (deptParam) setDepartment(deptParam)
+            if (jobParam) setJobTitle(jobParam)
+            if (appIdParam) setApplicationId(appIdParam)
         }
-    }, [open])
+    }, [open, searchParams])
+
+    // Auto-open if redirected from candidates
+    useEffect(() => {
+        if (searchParams.get('email')) {
+            setOpen(true)
+        }
+    }, [searchParams])
 
     function handleSubmit(e) {
         e.preventDefault()
@@ -45,7 +75,15 @@ export function RegisterUserDialog() {
 
         startTransition(async () => {
             try {
-                const res = await registerUser({ email, full_name: fullName, role, department })
+                const res = await registerUser({
+                    email,
+                    full_name: fullName,
+                    role,
+                    department,
+                    password,
+                    job_title: jobTitle,
+                    application_id: applicationId
+                })
                 setResult(res)
             } catch (err) {
                 setError(err.message)
@@ -159,6 +197,17 @@ export function RegisterUserDialog() {
                                 value={department}
                                 onChange={e => setDepartment(e.target.value)}
                                 placeholder="Contoh: Engineering"
+                                className="w-full h-11 rounded-xl border border-slate-200 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Password <span className="text-slate-300">(kosongkan untuk acak)</span></label>
+                            <input
+                                type="text"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                placeholder="Min. 6 karakter"
                                 className="w-full h-11 rounded-xl border border-slate-200 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                             />
                         </div>

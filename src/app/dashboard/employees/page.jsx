@@ -75,11 +75,11 @@ export default async function EmployeesPage({ searchParams }) {
                     <Button variant="outline" className="h-11 rounded-xl border-slate-200 text-slate-600 font-bold gap-2">
                         <Filter className="w-4 h-4" /> Filter
                     </Button>
-                    <Link href="/dashboard/candidates">
+                    <Link href="/dashboard/settings/users">
                         <Button
                             className="h-11 rounded-xl bg-primary text-white font-black hover:bg-brand-600 gap-2 shadow-lg shadow-primary/20"
                         >
-                            <Plus className="w-4 h-4" /> Hire Kandidat Baru
+                            <Plus className="w-4 h-4" /> Tambah Karyawan
                         </Button>
                     </Link>
                 </div>

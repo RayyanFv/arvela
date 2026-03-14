@@ -21,7 +21,7 @@ import { revalidatePath } from 'next/cache'
 export async function registerUser(payload) {
     const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
-    const { email, full_name, role: targetRole, department } = payload
+    const { email, full_name, role: targetRole, department, password, job_title, application_id } = payload
 
     // ─── Validate inputs ──────────────────────
     if (!email || !full_name || !targetRole) {
@@ -36,11 +36,11 @@ export async function registerUser(payload) {
     }
 
     // ─── Create auth user ─────────────────────
-    const tempPassword = crypto.randomUUID().replace(/-/g, '').slice(0, 12) + 'Aa1!'
+    const finalPassword = password || (crypto.randomUUID().replace(/-/g, '').slice(0, 12) + 'Aa1!')
 
     const { data: newAuth, error: authError } = await admin.auth.admin.createUser({
         email,
-        password: tempPassword,
+        password: finalPassword,
         email_confirm: true,
         user_metadata: {
             full_name,
@@ -71,16 +71,25 @@ export async function registerUser(payload) {
 
     // ─── If employee, also create employee record ─────
     if (targetRole === ROLES.EMPLOYEE) {
-        const { error: empError } = await admin.from('employees').insert({
+        const { error: empError } = await admin.from('employees').upsert({
             profile_id: userId,
             company_id: profile.company_id,
-            job_title: department ? `Staff ${department}` : 'Team Member',
+            application_id: application_id || null,
+            job_title: job_title || (department ? `Staff ${department}` : 'Team Member'),
             department: department || 'General',
             status: 'active',
-        })
+        }, { onConflict: 'profile_id' })
 
-        if (empError && empError.code !== '23505') {
+        if (empError) {
             console.warn('Employee record creation failed:', empError.message)
+        }
+
+        // ─── If linked to application, update application stage ─────
+        if (application_id) {
+            await admin.from('applications')
+                .update({ stage: 'hired', updated_at: new Date().toISOString() })
+                .eq('id', application_id)
+                .eq('company_id', profile.company_id)
         }
     }
 

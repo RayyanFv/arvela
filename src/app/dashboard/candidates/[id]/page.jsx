@@ -243,7 +243,20 @@ export default async function CandidateDetailPage({ params }) {
                 <div className="space-y-4">
                     {app.stage !== 'hired' ? (
                         <div className="space-y-4">
-                            <HiringModal application={app} />
+                            <Link 
+                                href={`/dashboard/settings/users?${new URLSearchParams({
+                                    email: app.email,
+                                    full_name: app.full_name,
+                                    role: 'employee',
+                                    job_title: app.jobs?.title || '',
+                                    app_id: app.id
+                                }).toString()}`}
+                                className="w-full"
+                            >
+                                <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white gap-2 h-11 rounded-xl shadow-lg ring-offset-background transition-all active:scale-95">
+                                    <UserCheck className="w-4 h-4" /> Terima & Daftarkan Akses
+                                </Button>
+                            </Link>
                             <StageUpdater application={app} userRole={profile.role} />
                         </div>
                     ) : (

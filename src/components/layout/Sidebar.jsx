@@ -123,8 +123,8 @@ export function Sidebar({ isOpen, setIsOpen }) {
                 collapsed ? "px-4 justify-center" : "px-5"
             )}>
                 <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
-                        <span className="text-white font-black text-sm">A</span>
+                    <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
+                        <img src="/arvela-logo.png" alt="Arvela" className="w-full h-full object-contain" />
                     </div>
                     {!collapsed && (
                         <div className="overflow-hidden">

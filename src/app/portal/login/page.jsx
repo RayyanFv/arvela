@@ -39,8 +39,8 @@ export default function CandidateLoginPage() {
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4">
             <Link href="/portal" className="mb-8 flex items-center gap-2">
-                <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center">
-                    <Briefcase className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 overflow-hidden flex items-center justify-center">
+                    <img src="/arvela-logo.png" alt="Arvela" className="w-full h-full object-contain" />
                 </div>
                 <div className="flex flex-col">
                     <span className="font-bold text-xl tracking-tight text-slate-900 leading-none">

@@ -46,7 +46,9 @@ export default function StaffLayout({ children }) {
             {/* Top Navbar */}
             <header className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 h-16 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <div className="w-9 h-9 bg-gradient-to-br from-primary to-orange-400 rounded-xl flex items-center justify-center font-black text-white text-base shadow-lg shadow-primary/20">A</div>
+                    <div className="w-9 h-9 overflow-hidden flex items-center justify-center shrink-0">
+                        <img src="/arvela-logo.png" alt="Arvela" className="w-full h-full object-contain" />
+                    </div>
                     <span className="text-lg font-black text-slate-900 tracking-tighter">Team<span className="text-primary">Arvela</span></span>
                 </div>
 
@@ -97,7 +99,9 @@ export default function StaffLayout({ children }) {
                 <div className="fixed inset-0 z-50 md:hidden bg-white p-6 animate-in slide-in-from-top-10 duration-300">
                     <div className="flex justify-between items-center mb-10">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-gradient-to-br from-primary to-orange-400 rounded-2xl flex items-center justify-center font-black text-white text-xl shadow-lg">A</div>
+                            <div className="w-10 h-10 overflow-hidden flex items-center justify-center shrink-0">
+                                <img src="/arvela-logo.png" alt="Arvela" className="w-full h-full object-contain" />
+                            </div>
                             <span className="text-xl font-black text-slate-900 tracking-tighter">Team<span className="text-primary">Arvela</span></span>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>

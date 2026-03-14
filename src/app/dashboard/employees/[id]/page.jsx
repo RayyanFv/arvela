@@ -27,7 +27,7 @@ import { Badge } from '@/components/ui/badge'
 import { OKRTable } from '@/components/staff/OKRTable'
 import { OnboardingList } from '@/components/staff/OnboardingList'
 import Link from 'next/link'
-import { enrollInCourse } from '@/lib/actions/hcm'
+import { enrollInCourse, assignOnboardingTemplate } from '@/lib/actions/hcm'
 
 export default function EmployeeDetailPage() {
     const { id } = useParams()
@@ -37,7 +37,9 @@ export default function EmployeeDetailPage() {
     const [onboarding, setOnboarding] = useState([])
     const [assignments, setAssignments] = useState([])
     const [availableCourses, setAvailableCourses] = useState([])
+    const [availableTemplates, setAvailableTemplates] = useState([])
     const [assigningCourseId, setAssigningCourseId] = useState('')
+    const [assigningTemplateId, setAssigningTemplateId] = useState('')
     const [loading, setLoading] = useState(true)
     const [showAddOKR, setShowAddOKR] = useState(false)
     const [newOKR, setNewOKR] = useState({ title: '', period: 'Q1 2026', description: '' })
@@ -69,6 +71,13 @@ export default function EmployeeDetailPage() {
             setOnboarding(onboardingRes.data || [])
             setAssignments(coursesRes.data || [])
             setAvailableCourses(allCoursesRes.data || [])
+
+            // Fetch available onboarding templates
+            const { data: templates } = await supabase
+                .from('onboarding_templates')
+                .select('id, name')
+                .eq('company_id', emp.company_id)
+            setAvailableTemplates(templates || [])
         }
         setLoading(false)
     }
@@ -308,17 +317,61 @@ export default function EmployeeDetailPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Onboarding */}
                         <div className="space-y-6">
-                            <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                                <CheckCircle2 className="w-6 h-6 text-emerald-500" /> Onboarding Checklist
+                            <h3 className="text-xl font-black text-slate-900 flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                    <CheckCircle2 className="w-6 h-6 text-emerald-500" /> Onboarding Checklist
+                                </div>
                             </h3>
-                            <OnboardingList
-                                tasks={onboarding.map(p => ({
-                                    ...p.onboarding_tasks,
-                                    progress_id: p.id,
-                                    is_completed: p.is_completed,
-                                    completed_at: p.completed_at
-                                }))}
-                            />
+                            
+                            <Card className="rounded-[32px] p-6 space-y-6 bg-white border-none shadow-xl">
+                                <div className="space-y-4">
+                                    <div className="p-4 bg-slate-50 rounded-2xl space-y-3">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Assign Template Onboarding</p>
+                                        <div className="flex gap-2">
+                                            <select
+                                                className="flex-1 h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold outline-none"
+                                                value={assigningTemplateId}
+                                                onChange={e => setAssigningTemplateId(e.target.value)}
+                                            >
+                                                <option value="">Pilih Template...</option>
+                                                {availableTemplates.map(t => (
+                                                    <option key={t.id} value={t.id}>{t.name}</option>
+                                                ))}
+                                            </select>
+                                            <Button
+                                                disabled={!assigningTemplateId || loading}
+                                                onClick={async () => {
+                                                    setLoading(true)
+                                                    try {
+                                                        await assignOnboardingTemplate({
+                                                            employeeId: id,
+                                                            templateId: assigningTemplateId,
+                                                            companyId: employee.company_id
+                                                        })
+                                                        setAssigningTemplateId('')
+                                                        loadData()
+                                                    } catch (err) {
+                                                        alert(err.message)
+                                                    }
+                                                    setLoading(false)
+                                                }}
+                                                className="bg-emerald-500 text-white font-bold rounded-xl h-10 px-4 hover:bg-emerald-600"
+                                            >
+                                                Assign
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <OnboardingList
+                                        tasks={onboarding.map(p => ({
+                                            ...p.onboarding_tasks,
+                                            progress_id: p.id,
+                                            is_completed: p.is_completed,
+                                            completed_at: p.completed_at
+                                        }))}
+                                    />
+                                </div>
+                            </Card>
                         </div>
 
                         {/* LMS Assignment */}
