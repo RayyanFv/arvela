@@ -26,6 +26,49 @@ export async function uploadCVFile(formData, path) {
     return { url: urlData?.publicUrl }
 }
 
+// ─── Upload Recruitment Document (Admin only) ─────────────────────────────────
+export async function uploadRecruitmentDocument(formData) {
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+    
+    const file = formData.get('file')
+    const applicationId = formData.get('applicationId')
+    const documentType = formData.get('documentType') || 'other'
+    
+    if (!file) throw new Error('No file provided')
+
+    // 1. Upload to storage
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${applicationId}/${documentType}_${Date.now()}.${fileExt}`
+    const path = `recruitment-docs/${fileName}`
+
+    const { error: uploadError } = await admin.storage
+        .from('recruitment-docs')
+        .upload(path, file)
+
+    if (uploadError) throw new Error(uploadError.message)
+
+    const { data: { publicUrl } } = admin.storage.from('recruitment-docs').getPublicUrl(path)
+
+    // 2. Save to DB
+    const { data, error: dbError } = await admin
+        .from('recruitment_documents')
+        .insert({
+            company_id: profile.company_id,
+            application_id: applicationId,
+            document_type: documentType,
+            document_url: publicUrl,
+            status: 'completed', // For now auto-complete
+            uploaded_by: profile.id
+        })
+        .select()
+        .single()
+
+    if (dbError) throw new Error(dbError.message)
+
+    revalidatePath(`/dashboard/candidates/${applicationId}`)
+    return { success: true, data }
+}
+
 // ─── Update Application Stage (Admin only + company check) ────────────────────
 export async function updateStage(id, stage, customMessage = '') {
     const { profile, admin } = await getAuthProfile({ requireAdmin: true })
@@ -123,7 +166,17 @@ export async function submitApplication(payload) {
 
     const { data: newApp, error } = await supabase
         .from('applications')
-        .insert(payload)
+        .insert({
+            job_id: payload.job_id,
+            company_id: payload.company_id,
+            full_name: payload.full_name,
+            email: payload.email,
+            phone: payload.phone,
+            portfolio_url: payload.portfolio_url,
+            cover_letter: payload.cover_letter,
+            cv_url: payload.cv_url,
+            screening_answers: payload.screening_answers || {},
+        })
         .select(`id, full_name, email, jobs (title), companies (name)`)
         .single()
 
@@ -394,4 +447,32 @@ export async function getMagicLink({ email, type = 'magiclink', redirectTo }) {
 
     if (error) throw new Error(error.message)
     return data?.properties?.action_link
+}
+
+/**
+ * ─── GET CANDIDATE HISTORY (Timeline Tracking) ────────────────────────────────
+ * Fetches all previous applications from the same candidate (by email) 
+ * to provide context to HR on their track record.
+ */
+export async function getCandidateHistory(email) {
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+
+    const { data: history, error } = await admin
+        .from('applications')
+        .select(`
+            id, 
+            full_name, 
+            email, 
+            stage, 
+            created_at, 
+            job_id,
+            jobs (title),
+            companies (name)
+        `)
+        .eq('email', email)
+        .eq('company_id', profile.company_id)
+        .order('created_at', { ascending: false })
+
+    if (error) throw new Error(error.message)
+    return history
 }

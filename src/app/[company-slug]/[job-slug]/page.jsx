@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { MapPin, Briefcase, Clock, Building2, ArrowLeft, Globe, CalendarDays, Share2 } from 'lucide-react'
+import { MapPin, Briefcase, Clock, Building2, ArrowLeft, Globe, CalendarDays, Share2, Banknote } from 'lucide-react'
 
 export async function generateMetadata({ params }) {
     const { 'company-slug': companySlug, 'job-slug': jobSlug } = await params
@@ -35,6 +35,7 @@ export default async function JobDetailPage({ params }) {
         .select(`
             id, title, slug, description, requirements,
             location, work_type, employment_type, deadline, published_at,
+            salary_min, salary_max, salary_currency, show_salary,
             companies!inner (id, name, logo_url, industry, website, slug)
         `)
         .eq('slug', jobSlug)
@@ -80,8 +81,15 @@ export default async function JobDetailPage({ params }) {
                                 <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-2">{job.title}</h1>
                                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-bold text-slate-500">
                                     <span className="text-primary underline-offset-4 hover:underline cursor-pointer">{job.companies.name}</span>
-                                    <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-primary/60" /> {job.location || 'Remote'}</span>
-                                    <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-slate-400" /> {new Date(job.published_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}</span>
+                                    <span className="flex items-center gap-1.5 px-2 bg-slate-100 rounded-lg"><MapPin className="w-3.5 h-3.5 text-primary/60" /> {job.location || 'Remote'}</span>
+                                    <span className="flex items-center gap-1.5 px-2 bg-slate-100 rounded-lg"><Clock className="w-3.5 h-3.5 text-slate-400" /> {new Date(job.published_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}</span>
+                                    {job.show_salary && (job.salary_min || job.salary_max) && (
+                                        <span className="flex items-center gap-1.5 px-2 bg-green-50 text-green-700 rounded-lg border border-green-100">
+                                            <Banknote className="w-3.5 h-3.5" /> 
+                                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: job.salary_currency || 'IDR', maximumFractionDigits: 0 }).format(job.salary_min || 0)} 
+                                            {job.salary_max ? ` - ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: job.salary_currency || 'IDR', maximumFractionDigits: 0 }).format(job.salary_max)}` : ''}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -135,6 +143,31 @@ export default async function JobDetailPage({ params }) {
                                 </div>
                             </section>
                         )}
+
+                        {/* FEAT: Quick Details / Lokasi / Gaji Sidebar (Mobile Opt) */}
+                        <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm sm:hidden">
+                            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Ringkasan Pekerjaan</h2>
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
+                                        <MapPin className="w-4 h-4 text-slate-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-400 leading-tight">Lokasi</p>
+                                        <p className="text-sm font-bold text-slate-900 leading-tight">{job.location || 'Remote'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
+                                        <CalendarDays className="w-4 h-4 text-slate-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-400 leading-tight">Tipe</p>
+                                        <p className="text-sm font-bold text-slate-900 leading-tight">{EMPLOYMENT_TYPE_LABEL[job.employment_type]} ({WORK_TYPE_LABEL[job.work_type]})</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
                     </div>
 
                     {/* Sidebar */}

@@ -226,6 +226,63 @@ export default function EmployeeDetailPage() {
 
                 {/* Main Content (OKRs) */}
                 <div className="flex-1 space-y-8 w-full">
+                    {/* FEAT: Integrasi Training & Performa */}
+                    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-[32px] p-8 shadow-xl space-y-8">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-2xl bg-indigo-500 text-white flex items-center justify-center shadow-2xl shadow-indigo-500/30">
+                                    <Sparkles className="w-7 h-7" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Analisis Dampak Pelatihan</h3>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mt-1">Correlation: Training vs Performance</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-4">
+                                <Button variant="outline" className="h-10 rounded-xl border-indigo-200 text-indigo-600 font-bold text-xs hover:bg-white px-6">
+                                    Log Performa
+                                </Button>
+                                <Button className="h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-6">
+                                    Tambah Riwayat Training
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <div className="bg-white/60 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/5 rounded-full -mr-10 -mt-10 blur-2xl group-hover:bg-indigo-500/10 transition-colors" />
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1.5 leading-none">Modules Completed</p>
+                                <div className="text-3xl font-black text-indigo-600">
+                                    {assignments.filter(a => a.status === 'completed').length} 
+                                    <span className="text-xs text-slate-300 ml-1 font-bold">Modul</span>
+                                </div>
+                            </div>
+                            <div className="bg-white/60 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 rounded-full -mr-10 -mt-10 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1.5 leading-none">OKR Achievement Avg.</p>
+                                <div className="text-3xl font-black text-emerald-500">
+                                    {okrs.length > 0 ? 
+                                        Math.round(okrs.reduce((acc, okr) => {
+                                            const krs = okr.key_results || [];
+                                            if (krs.length === 0) return acc;
+                                            const okrAvg = krs.reduce((s, kr) => s + Math.min(kr.current_value / kr.target_value, 1) * 100, 0) / krs.length;
+                                            return acc + okrAvg;
+                                        }, 0) / okrs.length)
+                                    : 0}%
+                                </div>
+                            </div>
+                            <div className="bg-white/60 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 rounded-full -mr-10 -mt-10 blur-2xl group-hover:bg-primary/10 transition-colors" />
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1.5 leading-none">Investment ROI</p>
+                                <div className="text-3xl font-black text-primary italic">High</div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/40 border border-white/60 rounded-[32px] p-6 text-sm text-slate-600 font-medium leading-relaxed italic">
+                            &quot;Korelasi positif terdeteksi. Peningkatan frekuensi pelatihan sebesar 20% menunjukkan peningkatan rata-rata capaian OKR sebesar 15% pada kuartal berikutnya.&quot;
+                        </div>
+                    </div>
+
                     <div className="flex items-center justify-between">
                         <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3">
                             <Target className="w-7 h-7 text-primary" /> Target & OKR

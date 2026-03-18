@@ -35,6 +35,17 @@ export default function ApplyForm({ job, company }) {
 
     const [cvMode, setCvMode] = useState('upload') // 'upload' | 'drive'
 
+    // FEAT: ATS Pre Screening
+    const [screeningAnswers, setScreeningAnswers] = useState({})
+    
+    // safe parse screening questions
+    let validQuestions = []
+    if (Array.isArray(job.screening_questions)) {
+        validQuestions = job.screening_questions
+    } else if (typeof job.screening_questions === 'string') {
+        try { validQuestions = JSON.parse(job.screening_questions) } catch(e) {}
+    }
+
     const form = useForm({
         resolver: zodResolver(schema),
         defaultValues: { full_name: '', email: '', phone: '', portfolio_url: '', cv_drive_url: '', cover_letter: '' },
@@ -101,6 +112,7 @@ export default function ApplyForm({ job, company }) {
                 portfolio_url: values.portfolio_url || null,
                 cover_letter: values.cover_letter || null,
                 cv_url: cvUrl,
+                screening_answers: screeningAnswers,
             })
             setSubmitted(true)
         } catch (error) {
@@ -272,6 +284,34 @@ export default function ApplyForm({ job, company }) {
                         <FormMessage />
                     </FormItem>
                 )} />
+
+                {/* FEAT: ATS Pre Screening / Prerequisite Questions */}
+                {validQuestions.length > 0 && (
+                    <div className="bg-brand-50/50 border border-brand-100 rounded-2xl p-6 space-y-4">
+                        <h3 className="text-sm font-semibold text-foreground">Pertanyaan Kualifikasi Tambahan</h3>
+                        <div className="space-y-4">
+                            {validQuestions.map((q, idx) => (
+                                <div key={idx} className="space-y-1.5">
+                                    <label className="text-sm font-medium text-foreground">{q.question} <span className="text-destructive">*</span></label>
+                                    {q.type === 'yes_no' ? (
+                                        <div className="flex bg-muted p-1 rounded-lg border border-border w-max">
+                                            <button type="button" onClick={() => setScreeningAnswers({...screeningAnswers, [q.question]: "Ya"})} className={`text-xs px-4 py-2 rounded-md font-medium transition-colors ${screeningAnswers[q.question] === "Ya" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>Ya</button>
+                                            <button type="button" onClick={() => setScreeningAnswers({...screeningAnswers, [q.question]: "Tidak"})} className={`text-xs px-4 py-2 rounded-md font-medium transition-colors ${screeningAnswers[q.question] === "Tidak" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>Tidak</button>
+                                        </div>
+                                    ) : (
+                                        <Input
+                                            value={screeningAnswers[q.question] || ''}
+                                            onChange={(e) => setScreeningAnswers({...screeningAnswers, [q.question]: e.target.value})}
+                                            required
+                                            className="h-10 border-slate-200"
+                                            placeholder="Jawaban Anda..."
+                                        />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <Button
                     type="submit"

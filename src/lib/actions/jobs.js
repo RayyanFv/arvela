@@ -21,6 +21,21 @@ export async function createJob(formData) {
     const deadline = formData.get('deadline') || null
     const shouldPublish = formData.get('publish') === '1'
 
+    // Salary fields
+    const salaryMin = formData.get('salary_min') ? parseFloat(formData.get('salary_min')) : null
+    const salaryMax = formData.get('salary_max') ? parseFloat(formData.get('salary_max')) : null
+    const salaryCurrency = formData.get('salary_currency') || 'IDR'
+    const showSalary = formData.get('show_salary') === 'on' || formData.get('show_salary') === 'true'
+
+    // FEAT: ATS Pre Screening
+    const screeningQuestionsStr = formData.get('screening_questions')
+    let parsedScreeningQuestions = []
+    try {
+        if (screeningQuestionsStr) parsedScreeningQuestions = JSON.parse(screeningQuestionsStr)
+    } catch(e) {
+        parsedScreeningQuestions = []
+    }
+
     // Generate slug via DB function
     const { data: slug } = await supabase.rpc('generate_job_slug', {
         title,
@@ -40,6 +55,11 @@ export async function createJob(formData) {
         deadline,
         status: shouldPublish ? 'published' : 'draft',
         published_at: shouldPublish ? new Date().toISOString() : null,
+        screening_questions: parsedScreeningQuestions,
+        salary_min: salaryMin,
+        salary_max: salaryMax,
+        salary_currency: salaryCurrency,
+        show_salary: showSalary,
     }
 
     const { data: job, error } = await supabase
@@ -65,6 +85,21 @@ export async function updateJob(jobId, formData) {
     const employmentType = formData.get('employment_type')
     const deadline = formData.get('deadline') || null
     const newStatus = formData.get('status')
+    
+    // Salary fields
+    const salaryMin = formData.get('salary_min') ? parseFloat(formData.get('salary_min')) : null
+    const salaryMax = formData.get('salary_max') ? parseFloat(formData.get('salary_max')) : null
+    const salaryCurrency = formData.get('salary_currency') || 'IDR'
+    const showSalary = formData.get('show_salary') === 'on' || formData.get('show_salary') === 'true'
+    
+    // FEAT: ATS Pre Screening
+    const screeningQuestionsStr = formData.get('screening_questions')
+    let parsedScreeningQuestions = []
+    try {
+        if (screeningQuestionsStr) parsedScreeningQuestions = JSON.parse(screeningQuestionsStr)
+    } catch(e) {
+        parsedScreeningQuestions = []
+    }
 
     // Ambil job lama untuk cek status transition
     const { data: existing } = await supabase
@@ -85,6 +120,11 @@ export async function updateJob(jobId, formData) {
         employment_type: employmentType,
         deadline,
         status: newStatus,
+        screening_questions: parsedScreeningQuestions,
+        salary_min: salaryMin,
+        salary_max: salaryMax,
+        salary_currency: salaryCurrency,
+        show_salary: showSalary,
     }
 
     if (newStatus === 'published' && !existing.published_at) {

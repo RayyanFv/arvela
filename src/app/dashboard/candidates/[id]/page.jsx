@@ -1,5 +1,6 @@
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import { StageBadge } from '@/components/candidates/StageBadge'
 import { STAGE_CONFIG, STAGE_ORDER } from '@/lib/constants/stages'
 import Link from 'next/link'
@@ -8,6 +9,7 @@ import { formatDistanceToNow, format } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
 import StageUpdater from './StageUpdater'
 import CandidateAssessmentBox from './AssessmentBox'
+import RecruitmentDocManager from './RecruitmentDocManager'
 import HiringModal from './HiringModal'
 import { Button } from '@/components/ui/button'
 import { updateStage, cancelHire } from '@/lib/actions/applications'
@@ -87,12 +89,37 @@ export default async function CandidateDetailPage({ params }) {
         .select(`
             *, 
             assessments(title, duration_minutes),
-            answers(*, questions(prompt, type, points))
+            answers(*, questions(prompt, type, points)),
+            proctoring_logs(*)
         `)
         .eq('application_id', id)
         .order('created_at', { ascending: false })
 
-    const sortedHistory = [...(app.stage_history ?? [])].sort(
+    // FEAT: ATS Candidate History Tracking (Unified Profile)
+    const { data: allPastApps } = await supabase
+        .from('applications')
+        .select(`
+            id, stage, created_at,
+            jobs (id, title),
+            assessment_assignments (
+                id, status, total_score,
+                assessments (title, show_score, questions (points))
+            )
+        `)
+        .eq('email', app.email)
+        .eq('company_id', profile.company_id)
+        // .neq('id', id) // We want to show current one too in the full timeline? 
+        // User said "apply di job mana aja", so including current is fine or separate.
+        .order('created_at', { ascending: false })
+    
+    // FEAT: Recruitment Documents
+    const { data: recDocs } = await supabase
+        .from('recruitment_documents')
+        .select('*')
+        .eq('application_id', id)
+        .order('created_at', { ascending: false })
+
+    const sortedHistory = [...(app.stage_history || [])].sort(
         (a, b) => new Date(b.created_at) - new Date(a.created_at)
     )
 
@@ -237,6 +264,101 @@ export default async function CandidateDetailPage({ params }) {
                             </div>
                         </div>
                     )}
+
+                    {/* Unified Candidate Profile (ATS Timeline) */}
+                    {allPastApps && allPastApps.length > 0 && (
+                        <div className="bg-card border border-border rounded-2xl p-8 space-y-6">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-lg font-bold text-foreground flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                                        <Clock className="w-5 h-5 text-orange-600" />
+                                    </div>
+                                    Unified Candidate History
+                                </h2>
+                                <span className="bg-orange-50 text-orange-700 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border border-orange-100">
+                                    {allPastApps.length} Lamaran Total
+                                </span>
+                            </div>
+
+                            <p className="text-xs text-muted-foreground leading-relaxed -mt-2">
+                                Menampilkan semua jejak pendaftaran kandidat dengan email <span className="text-foreground font-bold">{app.email}</span> di perusahaan Anda.
+                                Gunakan ini untuk melihat konsistensi dan progres performa mereka.
+                            </p>
+
+                            <div className="space-y-4">
+                                {allPastApps.map(pastApp => (
+                                    <div key={pastApp.id} className={cn(
+                                        "p-5 rounded-2xl border transition-all group relative",
+                                        pastApp.id === id ? "bg-brand-50/30 border-brand-200 ring-2 ring-brand-100/50" : "bg-slate-50 border-slate-100 hover:border-slate-200"
+                                    )}>
+                                        {pastApp.id === id && (
+                                            <div className="absolute top-4 right-4 text-[9px] font-black text-brand-600 uppercase tracking-widest bg-brand-100 px-2 py-0.5 rounded-md">
+                                                Sedang Dilihat
+                                            </div>
+                                        )}
+                                        
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                                            <div className="min-w-0">
+                                                <h3 className="font-bold text-slate-900 group-hover:text-primary transition-colors truncate">
+                                                    {pastApp.jobs?.title}
+                                                </h3>
+                                                <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 mt-0.5">
+                                                    <Clock className="w-3 h-3" />
+                                                    {format(new Date(pastApp.created_at), 'd MMMM yyyy', { locale: localeID })}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-3 shrink-0">
+                                                <StageBadge stage={pastApp.stage} size="sm" />
+                                                {pastApp.id !== id && (
+                                                    <Link href={`/dashboard/candidates/${pastApp.id}`}>
+                                                        <Button variant="outline" size="sm" className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-widest gap-1.5">
+                                                            Detail <ChevronRight className="w-3 h-3" />
+                                                        </Button>
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Assessment Summary for this past app */}
+                                        {pastApp.assessment_assignments?.length > 0 && (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                {pastApp.assessment_assignments.map(asgn => {
+                                                    const maxPoints = asgn.assessments?.questions?.reduce((sum, q) => sum + (q.points || 0), 0) || 0
+                                                    const scorePct = maxPoints > 0 ? Math.round((asgn.total_score / maxPoints) * 100) : 0
+                                                    
+                                                    return (
+                                                        <div key={asgn.id} className="flex items-center justify-between p-2.5 bg-white border border-slate-200/60 rounded-xl">
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-tight truncate leading-none mb-1">
+                                                                    {asgn.assessments?.title || 'Assessment'}
+                                                                </p>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={cn(
+                                                                        "text-xs font-bold",
+                                                                        asgn.status === 'completed' ? "text-slate-900" : "text-amber-600"
+                                                                    )}>
+                                                                        {asgn.status === 'completed' ? `Score: ${asgn.total_score}/${maxPoints}` : 'Belum Selesai'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            {asgn.status === 'completed' && (
+                                                                <div className={cn(
+                                                                    "w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black border",
+                                                                    scorePct >= 70 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-rose-50 text-rose-700 border-rose-100"
+                                                                )}>
+                                                                    {scorePct}%
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Kolom kanan — aksi */}
@@ -300,6 +422,21 @@ export default async function CandidateDetailPage({ params }) {
                             </div>
                         </div>
                     )}
+
+                    {/* FEAT: Prosedur Surat Rekrutmen (PKWT & PKWTT) */}
+                    {(app.stage === 'hired' || app.stage === 'offering') && (
+                        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                            <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-blue-500" />
+                                Dokumen Rekrutmen (PKWT/PKWTT)
+                            </h2>
+                            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                                Upload dan kelola cadangan logis kontrak kerja untuk menghindari kasus kehilangan dokumen fisik (Backup System).
+                            </p>
+                            <RecruitmentDocManager applicationId={app.id} initialDocs={recDocs || []} />
+                        </div>
+                    )}
+
                     <CandidateAssessmentBox
                         application={app}
                         assessments={allAssessments || []}

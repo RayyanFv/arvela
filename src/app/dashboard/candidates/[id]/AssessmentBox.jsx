@@ -21,7 +21,8 @@ import {
     CheckCircle2,
     Clock,
     FileText,
-    ExternalLink
+    ExternalLink,
+    ShieldAlert
 } from 'lucide-react'
 
 export default function CandidateAssessmentBox({ application, assessments = [], existingAssignments = [] }) {
@@ -98,6 +99,12 @@ export default function CandidateAssessmentBox({ application, assessments = [], 
                                             <span className="text-[10px] font-bold text-slate-500">
                                                 Skor: <span className="text-primary">{asgn.total_score}</span>
                                             </span>
+                                        )}
+                                        {asgn.proctoring_logs?.length > 0 && (
+                                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-rose-50 border border-rose-100 text-rose-600 rounded text-[10px] font-black animate-pulse">
+                                                <ShieldAlert className="w-2.5 h-2.5" />
+                                                PROCTORING ALERT ({asgn.proctoring_logs.length})
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -187,6 +194,50 @@ export default function CandidateAssessmentBox({ application, assessments = [], 
 
                         {/* Answers Review Area */}
                         <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+                             {reviewingId?.proctoring_logs?.length > 0 && (
+                                <div className="bg-rose-50/50 border border-rose-200 rounded-2xl p-6 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs font-black text-rose-600 uppercase tracking-widest flex items-center gap-2">
+                                            <ShieldAlert className="w-5 h-5" /> 
+                                            Proctoring Analysis & Integrity Report
+                                        </p>
+                                        <div className={cn(
+                                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border",
+                                            reviewingId.proctoring_logs.length > 5 ? "bg-rose-600 text-white border-rose-700 animate-pulse" : "bg-amber-100 text-amber-700 border-amber-200"
+                                        )}>
+                                            {reviewingId.proctoring_logs.length > 5 ? "High Risk (Potential Fraud)" : "Medium Risk (Warning)"}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="bg-white p-3 rounded-xl border border-rose-100 text-center">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Tab Switches</p>
+                                            <p className="text-lg font-black text-slate-900">{reviewingId.proctoring_logs.filter(l => l.log_type.includes('tab_switch')).length}</p>
+                                        </div>
+                                        <div className="bg-white p-3 rounded-xl border border-rose-100 text-center">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Copy/Paste</p>
+                                            <p className="text-lg font-black text-slate-900">{reviewingId.proctoring_logs.filter(l => l.log_type.includes('copy') || l.log_type.includes('paste')).length}</p>
+                                        </div>
+                                        <div className="bg-white p-3 rounded-xl border border-rose-100 text-center">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Menu/Context</p>
+                                            <p className="text-lg font-black text-slate-900">{reviewingId.proctoring_logs.filter(l => l.log_type === 'right_click').length}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                                        {reviewingId.proctoring_logs.map(log => (
+                                            <div key={log.id} className="flex justify-between items-center bg-white/70 p-2.5 rounded-xl border border-red-50/50">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black text-rose-500 uppercase tracking-tight">{log.log_type.replace(/_/g, ' ')}</span>
+                                                    <span className="text-[10px] text-slate-500 font-medium">{log.details?.message || 'Aktivitas mencurigakan terdeteksi.'}</span>
+                                                </div>
+                                                <span className="text-[9px] text-slate-400 font-bold tabular-nums">{new Date(log.timestamp).toLocaleTimeString('id-ID')}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {reviewingId?.answers?.length > 0 ? (
                                 reviewingId.answers.map((ans, idx) => (
                                     <div key={ans.id} className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4 space-y-2.5">

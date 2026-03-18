@@ -149,3 +149,75 @@ export async function assignOnboardingTemplate({ employeeId, templateId, company
     revalidatePath(`/dashboard/employees/${employeeId}`)
     return { success: true }
 }
+
+/**
+ * Training & Performance Correlation Actions
+ */
+
+export async function saveTraining(data) {
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+    const { id, ...payload } = data
+
+    const finalData = {
+        ...payload,
+        company_id: profile.company_id
+    }
+
+    let result
+    if (id) {
+        result = await admin
+            .from('trainings')
+            .update(finalData)
+            .eq('id', id)
+            .eq('company_id', profile.company_id)
+            .select()
+            .single()
+    } else {
+        result = await admin
+            .from('trainings')
+            .insert(finalData)
+            .select()
+            .single()
+    }
+
+    if (result.error) throw new Error(result.error.message)
+    revalidatePath(`/dashboard/employees/${payload.employee_id}`)
+    return { success: true, data: result.data }
+}
+
+export async function logPerformanceMetric(data) {
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+
+    const { error } = await admin
+        .from('performance_metrics')
+        .insert({
+            ...data,
+            company_id: profile.company_id
+        })
+
+    if (error) throw new Error(error.message)
+    revalidatePath(`/dashboard/employees/${data.employee_id}`)
+    return { success: true }
+}
+
+export async function getPerformanceCorrelation(employeeId) {
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+
+    // 1. Get all trainings
+    const { data: trainings } = await admin
+        .from('trainings')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .eq('company_id', profile.company_id)
+        .order('start_date', { ascending: true })
+
+    // 2. Get all metrics
+    const { data: metrics } = await admin
+        .from('performance_metrics')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .eq('company_id', profile.company_id)
+        .order('period', { ascending: true })
+
+    return { trainings, metrics }
+}

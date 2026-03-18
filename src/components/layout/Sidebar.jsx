@@ -100,6 +100,7 @@ export function Sidebar({ isOpen, setIsOpen }) {
             roles: [ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HR_ADMIN],
             items: [
                 { icon: Settings, label: 'Manajemen User', href: '/dashboard/settings/users' },
+                { icon: ClipboardCheck, label: 'Template Interview', href: '/dashboard/settings/interview-templates' },
             ]
         }
     ]

@@ -25,7 +25,7 @@ export default async function ApplyPage({ params }) {
     const { data: job } = await supabase
         .from('jobs')
         .select(`
-            id, title, slug, location, work_type, employment_type, deadline, status,
+            id, title, slug, location, work_type, employment_type, deadline, status, screening_questions,
             companies!inner (id, name, logo_url, slug)
         `)
         .eq('slug', jobSlug)

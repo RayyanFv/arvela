@@ -14,13 +14,13 @@ import {
     AlertCircle,
     Flag,
     ArrowUp,
-    ArrowDown
+    ArrowDown,
+    ShieldCheck
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { MatrixQuestion } from '@/components/assessment/MatrixQuestion'
 import { GameTaskPlaceholder } from '@/components/assessment/GameTaskPlaceholder'
+import { logProctoringEvent } from '@/lib/actions/assessments'
 
 export default function AssessmentInterface({ assignment, test, questions, candidateName }) {
     const router = useRouter()
@@ -41,6 +41,14 @@ export default function AssessmentInterface({ assignment, test, questions, candi
 
     function startTest() {
         setStarted(true)
+        
+        // Log start event
+        logProctoringEvent({
+            assignment_id: assignment.id,
+            event_type: 'test_started',
+            details: 'Kandidat memulai pengerjaan tes.'
+        })
+
         timerRef.current = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
@@ -52,6 +60,66 @@ export default function AssessmentInterface({ assignment, test, questions, candi
             })
         }, 1000)
     }
+
+    // FEAT: Proctoring Tracker
+    useEffect(() => {
+        if (!started || submitting) return
+
+        const handleBlur = () => {
+            logProctoringEvent({
+                assignment_id: assignment.id,
+                event_type: 'tab_switch_blur',
+                details: 'Dideteksi berpindah tab atau meninggalkan jendela browser.'
+            })
+        }
+
+        const handleFocus = () => {
+            logProctoringEvent({
+                assignment_id: assignment.id,
+                event_type: 'tab_switch_focus',
+                details: 'Kandidat kembali ke jendela tes.'
+            })
+        }
+
+        const handleCopy = (e) => {
+            logProctoringEvent({
+                assignment_id: assignment.id,
+                event_type: 'copy_attempt',
+                details: 'Mencoba menyalin teks (Copy).'
+            })
+        }
+
+        const handlePaste = (e) => {
+            logProctoringEvent({
+                assignment_id: assignment.id,
+                event_type: 'paste_attempt',
+                details: 'Mencoba menempel teks (Paste).'
+            })
+        }
+
+        const handleContextMenu = (e) => {
+            e.preventDefault()
+            logProctoringEvent({
+                assignment_id: assignment.id,
+                event_type: 'right_click',
+                details: 'Mencoba klik kanan menu konteks.'
+            })
+        }
+
+        window.addEventListener('blur', handleBlur)
+        window.addEventListener('focus', handleFocus)
+        document.addEventListener('copy', handleCopy)
+        document.addEventListener('paste', handlePaste)
+        document.addEventListener('contextmenu', handleContextMenu)
+
+        return () => {
+            window.removeEventListener('blur', handleBlur)
+            window.removeEventListener('focus', handleFocus)
+            document.removeEventListener('copy', handleCopy)
+            document.removeEventListener('paste', handlePaste)
+            document.removeEventListener('contextmenu', handleContextMenu)
+        }
+    }, [started, submitting, assignment.id])
 
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600)
@@ -98,6 +166,12 @@ export default function AssessmentInterface({ assignment, test, questions, candi
         setSubmitting(true)
         setError('')
         const supabase = createClient()
+        
+        logProctoringEvent({
+            assignment_id: assignment.id,
+            event_type: 'test_submitted',
+            details: 'Kandidat menekan tombol Selesaikan Tes.'
+        })
 
         try {
             // 1. Process all questions to ensure those with default answers (like ranking) are captured
@@ -238,15 +312,19 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                     <div className="flex-1 pr-8">
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Kemajuan: {currentIndex + 1} / {questions.length}</span>
-                            <span className="text-xs font-bold text-primary italic">{Math.round(progress)}% Selesai</span>
                         </div>
                         <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                             <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
                         </div>
                     </div>
-                    <div className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border ${timeLeft < 300 ? 'bg-red-50 border-red-200 text-red-600 animate-pulse' : 'bg-slate-50 border-slate-100 text-slate-700 font-bold'} transition-all`}>
-                        <Clock className="w-5 h-5" />
-                        <span className="text-xl tabular-nums tracking-tighter">{formatTime(timeLeft)}</span>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                        <div className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border ${timeLeft < 300 ? 'bg-red-50 border-red-200 text-red-600 animate-pulse' : 'bg-slate-50 border-slate-100 text-slate-700 font-extrabold'} transition-all`}>
+                            <Clock className="w-5 h-5 opacity-70" />
+                            <span className="text-xl tabular-nums tracking-tighter">{formatTime(timeLeft)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[9px] font-black uppercase tracking-widest">
+                            <ShieldCheck className="w-3 h-3" /> Proctoring Aktif
+                        </div>
                     </div>
                 </div>
 

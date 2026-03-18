@@ -1,9 +1,34 @@
 'use server'
 
 import { getAuthProfile, assertSameCompany } from '@/lib/actions/auth-helpers'
+import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import crypto from 'crypto'
 import { sendEmail } from '@/lib/email/resend'
+
+/**
+ * Log a proctoring event (candidate-facing)
+ */
+export async function logProctoringEvent({ assignment_id, event_type, details }) {
+    const supabase = createAdminSupabaseClient()
+    
+    // In DB table it's log_type
+    const { error } = await supabase
+        .from('proctoring_logs')
+        .insert({
+            assignment_id,
+            log_type: event_type, // Convert to match DB
+            details: typeof details === 'string' ? { message: details } : details,
+            timestamp: new Date().toISOString()
+        })
+
+    if (error) {
+        console.error('Failed to log proctoring event:', error)
+        return { error: error.message }
+    }
+    return { success: true }
+}
+
 
 /**
  * Fetch all assessments for the current user's company
