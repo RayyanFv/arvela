@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import { assignAssessment, updateAssignmentScore } from '@/lib/actions/assessments'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -194,7 +195,13 @@ export default function CandidateAssessmentBox({ application, assessments = [], 
 
                         {/* Answers Review Area */}
                         <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
-                             {reviewingId?.proctoring_logs?.length > 0 && (
+                              {(() => {
+                                const violations = (reviewingId?.proctoring_logs || []).filter(l => 
+                                    !['test_started', 'test_submitted', 'test_viewed'].includes(l.log_type)
+                                )
+                                if (violations.length === 0) return null
+
+                                return (
                                 <div className="bg-rose-50/50 border border-rose-200 rounded-2xl p-6 space-y-4">
                                     <div className="flex items-center justify-between">
                                         <p className="text-xs font-black text-rose-600 uppercase tracking-widest flex items-center gap-2">
@@ -203,57 +210,100 @@ export default function CandidateAssessmentBox({ application, assessments = [], 
                                         </p>
                                         <div className={cn(
                                             "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border",
-                                            reviewingId.proctoring_logs.length > 5 ? "bg-rose-600 text-white border-rose-700 animate-pulse" : "bg-amber-100 text-amber-700 border-amber-200"
+                                            violations.length > 5 ? "bg-rose-600 text-white border-rose-700" : "bg-amber-100 text-amber-700 border-amber-200"
                                         )}>
-                                            {reviewingId.proctoring_logs.length > 5 ? "High Risk (Potential Fraud)" : "Medium Risk (Warning)"}
+                                            {violations.length > 5 ? "High Risk (Potential Fraud)" : "Medium Risk (Warning)"}
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-3 gap-2">
-                                        <div className="bg-white p-3 rounded-xl border border-rose-100 text-center">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Tab Switches</p>
-                                            <p className="text-lg font-black text-slate-900">{reviewingId.proctoring_logs.filter(l => l.log_type.includes('tab_switch')).length}</p>
+                                        <div className="bg-white p-3 rounded-xl border border-rose-100 text-center shadow-sm">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 leading-none tracking-tight">Tab Switches</p>
+                                            <p className="text-lg font-black text-slate-900 leading-none mt-1">{violations.filter(l => l.log_type.includes('tab_switch')).length}</p>
                                         </div>
-                                        <div className="bg-white p-3 rounded-xl border border-rose-100 text-center">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Copy/Paste</p>
-                                            <p className="text-lg font-black text-slate-900">{reviewingId.proctoring_logs.filter(l => l.log_type.includes('copy') || l.log_type.includes('paste')).length}</p>
+                                        <div className="bg-white p-3 rounded-xl border border-rose-100 text-center shadow-sm">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 leading-none tracking-tight">Copy/Paste</p>
+                                            <p className="text-lg font-black text-slate-900 leading-none mt-1">{violations.filter(l => l.log_type.includes('copy') || l.log_type.includes('paste')).length}</p>
                                         </div>
-                                        <div className="bg-white p-3 rounded-xl border border-rose-100 text-center">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Menu/Context</p>
-                                            <p className="text-lg font-black text-slate-900">{reviewingId.proctoring_logs.filter(l => l.log_type === 'right_click').length}</p>
+                                        <div className="bg-white p-3 rounded-xl border border-rose-100 text-center shadow-sm">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 leading-none tracking-tight">Menu/Context</p>
+                                            <p className="text-lg font-black text-slate-900 leading-none mt-1">{violations.filter(l => l.log_type === 'right_click').length}</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                                        {reviewingId.proctoring_logs.map(log => (
-                                            <div key={log.id} className="flex justify-between items-center bg-white/70 p-2.5 rounded-xl border border-red-50/50">
+                                        {violations.map(log => (
+                                            <div key={log.id} className="flex justify-between items-center bg-white/70 p-2.5 rounded-xl border border-red-50/50 hover:border-red-100/50 transition-colors">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[10px] font-black text-rose-500 uppercase tracking-tight">{log.log_type.replace(/_/g, ' ')}</span>
-                                                    <span className="text-[10px] text-slate-500 font-medium">{log.details?.message || 'Aktivitas mencurigakan terdeteksi.'}</span>
+                                                    <span className="text-[10px] font-black text-rose-500 uppercase tracking-tight leading-none mb-1">{log.log_type.replace(/_/g, ' ')}</span>
+                                                    <span className="text-[10px] text-slate-500 font-medium leading-tight">{log.details?.message || 'Aktivitas mencurigakan terdeteksi.'}</span>
                                                 </div>
-                                                <span className="text-[9px] text-slate-400 font-bold tabular-nums">{new Date(log.timestamp).toLocaleTimeString('id-ID')}</span>
+                                                <span className="text-[9px] text-slate-400 font-bold tabular-nums whitespace-nowrap ml-4">{new Date(log.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            )}
+                                )
+                             })()}
 
                             {reviewingId?.answers?.length > 0 ? (
-                                reviewingId.answers.map((ans, idx) => (
-                                    <div key={ans.id} className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4 space-y-2.5">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Soal {idx + 1}</p>
-                                            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded">
-                                                {ans.questions?.points} Poin
-                                            </span>
-                                        </div>
-                                        <p className="text-sm font-bold text-slate-800 leading-relaxed">{ans.questions?.prompt}</p>
-                                        <div className="bg-white border border-slate-200/60 rounded-xl p-3 shadow-sm border-l-4 border-l-primary/30">
-                                            <p className="text-xs font-bold text-primary/60 uppercase tracking-widest mb-1.5">Jawaban Kandidat:</p>
-                                            <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{ans.answer_text || '(Tidak ada jawaban)'}</p>
-                                        </div>
-                                    </div>
-                                ))
+                                    reviewingId.answers.map((ans, idx) => {
+                                        let displayAnswer = ans.answer_text
+                                        try {
+                                            const parsed = JSON.parse(ans.answer_text)
+                                            if (Array.isArray(parsed)) {
+                                                displayAnswer = parsed.join(', ')
+                                            } else if (typeof parsed === 'object') {
+                                                displayAnswer = Object.entries(parsed)
+                                                    .map(([k, v]) => `${k}: ${v}`)
+                                                    .join('\n')
+                                            }
+                                        } catch(e) {}
+
+                                        const isCorrect = ans.is_reviewed && ans.points_earned === ans.questions?.points
+
+                                        return (
+                                            <div key={ans.id} className="bg-slate-50/50 border border-slate-100 rounded-2xl p-5 space-y-4">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Soal {idx + 1} — {ans.questions?.type?.split('_').join(' ').toUpperCase()}</p>
+                                                        <p className="text-sm font-bold text-slate-800 leading-tight">{ans.questions?.prompt}</p>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-1 shrink-0">
+                                                        <span className="text-[10px] font-extrabold px-2 py-1 bg-slate-200/50 text-slate-600 rounded-lg border border-slate-200/50">
+                                                            {ans.questions?.points} Poin
+                                                        </span>
+                                                        {ans.is_reviewed && (
+                                                            <span className={cn(
+                                                                "text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter",
+                                                                isCorrect ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                                                            )}>
+                                                                {isCorrect ? 'Correct' : 'Partial/Wrong'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-white border border-slate-200/60 rounded-xl p-4 shadow-sm relative overflow-hidden group">
+                                                    <div className={cn(
+                                                        "absolute left-0 top-0 w-1.5 h-full opacity-50",
+                                                        isCorrect ? "bg-emerald-500" : "bg-primary"
+                                                    )} />
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 leading-none">Jawaban Kandidat:</p>
+                                                    <p className="text-sm font-extrabold text-slate-900 leading-relaxed font-mono whitespace-pre-wrap">{displayAnswer || '(Tidak ada jawaban)'}</p>
+
+                                                    {ans.questions?.correct_answer && (
+                                                        <div className="mt-4 pt-4 border-t border-slate-100">
+                                                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2 leading-none">Kunci Jawaban:</p>
+                                                            <p className="text-xs font-bold text-emerald-800 opacity-60">
+                                                                {Array.isArray(ans.questions.correct_answer) ? ans.questions.correct_answer.join(', ') : String(ans.questions.correct_answer)}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
+                                    })
                             ) : (
                                 <div className="py-10 text-center space-y-2">
                                     <FileText className="w-10 h-10 text-slate-200 mx-auto" />

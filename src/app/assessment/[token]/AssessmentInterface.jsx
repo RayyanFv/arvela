@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
     Clock,
@@ -16,13 +17,19 @@ import {
     Flag,
     ArrowUp,
     ArrowDown,
-    ShieldCheck
+    ShieldCheck,
+    Check,
+    ShieldAlert,
+    Monitor,
+    Camera,
+    CameraOff,
+    Activity
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { MatrixQuestion } from '@/components/assessment/MatrixQuestion'
 import { GameTaskPlaceholder } from '@/components/assessment/GameTaskPlaceholder'
-import { logProctoringEvent } from '@/lib/actions/assessments'
+import { logProctoringEvent, startAssignment } from '@/lib/actions/assessments'
 
 export default function AssessmentInterface({ assignment, test, questions, candidateName }) {
     const router = useRouter()
@@ -31,8 +38,13 @@ export default function AssessmentInterface({ assignment, test, questions, candi
     const [answers, setAnswers] = useState({})
     const [timeLeft, setTimeLeft] = useState(test.duration_minutes * 60)
     const [submitting, setSubmitting] = useState(false)
-    const [error, setError] = useState('')
+    const [agreed, setAgreed] = useState(false)
+    const [tabSwitches, setTabSwitches] = useState(0)
+    const [personalLogs, setPersonalLogs] = useState([])
+    const [cameraActive, setCameraActive] = useState(false)
+    const [multiScreen, setMultiScreen] = useState(false)
     const timerRef = useRef(null)
+    const videoRef = useRef(null)
 
     // Clear interval on unmount
     useEffect(() => {
@@ -41,15 +53,51 @@ export default function AssessmentInterface({ assignment, test, questions, candi
         }
     }, [])
 
-    function startTest() {
+    // Load persisted progress (resuming)
+    useEffect(() => {
+        const saved = localStorage.getItem(`arvela_test_${assignment.id}`)
+        if (saved) {
+            try {
+                const data = JSON.parse(saved)
+                setAnswers(data.answers || {})
+                setCurrentIndex(data.currentIndex || 0)
+                // We keep the server timer going if started, but locally we could sync too
+            } catch(e) {}
+        }
+    }, [assignment.id])
+
+    // Save progress on every answer change
+    useEffect(() => {
+        if (started) {
+            localStorage.setItem(`arvela_test_${assignment.id}`, JSON.stringify({
+                answers,
+                currentIndex,
+                timestamp: new Date().toISOString()
+            }))
+        }
+    }, [answers, currentIndex, started, assignment.id])
+
+    async function startTest() {
+        setSubmitting(true)
+        const browserMeta = {
+            browser: navigator.userAgent,
+            platform: navigator.platform,
+            resolution: `${window.screen.width}x${window.screen.height}`,
+            uaShort: navigator.userAgent.substring(0, 50) + "..."
+        }
+
+        const res = await startAssignment(assignment.id, browserMeta)
+        setSubmitting(false)
+
+        if (res.error) {
+            // Check if it's already started elsewhere
+            if (res.error.includes('duplicate') || res.error.includes('already started')) {
+                setError("Sesi tes ini sudah dimulai di perangkat lain. Untuk alasan keamanan, tes hanya dapat dibuka di satu browser.")
+                return
+            }
+        }
+
         setStarted(true)
-        
-        // Log start event
-        logProctoringEvent({
-            assignment_id: assignment.id,
-            event_type: 'test_started',
-            details: 'Kandidat memulai pengerjaan tes.'
-        })
 
         timerRef.current = setInterval(() => {
             setTimeLeft(prev => {
@@ -67,11 +115,19 @@ export default function AssessmentInterface({ assignment, test, questions, candi
     useEffect(() => {
         if (!started || submitting) return
 
+        const addPersonalLog = (msg) => {
+            const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            setPersonalLogs(prev => [{ time, message: msg }, ...prev].slice(0, 5))
+        }
+
         const handleBlur = () => {
+            setTabSwitches(prev => prev + 1)
+            const detail = 'Dideteksi berpindah tab atau meninggalkan jendela browser.'
+            addPersonalLog(detail)
             logProctoringEvent({
                 assignment_id: assignment.id,
                 event_type: 'tab_switch_blur',
-                details: 'Dideteksi berpindah tab atau meninggalkan jendela browser.'
+                details: detail
             })
         }
 
@@ -84,29 +140,63 @@ export default function AssessmentInterface({ assignment, test, questions, candi
         }
 
         const handleCopy = (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            const detail = 'Mencoba menyalin teks (Copy - DIBLOKIR).'
+            addPersonalLog(detail)
             logProctoringEvent({
                 assignment_id: assignment.id,
                 event_type: 'copy_attempt',
-                details: 'Mencoba menyalin teks (Copy).'
+                details: detail
             })
+            alert('Fitur salin (Copy) dinonaktifkan untuk menjaga integritas tes.')
         }
 
         const handlePaste = (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            const detail = 'Mencoba menempel teks (Paste - DIBLOKIR).'
+            addPersonalLog(detail)
             logProctoringEvent({
                 assignment_id: assignment.id,
                 event_type: 'paste_attempt',
-                details: 'Mencoba menempel teks (Paste).'
+                details: detail
             })
+            alert('Fitur tempel (Paste) dinonaktifkan untuk menjaga integritas tes.')
         }
 
         const handleContextMenu = (e) => {
             e.preventDefault()
+            e.stopPropagation()
+            const detail = 'Mencoba klik kanan menu konteks (DIBLOKIR).'
+            addPersonalLog(detail)
             logProctoringEvent({
                 assignment_id: assignment.id,
                 event_type: 'right_click',
-                details: 'Mencoba klik kanan menu konteks.'
+                details: detail
             })
         }
+
+        // Multi-screen detection
+        const checkScreens = () => {
+            if (window.screen.availWidth > window.innerWidth * 1.5 || (window.screen.width > 2500 && window.innerWidth < 1500)) {
+                 if (!multiScreen) {
+                    setMultiScreen(true)
+                    const detail = 'Terdeteksi penggunaan layar tambahan atau setup multi-monitor.'
+                    addPersonalLog(detail)
+                    logProctoringEvent({
+                        assignment_id: assignment.id,
+                        event_type: 'multi_screen_detected',
+                        details: detail
+                    })
+                 }
+            } else {
+                setMultiScreen(false)
+            }
+        }
+
+        window.addEventListener('resize', checkScreens)
+        checkScreens()
 
         window.addEventListener('blur', handleBlur)
         window.addEventListener('focus', handleFocus)
@@ -117,11 +207,38 @@ export default function AssessmentInterface({ assignment, test, questions, candi
         return () => {
             window.removeEventListener('blur', handleBlur)
             window.removeEventListener('focus', handleFocus)
+            window.removeEventListener('resize', checkScreens)
             document.removeEventListener('copy', handleCopy)
             document.removeEventListener('paste', handlePaste)
             document.removeEventListener('contextmenu', handleContextMenu)
+            if (videoRef.current?.srcObject) {
+                videoRef.current.srcObject.getTracks().forEach(track => track.stop())
+            }
         }
-    }, [started, submitting, assignment.id])
+    }, [started, submitting, assignment.id, multiScreen])
+
+    // Camera initializer
+    useEffect(() => {
+        if (started && !submitting) {
+            async function enableCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream
+                        setCameraActive(true)
+                    }
+                } catch (err) {
+                    console.warn('Camera access denied or not available')
+                    logProctoringEvent({
+                        assignment_id: assignment.id,
+                        event_type: 'camera_unavailable',
+                        details: 'Gagal mengakses kamera atau akses ditolak kandidat.'
+                    })
+                }
+            }
+            enableCamera()
+        }
+    }, [started, assignment.id, submitting])
 
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600)
@@ -245,6 +362,7 @@ export default function AssessmentInterface({ assignment, test, questions, candi
 
             if (statusError) throw statusError
 
+            localStorage.removeItem(`arvela_test_${assignment.id}`)
             setSubmitting(false)
             router.refresh()
         } catch (err) {
@@ -280,21 +398,47 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                     </div>
                 </div>
 
-                <div className="space-y-4 mb-10 border-t border-slate-100 pt-8">
+                <div className="space-y-4 mb-8 border-t border-slate-100 pt-8">
                     <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-amber-500" /> Instruksi Penting:
+                        <ShieldCheck className="w-4 h-4 text-primary" /> Pernyataan Integritas & Proctoring:
                     </h3>
-                    <ul className="text-sm text-slate-500 space-y-3 pl-2">
-                        <li className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-slate-200 mt-1.5 shrink-0" /> Waktu tes akan dimulai secara otomatis saat kamu klik tombol di bawah.</li>
-                        <li className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-slate-200 mt-1.5 shrink-0" /> Jangan menutup tab browser ini atau me-refresh halaman selama tes berlangsung.</li>
-                        <li className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-slate-200 mt-1.5 shrink-0" /> Jawaban akan terkirim otomatis jika waktu habis.</li>
+                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-3">
+                        <ul className="text-[12px] text-slate-500 space-y-2">
+                            <li className="flex items-start gap-2 italic">1. Saya memahami bahwa tes ini diawasi secara otomatis oleh sistem **Arvela Integrity Proctoring**.</li>
+                            <li className="flex items-start gap-2 italic">2. Segala bentuk perpindahan tab, copy-paste, dan klik kanan akan dicatat sebagai pelanggaran integritas.</li>
+                            <li className="flex items-start gap-2 italic">3. Upaya kecurangan dapat mengakibatkan pembatalan otomatis pada proses rekrutmen saya.</li>
+                        </ul>
+                    </div>
+                    
+                    <label className="flex items-start gap-3 p-4 bg-primary/5 rounded-2xl border border-primary/10 cursor-pointer hover:bg-primary/10 transition-colors group">
+                        <input 
+                            type="checkbox" 
+                            checked={agreed}
+                            onChange={(e) => setAgreed(e.target.checked)}
+                            className="mt-1 w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary" 
+                        />
+                        <span className="text-sm font-bold text-slate-700 leading-tight">
+                            Saya telah membaca peraturan di atas dan siap mengerjakan tes dengan jujur.
+                        </span>
+                    </label>
+                </div>
+
+                <div className="space-y-4 mb-10 border-t border-slate-100 pt-8">
+                    <h3 className="font-bold text-slate-900 flex items-center gap-2 text-xs uppercase tracking-widest text-slate-400">
+                        Instruksi Teknis:
+                    </h3>
+                    <ul className="text-xs text-slate-500 space-y-2">
+                        <li className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-slate-200 mt-1.5 shrink-0" /> Gunakan koneksi internet yang stabil.</li>
+                        <li className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-slate-200 mt-1.5 shrink-0" /> Jangan menutup tab ini sebelum menekan tombol <strong>Selesaikan Tes</strong>.</li>
                     </ul>
                 </div>
 
                 <Button
                     onClick={startTest}
-                    className="w-full h-14 rounded-2xl font-black text-lg bg-slate-950 text-white hover:bg-slate-900 shadow-xl shadow-slate-300 transform active:scale-95 transition-all group"
+                    disabled={!agreed || submitting}
+                    className="w-full h-14 rounded-2xl font-black text-lg bg-slate-950 text-white hover:bg-slate-900 shadow-xl shadow-slate-300 transform active:scale-95 transition-all group disabled:opacity-30 disabled:grayscale"
                 >
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
                     Mulai Kerjakan Tes Sekarang <Play className="w-5 h-5 ml-2 group-hover:scale-110 transition-transform" />
                 </Button>
             </div>
@@ -330,7 +474,12 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                 <div className="bg-white border border-border rounded-3xl p-6 shadow-sm flex items-center justify-between sticky top-20 z-40">
                     <div className="flex-1 pr-8">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Kemajuan: {currentIndex + 1} / {questions.length}</span>
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">Kemajuan: {currentIndex + 1} / {questions.length}</span>
+                            {tabSwitches > 0 && (
+                                <span className="text-[9px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100 uppercase tracking-tighter">
+                                    Peringatan: {tabSwitches}x Pindah Tab
+                                </span>
+                            )}
                         </div>
                         <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                             <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
@@ -373,11 +522,12 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                                                 : 'bg-white border-slate-200 hover:border-primary/50 hover:bg-slate-50 active:scale-95'
                                                 }`}
                                         >
-                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 text-[10px] font-bold transition-all ${isSelected
-                                                ? 'bg-white border-white text-primary'
-                                                : 'bg-slate-50 border-slate-200 text-slate-400 group-hover:border-primary group-hover:text-primary'
-                                                } ${currentQ.type === 'multiple_select' ? 'rounded-md' : 'rounded-full'}`}>
-                                                {String.fromCharCode(65 + i)}
+                                            <div className={cn(
+                                                "w-6 h-6 border-2 flex items-center justify-center shrink-0 text-[10px] font-bold transition-all",
+                                                isSelected ? "bg-white border-white text-primary" : "bg-slate-50 border-slate-200 text-slate-400 group-hover:border-primary group-hover:text-primary",
+                                                currentQ.type === 'multiple_select' ? "rounded-md" : "rounded-full"
+                                            )}>
+                                                {isSelected && currentQ.type === 'multiple_select' ? <Check className="w-3.5 h-3.5" /> : String.fromCharCode(65 + i)}
                                             </div>
                                             <span className={`text-sm font-semibold transition-colors duration-200 ${isSelected ? 'text-white' : 'text-slate-700'
                                                 }`}>
@@ -550,6 +700,54 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                         </div>
                         <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase">
                             <div className="w-3 h-3 rounded-md bg-slate-50 border border-slate-100 shrink-0" /> Belum Terjawab
+                        </div>
+                    </div>
+                </div>
+
+                {/* Candidate Multi-Proctor Panel */}
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-white space-y-5 overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl -translate-y-12 translate-x-12" />
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                        <Activity className="w-3 h-3 text-primary" /> Integrity Monitor
+                    </h3>
+
+                    {/* Camera Feed Preview */}
+                    <div className="relative aspect-video bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden group">
+                        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" />
+                        {!cameraActive && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-rose-500 bg-rose-500/10">
+                                <CameraOff className="w-8 h-8 mb-2" />
+                                <span className="text-[8px] font-bold uppercase tracking-widest text-center px-4">Kamera Tidak Aktif</span>
+                            </div>
+                        )}
+                        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10">
+                            <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", cameraActive ? "bg-emerald-500" : "bg-rose-500")} />
+                            <span className="text-[8px] font-bold uppercase tracking-widest">Live Feed</span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between text-[10px] font-bold">
+                            <span className="text-slate-400 capitalize flex items-center gap-1.5"><Monitor className="w-3 h-3" /> Multi-Screen</span>
+                            <span className={cn(multiScreen ? "text-rose-500" : "text-emerald-500")}>
+                                {multiScreen ? "Terdeteksi" : "Layar Tunggal"}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-800">
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Sistem Log Real-time:</p>
+                        <div className="space-y-2">
+                            {personalLogs.length > 0 ? (
+                                personalLogs.map((log, i) => (
+                                    <div key={i} className="text-[9px] flex gap-2 leading-relaxed animate-in slide-in-from-right-2">
+                                        <span className="text-primary font-bold whitespace-nowrap opacity-60">[{log.time}]</span>
+                                        <span className="text-slate-400 font-medium">{log.message}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-[9px] text-slate-600 italic">Belum ada aktivitas tercatat...</p>
+                            )}
                         </div>
                     </div>
                 </div>

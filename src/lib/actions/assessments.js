@@ -17,7 +17,7 @@ export async function logProctoringEvent({ assignment_id, event_type, details })
         .from('proctoring_logs')
         .insert({
             assignment_id,
-            log_type: event_type, // Convert to match DB
+            log_type: event_type, 
             details: typeof details === 'string' ? { message: details } : details,
             timestamp: new Date().toISOString()
         })
@@ -26,6 +26,39 @@ export async function logProctoringEvent({ assignment_id, event_type, details })
         console.error('Failed to log proctoring event:', error)
         return { error: error.message }
     }
+    return { success: true }
+}
+
+/**
+ * Mark assignment as started and record session info
+ */
+export async function startAssignment(id, metadata = {}) {
+    const supabase = createAdminSupabaseClient()
+    
+    const { data, error } = await supabase
+        .from('assessment_assignments')
+        .update({ 
+            status: 'started',
+            started_at: new Date().toISOString(),
+            metadata: metadata // Store browser info etc
+        })
+        .eq('id', id)
+        .eq('status', 'sent')
+        .select()
+
+    if (error) return { error: error.message }
+    if (!data || data.length === 0) return { error: 'ALREADY_STARTED' }
+    
+    await logProctoringEvent({
+        assignment_id: id,
+        event_type: 'test_started',
+        details: {
+            message: 'Kandidat memulai pengerjaan tes.',
+            browser: metadata.browser,
+            platform: metadata.platform
+        }
+    })
+
     return { success: true }
 }
 
