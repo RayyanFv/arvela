@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { StageBadge } from '@/components/candidates/StageBadge'
 import { STAGE_CONFIG, STAGE_ORDER } from '@/lib/constants/stages'
 import Link from 'next/link'
-import { ArrowLeft, Mail, Phone, FileText, Clock, Download, ChevronRight, Link as LinkIcon, UserCheck, Undo2, ChevronLeft } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, FileText, Clock, Download, ChevronRight, Link as LinkIcon, UserCheck, Undo2, ChevronLeft, HelpCircle } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
 import StageUpdater from './StageUpdater'
@@ -66,7 +66,7 @@ export default async function CandidateDetailPage({ params }) {
         .from('applications')
         .select(`
       *,
-      jobs (id, title, slug),
+      jobs (id, title, slug, screening_questions),
       stage_history (
         id, from_stage, to_stage, message_to_candidate, created_at,
         profiles (full_name)
@@ -205,6 +205,39 @@ export default async function CandidateDetailPage({ params }) {
                                 Surat Lamaran
                             </h2>
                             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{app.cover_letter}</p>
+                        </div>
+                    )}
+
+                    {/* Pre-Screening Answers */}
+                    {app.screening_answers && Object.keys(app.screening_answers).length > 0 && (
+                        <div className="bg-card border border-border rounded-2xl p-8 space-y-5 bg-gradient-to-br from-white to-slate-50 shadow-sm relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+                            
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-sm font-bold text-foreground flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                                        <HelpCircle className="w-4 h-4 text-orange-600" />
+                                    </div>
+                                    Jawaban Kualifikasi Tambahan (Pre-Screening)
+                                </h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4 relative z-10">
+                                {Object.entries(app.screening_answers).map(([question, answer], idx) => (
+                                    <div key={idx} className="p-4 rounded-xl bg-white border border-slate-100 shadow-sm hover:border-primary/20 transition-all group">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-primary transition-colors">Pertanyaan {idx + 1}</p>
+                                        <p className="text-sm font-bold text-slate-900 mb-2 leading-snug">{question}</p>
+                                        <div className={cn(
+                                            "inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold border",
+                                            answer === "Ya" ? "bg-emerald-50 text-emerald-700 border-emerald-100" : 
+                                            answer === "Tidak" ? "bg-rose-50 text-rose-700 border-rose-100" :
+                                            "bg-slate-50 text-slate-700 border-slate-200"
+                                        )}>
+                                            {answer}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 

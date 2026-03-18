@@ -18,6 +18,7 @@ import {
     ShieldCheck
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { MatrixQuestion } from '@/components/assessment/MatrixQuestion'
 import { GameTaskPlaceholder } from '@/components/assessment/GameTaskPlaceholder'
 import { logProctoringEvent } from '@/lib/actions/assessments'
@@ -299,8 +300,25 @@ export default function AssessmentInterface({ assignment, test, questions, candi
         )
     }
 
+    if (questions.length === 0) {
+        return (
+            <div className="max-w-md w-full bg-white border border-border rounded-3xl p-12 text-center shadow-2xl shadow-slate-200/50">
+                <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <AlertCircle className="w-8 h-8 text-amber-500" />
+                </div>
+                <h1 className="text-2xl font-bold text-foreground mb-4">Assessment Masih Kosong</h1>
+                <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+                    Maaf, test ini belum memiliki pertanyaan. Harap hubungi Tim HR untuk informasi lebih lanjut.
+                </p>
+                <Link href="/portal">
+                    <Button variant="outline" className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest">Kembali ke Portal</Button>
+                </Link>
+            </div>
+        )
+    }
+
     const currentQ = questions[currentIndex]
-    const progress = ((currentIndex + 1) / questions.length) * 100
+    const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0
 
     return (
         <div className="max-w-4xl w-full flex flex-col lg:flex-row gap-8 items-start relative pb-20">
@@ -336,7 +354,7 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-8">
                             Pertanyaan Nomor {currentIndex + 1}
                         </div>
-                        <h2 className="text-xl sm:text-2xl font-bold text-foreground leading-snug mb-10 w-full whitespace-pre-wrap">{currentQ.prompt}</h2>
+                        <h2 className="text-xl sm:text-2xl font-bold text-foreground leading-snug mb-10 w-full whitespace-pre-wrap">{currentQ?.prompt || 'Soal tidak ditemukan.'}</h2>
 
                         {(currentQ.type === 'multiple_choice' || currentQ.type === 'multiple_select') ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
