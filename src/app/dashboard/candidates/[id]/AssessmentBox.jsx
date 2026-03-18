@@ -118,9 +118,10 @@ export default function CandidateAssessmentBox({ application, assessments = [], 
                                                 setPoints(asgn.total_score || 0)
                                                 setNotes('')
                                             }}
-                                            className="ml-2 bg-white border border-slate-200 px-2 py-0.5 rounded text-[9px] font-bold text-slate-500 hover:text-primary hover:border-primary transition-all shadow-sm"
+                                            className="ml-2 bg-white border border-slate-200 px-3 py-1 rounded-lg text-[9px] font-bold text-slate-500 hover:text-primary hover:border-primary transition-all shadow-sm flex items-center gap-1.5"
                                         >
-                                            {asgn.total_score === null ? 'Beri Nilai' : 'Ubah Nilai'}
+                                            <FileText className="w-2.5 h-2.5" />
+                                            {asgn.total_score === null ? 'Detail & Review' : 'Hasil Assessment'}
                                         </button>
                                     )}
                                 </div>

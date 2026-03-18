@@ -38,6 +38,7 @@ export default function AssessmentInterface({ assignment, test, questions, candi
     const [answers, setAnswers] = useState({})
     const [timeLeft, setTimeLeft] = useState(test.duration_minutes * 60)
     const [submitting, setSubmitting] = useState(false)
+    const [error, setError] = useState('')
     const [agreed, setAgreed] = useState(false)
     const [tabSwitches, setTabSwitches] = useState(0)
     const [personalLogs, setPersonalLogs] = useState([])
