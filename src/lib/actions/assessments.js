@@ -64,13 +64,14 @@ export async function startAssignment(id, metadata = {}) {
     const supabase = createAdminSupabaseClient()
     
     // Check current status
-    const { data: current } = await supabase
+    // Try UUID match or Token match if it happens to be passed as token
+    const { data: current, error: fetchError } = await supabase
         .from('assessment_assignments')
-        .select('status, metadata')
-        .eq('id', id)
+        .select('id, status, metadata')
+        .or(`id.eq.${id},token.eq.${id}`)
         .single()
 
-    if (!current) return { error: 'ASSIGNMENT_NOT_FOUND' }
+    if (fetchError || !current) return { error: 'ASSIGNMENT_NOT_FOUND', details: fetchError?.message }
 
     // If already started, we allow resuming ONLY if the session_id matches
     if (current.status === 'started' || current.status === 'completed') {

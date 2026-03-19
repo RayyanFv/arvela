@@ -362,10 +362,11 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                         <ul className="text-[12px] text-slate-500 space-y-2">
                             <li className="flex items-start gap-2 italic">1. Saya akan mengerjakan tes ini secara mandiri tanpa bantuan AI, orang lain, atau sumber luar yang tidak diizinkan.</li>
                             <li className="flex items-start gap-2 italic">2. Saya memahami bahwa pengerjaan tes ini memiliki batas waktu yang ketat.</li>
+                            <li className="flex items-start gap-2 italic">3. Jawaban yang sudah saya kirim bersifat final dan tidak dapat diubah kembali.</li>
                             {test.proctoring_enabled && (
                                 <>
-                                    <li className="flex items-start gap-2 italic">3. Saya memahami bahwa tes ini diawasi secara otomatis oleh sistem **Arvela Integrity Proctoring**.</li>
-                                    <li className="flex items-start gap-2 italic">4. Segala bentuk perpindahan tab, suara mencurigakan, dan kamera akan dicatat sebagai bukti.</li>
+                                    <li className="flex items-start gap-2 italic">4. Saya menyadari bahwa tes ini diawasi oleh sistem AI Proctoring Arvela.</li>
+                                    <li className="flex items-start gap-2 italic">5. Segala bentuk kecurangan dikategorikan sebagai pelanggaran integritas serius.</li>
                                 </>
                             )}
                         </ul>
