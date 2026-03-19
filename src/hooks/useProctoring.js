@@ -304,7 +304,7 @@ export function useProctoring({
     // 1. Initializer Model
     useEffect(() => {
         if (!enabled || !cameraActive) return
-        
+
         let isMounted = true
         const initModel = async () => {
             try {
@@ -329,7 +329,7 @@ export function useProctoring({
         const interval = setInterval(async () => {
             const faceapi = faceapiRef.current
             if (!videoRef.current || !faceapi || !faceapi.nets.tinyFaceDetector.isLoaded) return
-            
+
             // Wajib: Render DOM width agar Face-API tidak mendeteksi bingkai 0x0 pixels
             if (videoRef.current.videoWidth > 0 && !videoRef.current.width) {
                 videoRef.current.width = videoRef.current.videoWidth
@@ -345,11 +345,11 @@ export function useProctoring({
                     // Resolusi 224 stabil untuk semua laptop. Score Threshold super pemaaf (0.1).
                     new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.1 })
                 )
-                
+
                 if (detections.length === 0) {
                     setFaceDetected(false)
                     anomalyCounters.current.no_face += 1
-                    if (anomalyCounters.current.no_face >= 6) { // 6 misses * 2.5s = 15 detik toleransi
+                    if (anomalyCounters.current.no_face >= 4) { // 6 misses * 2.5s = 15 detik toleransi
                         captureAndLog('no_face_detected', 'Tidak terdeteksi kehadiran wajah di depan kamera secara konsisten.')
                         anomalyCounters.current.no_face = 0
                     }

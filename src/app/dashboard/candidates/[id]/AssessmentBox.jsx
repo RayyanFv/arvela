@@ -121,8 +121,10 @@ export default function CandidateAssessmentBox({ application, assessments = [], 
                 <div className="flex items-center gap-2">
                     {mounted ? (
                         <Select value={selectedId} onValueChange={setSelectedId}>
-                            <SelectTrigger className="h-9 rounded-xl text-xs flex-1">
-                                <SelectValue placeholder="Pilih Test" />
+                            <SelectTrigger className="h-9 rounded-xl text-xs flex-1 text-left truncate">
+                                <SelectValue placeholder="Pilih Test">
+                                    {selectedId ? assessments.find(t => t.id === selectedId)?.title : "Pilih Test"}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 {assessments.map(test => (
