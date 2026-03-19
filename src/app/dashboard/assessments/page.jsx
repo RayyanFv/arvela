@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { formatDistanceToNow } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
+import { DeleteAssessmentButton } from './DeleteAssessmentButton'
 
 export const metadata = { title: 'Assessment System — Arvela HR' }
 export const dynamic = 'force-dynamic'
@@ -72,16 +73,19 @@ export default async function AssessmentsPage() {
                             <div className="space-y-4 pt-4 border-t border-border mt-auto">
                                 <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
                                     <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {test.duration_minutes} Menit</div>
-                                    <div className="flex items-center gap-1.5"><FileQuestion className="w-3.5 h-3.5" /> {(test.questions?.length || 0) || 0} Soal</div>
+                                    <div className="flex items-center gap-1.5"><FileQuestion className="w-3.5 h-3.5" /> {test.questions?.[0]?.count || 0} Soal</div>
                                 </div>
 
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between mt-4">
                                     <span className="text-[11px] text-muted-foreground italic">
                                         Dibuat {formatDistanceToNow(new Date(test.created_at), { locale: localeID })} yg lalu
                                     </span>
-                                    <Link href={`/dashboard/assessments/${test.id}`} className="group/btn inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:gap-2 transition-all">
-                                        Kelola <ArrowRight className="w-3.5 h-3.5" />
-                                    </Link>
+                                    <div className="flex items-center gap-2">
+                                        <DeleteAssessmentButton id={test.id} title={test.title} />
+                                        <Link href={`/dashboard/assessments/${test.id}`} className="group/btn inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:gap-2 transition-all">
+                                            Kelola <ArrowRight className="w-3.5 h-3.5" />
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
                         </div>

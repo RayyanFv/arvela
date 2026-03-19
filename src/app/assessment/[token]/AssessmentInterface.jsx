@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Script from 'next/script'
 import { cn } from '@/lib/utils'
@@ -22,9 +22,11 @@ import {
     Check,
     ShieldAlert,
     Monitor,
-    Camera,
     CameraOff,
-    Activity
+    Activity,
+    Mic,
+    HelpCircle,
+    Maximize2
 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -35,11 +37,15 @@ import { useProctoring } from '@/hooks/useProctoring'
 
 export default function AssessmentInterface({ assignment, test, questions, candidateName }) {
     const router = useRouter()
+    const params = useParams()
     const [started, setStarted] = useState(false)
+    const [mounted, setMounted] = useState(false)
     const [currentIndex, setCurrentIndex] = useState(0)
     const [answers, setAnswers] = useState({})
+    const [doubtful, setDoubtful] = useState({})
     const [timeLeft, setTimeLeft] = useState(test.duration_minutes * 60)
     const [submitting, setSubmitting] = useState(false)
+    const [isVerifying, setIsVerifying] = useState(false)
     const [error, setError] = useState('')
     const [agreed, setAgreed] = useState(false)
     const [personalLogs, setPersonalLogs] = useState([])
@@ -47,21 +53,25 @@ export default function AssessmentInterface({ assignment, test, questions, candi
     const timerRef = useRef(null)
 
     // Proctoring Hook
+    const onAnomaliesLogged = useCallback((type, msg) => {
+        const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        setPersonalLogs(prev => [{ time, message: msg }, ...prev].slice(0, 5))
+        if (type === 'tab_switch_blur') setTabSwitches(prev => prev + 1)
+    }, [])
+
     const { 
         videoRef, 
         canvasRef, 
         cameraActive, 
         multiScreen, 
-        faceApiLoaded, 
-        initializeFaceApi 
+        audioLevel,
+        isFullscreen,
+        faceDetected,
+        requestFullscreen
     } = useProctoring({
         assignmentId: assignment.id,
         enabled: started && !submitting && test.proctoring_enabled,
-        onAnomaliesLogged: (type, msg) => {
-            const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-            setPersonalLogs(prev => [{ time, message: msg }, ...prev].slice(0, 5))
-            if (type === 'tab_switch_blur') setTabSwitches(prev => prev + 1)
-        }
+        onAnomaliesLogged
     })
 
     // Clear interval on unmount
@@ -71,15 +81,23 @@ export default function AssessmentInterface({ assignment, test, questions, candi
         }
     }, [])
 
-    // Load persisted progress (resuming)
+    // Load persisted progress & Check if already started (hydration safe)
     useEffect(() => {
+        setMounted(true)
+        
+        // Cek apakah tes pernah dimulai sebelumnya
+        if (localStorage.getItem(`arvela_started_${assignment.id}`) === 'true') {
+            setStarted(true)
+        }
+
+        // Muat progress jawaban
         const saved = localStorage.getItem(`arvela_test_${assignment.id}`)
         if (saved) {
             try {
                 const data = JSON.parse(saved)
                 setAnswers(data.answers || {})
+                setDoubtful(data.doubtful || {})
                 setCurrentIndex(data.currentIndex || 0)
-                // We keep the server timer going if started, but locally we could sync too
             } catch(e) {}
         }
     }, [assignment.id])
@@ -87,13 +105,19 @@ export default function AssessmentInterface({ assignment, test, questions, candi
     // Save progress on every answer change
     useEffect(() => {
         if (started) {
+            localStorage.setItem(`arvela_started_${assignment.id}`, 'true')
             localStorage.setItem(`arvela_test_${assignment.id}`, JSON.stringify({
                 answers,
+                doubtful,
                 currentIndex,
                 timestamp: new Date().toISOString()
             }))
         }
-    }, [answers, currentIndex, started, assignment.id])
+    }, [answers, doubtful, currentIndex, started, assignment.id])
+
+    const toggleDoubtful = useCallback((id) => {
+        setDoubtful(prev => ({ ...prev, [id]: !prev[id] }))
+    }, [])
 
     useEffect(() => {
         // Initialize or retrieve Session ID
@@ -110,7 +134,7 @@ export default function AssessmentInterface({ assignment, test, questions, candi
     }, [assignment.id, assignment.status])
 
     async function verifySession(sessionId) {
-        setSubmitting(true)
+        setIsVerifying(true)
         const browserMeta = {
             browser: navigator.userAgent,
             platform: navigator.platform,
@@ -119,7 +143,7 @@ export default function AssessmentInterface({ assignment, test, questions, candi
         }
         
         const res = await startAssignment(assignment.id, browserMeta)
-        setSubmitting(false)
+        setIsVerifying(false)
 
         if (res.error === 'SESSION_LOCKED') {
             setError(res.message)
@@ -140,7 +164,6 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                         setTimeLeft(prev => {
                             if (prev <= 1) {
                                 clearInterval(timerRef.current)
-                                autoSubmit()
                                 return 0
                             }
                             return prev - 1
@@ -167,7 +190,10 @@ export default function AssessmentInterface({ assignment, test, questions, candi
             session_id: sessionId
         }
 
-        const res = await startAssignment(assignment.id, browserMeta)
+        const res = await startAssignment(assignment.id, {
+            ...browserMeta,
+            token: params.token // Fallback pass token from URL params
+        })
         setSubmitting(false)
 
         if (res.error) {
@@ -185,11 +211,13 @@ export default function AssessmentInterface({ assignment, test, questions, candi
 
         setStarted(true)
 
+        // Request fullscreen for proctoring
+        if (test.proctoring_enabled) requestFullscreen()
+
         timerRef.current = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timerRef.current)
-                    autoSubmit()
                     return 0
                 }
                 return prev - 1
@@ -197,10 +225,18 @@ export default function AssessmentInterface({ assignment, test, questions, candi
         }, 1000)
     }
 
+    // Auto-submit securely outside of state updater
+    useEffect(() => {
+        if (started && timeLeft === 0 && !submitting) {
+            autoSubmit()
+        }
+    }, [timeLeft, started, submitting])
+
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600)
         const m = Math.floor((seconds % 3600) / 60)
         const s = seconds % 60
+        return `${h > 0 ? String(h).padStart(2, '0') + ':' : ''}${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
     }
 
     function handleOptionSelect(qId, option, type) {
@@ -233,7 +269,7 @@ export default function AssessmentInterface({ assignment, test, questions, candi
     }
 
     async function autoSubmit() {
-        alert('Waktu habis! Jawaban kamu akan dikirim otomatis.')
+        // Hapus alert() yang nge-block main thread
         performSubmission()
     }
 
@@ -319,13 +355,18 @@ export default function AssessmentInterface({ assignment, test, questions, candi
             if (statusError) throw statusError
 
             localStorage.removeItem(`arvela_test_${assignment.id}`)
-            setSubmitting(false)
+            localStorage.removeItem(`arvela_started_${assignment.id}`)
+            // Biarkan kotak 'Mengirim Jawaban' loading menyala secara mulus sampai reload Server komponen selesai
             router.refresh()
         } catch (err) {
             console.error(err)
             setError('Gagal mengirim jawaban. Cek koneksi internet dan coba lagi.')
             setSubmitting(false)
         }
+    }
+
+    if (!mounted) {
+        return <div className="min-h-screen bg-[#FDFDFF] animate-pulse" /> // Mencegah server-client hydration mismatch
     }
 
     if (!started) {
@@ -438,307 +479,355 @@ export default function AssessmentInterface({ assignment, test, questions, candi
     const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0
 
     return (
-        <div className="min-h-screen bg-[#FDFDFF] font-sans selection:bg-primary selection:text-white">
-            <Script 
-                src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js" 
-                onLoad={initializeFaceApi}
-            />
-            {/* Nav Header */}
-            {/* Left Column: Question Side */}
-            <div className="flex-1 w-full space-y-6">
-
-                {/* Progress bar and Timer */}
-                <div className="bg-white border border-border rounded-3xl p-6 shadow-sm flex items-center justify-between sticky top-20 z-40">
-                    <div className="flex-1 pr-8">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">Kemajuan: {currentIndex + 1} / {questions.length}</span>
-                            {tabSwitches > 0 && (
-                                <span className="text-[9px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100 uppercase tracking-tighter">
-                                    Peringatan: {tabSwitches}x Pindah Tab
-                                </span>
-                            )}
-                        </div>
-                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                        <div className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border ${timeLeft < 300 ? 'bg-red-50 border-red-200 text-red-600 animate-pulse' : 'bg-slate-50 border-slate-100 text-slate-700 font-extrabold'} transition-all`}>
-                            <Clock className="w-5 h-5 opacity-70" />
-                            <span className="text-xl tabular-nums tracking-tighter">{formatTime(timeLeft)}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[9px] font-black uppercase tracking-widest">
-                            <ShieldCheck className="w-3 h-3" /> Proctoring Aktif
-                        </div>
+        <div className="min-h-screen bg-[#FDFDFF] font-sans selection:bg-primary selection:text-white pt-24 pb-20 px-4 sm:px-8 relative z-0">
+            {(submitting || isVerifying) && started && (
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
+                    <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 animate-in zoom-in-95 duration-300">
+                        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                        <h2 className="text-xl font-black text-slate-900">
+                            {isVerifying ? "Memulihkan Sesi..." : timeLeft === 0 ? "Waktu Habis!" : "Mengirim Jawaban..."}
+                        </h2>
+                        <p className="text-sm text-slate-500 font-medium tracking-wide">
+                            {isVerifying ? "Sistem sedang memverifikasi koneksi aman Anda." : "Sistem sedang memproses hasil tes kamu dengan aman."}
+                        </p>
                     </div>
                 </div>
+            )}
+            <div className="w-full max-w-[1600px] mx-auto flex flex-col xl:flex-row gap-8 xl:gap-12">
+                {/* Main Content: Questions */}
+                <div className="flex-1 w-full space-y-6">
 
-                {/* Question Area */}
-                <div className="bg-white border border-border rounded-3xl p-8 sm:p-12 shadow-sm min-h-[400px] flex flex-col justify-between relative overflow-hidden transition-all motion-safe:animate-in fade-in slide-in-from-bottom-5">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -translate-y-16 translate-x-16" />
-
-                    <div className="relative">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-8">
-                            Pertanyaan Nomor {currentIndex + 1}
-                        </div>
-                        <h2 className="text-xl sm:text-2xl font-bold text-foreground leading-snug mb-10 w-full whitespace-pre-wrap">{currentQ?.prompt || 'Soal tidak ditemukan.'}</h2>
-
-                        {(currentQ.type === 'multiple_choice' || currentQ.type === 'multiple_select') ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {(currentQ.options || []).map((opt, i) => {
-                                    const isSelected = currentQ.type === 'multiple_select'
-                                        ? (answers[currentQ.id] || []).includes(opt)
-                                        : answers[currentQ.id] === opt
-
-                                    return (
-                                        <button
-                                            key={i}
-                                            onClick={() => handleOptionSelect(currentQ.id, opt, currentQ.type)}
-                                            className={`group flex items-start gap-4 p-5 rounded-2xl border text-left transition-all relative overflow-hidden ${isSelected
-                                                ? 'bg-primary border-primary ring-4 ring-primary/10'
-                                                : 'bg-white border-slate-200 hover:border-primary/50 hover:bg-slate-50 active:scale-95'
-                                                }`}
-                                        >
-                                            <div className={cn(
-                                                "w-6 h-6 border-2 flex items-center justify-center shrink-0 text-[10px] font-bold transition-all",
-                                                isSelected ? "bg-white border-white text-primary" : "bg-slate-50 border-slate-200 text-slate-400 group-hover:border-primary group-hover:text-primary",
-                                                currentQ.type === 'multiple_select' ? "rounded-md" : "rounded-full"
-                                            )}>
-                                                {isSelected && currentQ.type === 'multiple_select' ? <Check className="w-3.5 h-3.5" /> : (currentQ.type === 'multiple_select' ? "" : String.fromCharCode(65 + i))}
-                                            </div>
-                                            <span className={`text-sm font-semibold transition-colors duration-200 ${isSelected ? 'text-white' : 'text-slate-700'
-                                                }`}>
-                                                {opt}
-                                            </span>
-                                        </button>
-                                    )
-                                })}
-                            </div>
-                        ) : currentQ.type === 'numeric_input' ? (
-                            <div className="space-y-4">
-                                <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Ketik angka jawaban kamu:</Label>
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="number"
-                                        placeholder="0"
-                                        value={answers[currentQ.id] || ''}
-                                        onChange={(e) => setAnswers({ ...answers, [currentQ.id]: e.target.value })}
-                                        className="h-16 w-full max-w-[200px] rounded-2xl px-6 bg-slate-50 text-xl font-bold border-slate-200 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all shadow-inner"
-                                    />
-                                    {currentQ.options?.unit && <span className="text-xl font-bold text-slate-400">{currentQ.options.unit}</span>}
-                                </div>
-                            </div>
-                        ) : currentQ.type === 'essay' ? (
-                            <div className="space-y-4">
-                                <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Tulis jawaban kamu di sini:</Label>
-                                <Textarea
-                                    placeholder="Ketik jawaban esai kamu..."
-                                    value={answers[currentQ.id] || ''}
-                                    onChange={(e) => handleEssayChange(currentQ.id, e.target.value)}
-                                    className="min-h-[200px] rounded-2xl p-6 bg-slate-50 text-slate-800 border-slate-200 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none shadow-inner"
-                                />
-                            </div>
-                        ) : currentQ.type === 'ranking' ? (
-                            <div className="space-y-4">
-                                <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Urutkan item di bawah ini (Gunakan panah):</Label>
-                                <div className="space-y-3">
-                                    {(answers[currentQ.id] || currentQ.options || []).map((opt, i) => (
-                                        <div key={`${currentQ.id}-${i}-${opt}`} className="flex items-center gap-4 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-primary/30 transition-all group">
-                                            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center font-black text-slate-400 text-xs border border-slate-100 group-hover:bg-primary group-hover:text-white transition-colors">
-                                                {i + 1}
-                                            </div>
-                                            <span className="flex-1 text-sm font-bold text-slate-700">{opt}</span>
-                                            <div className="flex gap-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (i === 0) return
-                                                        setAnswers(prev => {
-                                                            const current = prev[currentQ.id] || [...currentQ.options]
-                                                            const next = [...current];
-                                                            [next[i], next[i - 1]] = [next[i - 1], next[i]]
-                                                            return { ...prev, [currentQ.id]: next }
-                                                        })
-                                                    }}
-                                                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-primary transition-colors disabled:opacity-20"
-                                                    disabled={i === 0}
-                                                >
-                                                    <ArrowUp className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const curArr = answers[currentQ.id] || currentQ.options || []
-                                                        if (i === curArr.length - 1) return
-                                                        setAnswers(prev => {
-                                                            const current = prev[currentQ.id] || [...currentQ.options]
-                                                            const next = [...current];
-                                                            [next[i], next[i + 1]] = [next[i + 1], next[i]]
-                                                            return { ...prev, [currentQ.id]: next }
-                                                        })
-                                                    }}
-                                                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-primary transition-colors disabled:opacity-20"
-                                                    disabled={i === (answers[currentQ.id] || currentQ.options || []).length - 1}
-                                                >
-                                                    <ArrowDown className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : currentQ.type === 'matrix' ? (
-                            <MatrixQuestion
-                                question={currentQ}
-                                value={answers[currentQ.id]}
-                                onChange={(sIdx, val) => handleMatrixSelect(currentQ.id, sIdx, val)}
-                            />
-                        ) : currentQ.type === 'game_task' ? (
-                            <GameTaskPlaceholder />
-                        ) : (
-                            <div className="py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-center animate-pulse">
-                                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Tipe soal "{currentQ.type}" segera hadir.</p>
-                                <p className="text-xs text-slate-300 mt-2 font-medium">Mohon lewati soal ini untuk sekarang.</p>
-                            </div>
-                        )
-                        }
-                    </div>
-
-                    {/* Controls */}
-                    <div className="flex items-center justify-between gap-4 pt-12 mt-12 border-t border-slate-100 flex-col sm:flex-row">
-                        <Button
-                            variant="ghost"
-                            disabled={currentIndex === 0}
-                            onClick={() => setCurrentIndex(currentIndex - 1)}
-                            className="h-12 px-6 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-all w-full sm:w-auto"
-                        >
-                            <ChevronLeft className="w-4 h-4 mr-2" /> Sebelumnya
-                        </Button>
-
-                        {currentIndex < questions.length - 1 ? (
-                            <Button
-                                onClick={() => setCurrentIndex(currentIndex + 1)}
-                                className="h-12 px-10 rounded-xl font-bold bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-lg w-full sm:w-auto"
-                            >
-                                Selanjutnya <ChevronRight className="w-4 h-4 ml-2" />
-                            </Button>
-                        ) : (
-                            <Button
-                                onClick={submitTest}
-                                disabled={submitting}
-                                className="h-12 px-12 rounded-xl font-black bg-primary text-white hover:bg-brand-600 transition-all shadow-xl shadow-primary/20 w-full sm:w-auto transform hover:scale-105"
-                            >
-                                {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Flag className="w-4 h-4 mr-2" />}
-                                Selesaikan Tes
-                            </Button>
-                        )}
-                    </div>
-                </div>
-
-                {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-2xl flex items-center gap-3 animate-shake font-bold">
-                        <AlertTriangle className="w-5 h-5" /> {error}
-                    </div>
-                )}
-            </div>
-
-            {/* Right Column: Question Navigator (Desktop only) */}
-            <div className="hidden lg:block w-72 shrink-0 space-y-4 sticky top-20">
-                <div className="bg-white border border-border rounded-3xl p-6 shadow-sm overflow-hidden relative">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-slate-100" />
-                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 px-1 flex items-center justify-between">
-                        Navigasi Soal
-                        <span className="text-[10px] bg-slate-50 py-0.5 px-2 rounded-full border border-slate-100 text-slate-500">
-                            {Object.keys(answers).length} / {questions.length} dijawab
-                        </span>
-                    </h3>
-
-                    <div className="grid grid-cols-5 gap-2">
-                        {questions.map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => setCurrentIndex(i)}
-                                className={`w-full aspect-square rounded-xl text-[10px] font-black border-2 transition-all transform active:scale-90 ${currentIndex === i
-                                    ? 'bg-slate-900 border-slate-900 text-white z-10 scale-105 shadow-md'
-                                    : (answers[questions[i].id]
-                                        ? 'bg-primary/10 border-primary text-primary'
-                                        : 'bg-slate-50 border-slate-100 text-slate-300 hover:border-slate-300'
-                                    )
-                                    }`}
-                            >
-                                {i + 1}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase">
-                            <div className="w-3 h-3 rounded-md bg-primary/20 border border-primary shrink-0" /> Terjawab
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase">
-                            <div className="w-3 h-3 rounded-md bg-slate-50 border border-slate-100 shrink-0" /> Belum Terjawab
-                        </div>
-                    </div>
-                </div>
-
-                {/* Candidate Multi-Proctor Panel */}
-                {test.proctoring_enabled && (
-                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-white space-y-5 overflow-hidden relative">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl -translate-y-12 translate-x-12" />
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                            <Activity className="w-3 h-3 text-primary" /> Integrity Monitor
-                        </h3>
-
-                        {/* Camera Feed Preview */}
-                        <div className="relative aspect-video bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden group">
-                            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" />
-                            <canvas ref={canvasRef} className="hidden" />
-                            {!cameraActive && (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center text-rose-500 bg-rose-500/10">
-                                    <CameraOff className="w-8 h-8 mb-2" />
-                                    <span className="text-[8px] font-bold uppercase tracking-widest text-center px-4">Kamera Tidak Aktif</span>
-                                </div>
-                            )}
-                            <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10">
-                                <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", cameraActive ? "bg-emerald-500" : "bg-rose-500")} />
-                                <span className="text-[8px] font-bold uppercase tracking-widest">Live AI Monitoring</span>
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between text-[10px] font-bold">
-                                <span className="text-slate-400 capitalize flex items-center gap-1.5"><Monitor className="w-3 h-3" /> Multi-Screen</span>
-                                <span className={cn(multiScreen ? "text-rose-500" : "text-emerald-500")}>
-                                    {multiScreen ? "Terdeteksi" : "Layar Tunggal"}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-slate-800">
-                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Sistem Log Real-time:</p>
-                            <div className="space-y-2">
-                                {personalLogs.length > 0 ? (
-                                    personalLogs.map((log, i) => (
-                                        <div key={i} className="text-[9px] flex gap-2 leading-relaxed animate-in slide-in-from-right-2">
-                                            <span className="text-primary font-bold whitespace-nowrap opacity-60">[{log.time}]</span>
-                                            <span className="text-slate-400 font-medium">{log.message}</span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-[9px] text-slate-600 italic">Belum ada aktivitas tercatat...</p>
+                    {/* Progress bar and Timer */}
+                    <div className="bg-white border border-border rounded-3xl p-6 shadow-sm flex items-center justify-between">
+                        <div className="flex-1 pr-8">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">Kemajuan: {currentIndex + 1} / {questions.length}</span>
+                                {tabSwitches > 0 && (
+                                    <span className="text-[9px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100 uppercase tracking-tighter">
+                                        Peringatan: {tabSwitches}x Pindah Tab
+                                    </span>
                                 )}
                             </div>
+                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+                            </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                            <div className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border ${timeLeft < 300 ? 'bg-red-50 border-red-200 text-red-600 animate-pulse' : 'bg-slate-50 border-slate-100 text-slate-700 font-extrabold'} transition-all`}>
+                                <Clock className="w-5 h-5 opacity-70" />
+                                <span className="text-xl tabular-nums tracking-tighter">{formatTime(timeLeft)}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[9px] font-black uppercase tracking-widest">
+                                <ShieldCheck className="w-3 h-3" /> Proctoring Aktif
+                            </div>
                         </div>
                     </div>
-                )}
 
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-amber-800 leading-relaxed font-semibold">Semua jawaban tersimpan sementara secara lokal. Klik "Selesaikan Tes" jika sudah yakin dengan semua jawaban.</p>
+                    {/* Question Area */}
+                    <div className="bg-white border border-border rounded-3xl p-8 sm:p-12 shadow-sm min-h-[450px] flex flex-col justify-between relative overflow-hidden transition-all">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -translate-y-16 translate-x-16" />
+
+                        <div className="relative">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-8">
+                                Pertanyaan Nomor {currentIndex + 1}
+                            </div>
+                            <h2 className="text-xl sm:text-2xl font-bold text-foreground leading-snug mb-10 w-full whitespace-pre-wrap">{currentQ?.prompt || 'Soal tidak ditemukan.'}</h2>
+
+                            {(currentQ.type === 'multiple_choice' || currentQ.type === 'multiple_select') ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {(currentQ.options || []).map((opt, i) => {
+                                        const isSelected = currentQ.type === 'multiple_select'
+                                            ? (answers[currentQ.id] || []).includes(opt)
+                                            : answers[currentQ.id] === opt
+
+                                        return (
+                                            <button
+                                                key={i}
+                                                onClick={() => handleOptionSelect(currentQ.id, opt, currentQ.type)}
+                                                className={`group flex items-start gap-4 p-5 rounded-2xl border text-left transition-all relative overflow-hidden ${isSelected
+                                                    ? 'bg-primary border-primary ring-4 ring-primary/10'
+                                                    : 'bg-white border-slate-200 hover:border-primary/50 hover:bg-slate-50 active:scale-95'
+                                                    }`}
+                                            >
+                                                <div className={cn(
+                                                    "w-6 h-6 border-2 flex items-center justify-center shrink-0 text-[10px] font-bold transition-all",
+                                                    isSelected ? "bg-white border-white text-primary" : "bg-slate-50 border-slate-200 text-slate-400 group-hover:border-primary group-hover:text-primary",
+                                                    currentQ.type === 'multiple_select' ? "rounded-md" : "rounded-full"
+                                                )}>
+                                                    {isSelected && currentQ.type === 'multiple_select' ? <Check className="w-3.5 h-3.5" /> : (currentQ.type === 'multiple_select' ? "" : String.fromCharCode(65 + i))}
+                                                </div>
+                                                <span className={`text-sm font-semibold transition-colors duration-200 ${isSelected ? 'text-white' : 'text-slate-700'
+                                                    }`}>
+                                                    {opt}
+                                                </span>
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            ) : currentQ.type === 'numeric_input' ? (
+                                <div className="space-y-4">
+                                    <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Ketik angka jawaban kamu:</Label>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="number"
+                                            placeholder="0"
+                                            value={answers[currentQ.id] || ''}
+                                            onChange={(e) => setAnswers({ ...answers, [currentQ.id]: e.target.value })}
+                                            className="h-16 w-full max-w-[200px] rounded-2xl px-6 bg-slate-50 text-xl font-bold border-slate-200 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all shadow-inner"
+                                        />
+                                        {currentQ.options?.unit && <span className="text-xl font-bold text-slate-400">{currentQ.options.unit}</span>}
+                                    </div>
+                                </div>
+                            ) : currentQ.type === 'essay' ? (
+                                <div className="space-y-4">
+                                    <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Tulis jawaban kamu di sini:</Label>
+                                    <Textarea
+                                        placeholder="Ketik jawaban esai kamu..."
+                                        value={answers[currentQ.id] || ''}
+                                        onChange={(e) => handleEssayChange(currentQ.id, e.target.value)}
+                                        className="min-h-[200px] rounded-2xl p-6 bg-slate-50 text-slate-800 border-slate-200 focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none shadow-inner"
+                                    />
+                                </div>
+                            ) : currentQ.type === 'ranking' ? (
+                                <div className="space-y-4">
+                                    <Label className="text-xs font-bold text-slate-400 uppercase ml-1">Urutkan item di bawah ini (Gunakan panah):</Label>
+                                    <div className="space-y-3">
+                                        {(answers[currentQ.id] || currentQ.options || []).map((opt, i) => (
+                                            <div key={`${currentQ.id}-${i}-${opt}`} className="flex items-center gap-4 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-primary/30 transition-all group">
+                                                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center font-black text-slate-400 text-xs border border-slate-100 group-hover:bg-primary group-hover:text-white transition-colors">
+                                                    {i + 1}
+                                                </div>
+                                                <span className="flex-1 text-sm font-bold text-slate-700">{opt}</span>
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (i === 0) return
+                                                            setAnswers(prev => {
+                                                                const current = prev[currentQ.id] || [...currentQ.options]
+                                                                const next = [...current];
+                                                                [next[i], next[i - 1]] = [next[i - 1], next[i]]
+                                                                return { ...prev, [currentQ.id]: next }
+                                                            })
+                                                        }}
+                                                        className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-primary transition-colors disabled:opacity-20"
+                                                        disabled={i === 0}
+                                                    >
+                                                        <ArrowUp className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const curArr = answers[currentQ.id] || currentQ.options || []
+                                                            if (i === curArr.length - 1) return
+                                                            setAnswers(prev => {
+                                                                const current = prev[currentQ.id] || [...currentQ.options]
+                                                                const next = [...current];
+                                                                [next[i], next[i + 1]] = [next[i + 1], next[i]]
+                                                                return { ...prev, [currentQ.id]: next }
+                                                            })
+                                                        }}
+                                                        className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-primary transition-colors disabled:opacity-20"
+                                                        disabled={i === (answers[currentQ.id] || currentQ.options || []).length - 1}
+                                                    >
+                                                        <ArrowDown className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : currentQ.type === 'matrix' ? (
+                                <MatrixQuestion
+                                    question={currentQ}
+                                    value={answers[currentQ.id]}
+                                    onChange={(sIdx, val) => handleMatrixSelect(currentQ.id, sIdx, val)}
+                                />
+                            ) : currentQ.type === 'game_task' ? (
+                                <GameTaskPlaceholder />
+                            ) : (
+                                <div className="py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200 text-center animate-pulse">
+                                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Tipe soal "{currentQ.type}" segera hadir.</p>
+                                    <p className="text-xs text-slate-300 mt-2 font-medium">Mohon lewati soal ini untuk sekarang.</p>
+                                </div>
+                            )
+                            }
+                        </div>
+
+                        {/* Controls */}
+                        <div className="flex items-center justify-between gap-4 pt-12 mt-12 border-t border-slate-100 flex-col sm:flex-row">
+                            <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                                <Button
+                                    variant="ghost"
+                                    disabled={currentIndex === 0}
+                                    onClick={() => setCurrentIndex(currentIndex - 1)}
+                                    className="h-12 px-6 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-all w-full sm:w-auto"
+                                >
+                                    <ChevronLeft className="w-4 h-4 mr-2" /> Sebelumnya
+                                </Button>
+                                <button
+                                    onClick={() => toggleDoubtful(currentQ.id)}
+                                    className={`flex items-center justify-center h-12 px-6 rounded-xl font-bold border-2 transition-all w-full sm:w-auto ${
+                                        doubtful[currentQ.id] ? 'bg-amber-100 border-amber-300 text-amber-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300'
+                                    }`}
+                                >
+                                    <HelpCircle className="w-4 h-4 mr-2" /> {doubtful[currentQ.id] ? 'Ditandai Ragu-ragu' : 'Tandai Ragu-ragu'}
+                                </button>
+                            </div>
+
+                            {currentIndex < questions.length - 1 ? (
+                                <Button
+                                    onClick={() => setCurrentIndex(currentIndex + 1)}
+                                    className="h-12 px-10 rounded-xl font-bold bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-lg w-full sm:w-auto"
+                                >
+                                    Selanjutnya <ChevronRight className="w-4 h-4 ml-2" />
+                                </Button>
+                            ) : (
+                                <Button
+                                    onClick={submitTest}
+                                    disabled={submitting}
+                                    className="h-12 px-12 rounded-xl font-black bg-primary text-white hover:bg-brand-600 transition-all shadow-xl shadow-primary/20 w-full sm:w-auto transform hover:scale-105"
+                                >
+                                    {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Flag className="w-4 h-4 mr-2" />}
+                                    Selesaikan Tes
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Sidebar: Integrity Monitor */}
+                <div className="hidden xl:block w-80 shrink-0 space-y-4 sticky top-24">
+                    <div className="bg-white border border-border rounded-3xl p-6 shadow-sm overflow-hidden relative">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-slate-100" />
+                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 px-1 flex items-center justify-between">
+                            Navigasi Soal
+                            <span className="text-[10px] bg-slate-50 py-0.5 px-2 rounded-full border border-slate-100 text-slate-500">
+                                {Object.keys(answers).length} / {questions.length} dijawab
+                            </span>
+                        </h3>
+
+                        <div className="grid grid-cols-5 gap-2">
+                            {questions.map((_, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => setCurrentIndex(i)}
+                                    className={`w-full aspect-square rounded-xl text-[10px] font-black border-2 transition-all transform active:scale-90 ${currentIndex === i
+                                        ? 'bg-slate-900 border-slate-900 text-white z-10 scale-105 shadow-md'
+                                        : doubtful[questions[i].id] 
+                                            ? 'bg-amber-100 border-amber-400 text-amber-700 shadow-sm z-0 scale-95'
+                                            : (answers[questions[i].id]
+                                                ? 'bg-primary/10 border-primary text-primary'
+                                                : 'bg-slate-50 border-slate-100 text-slate-300 hover:border-slate-300'
+                                            )
+                                        }`}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase">
+                                <div className="w-3 h-3 rounded-md bg-primary/20 border border-primary shrink-0" /> Terjawab
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase">
+                                <div className="w-3 h-3 rounded-md bg-amber-100 border border-amber-400 shrink-0" /> Ragu-ragu
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase">
+                                <div className="w-3 h-3 rounded-md bg-slate-50 border border-slate-100 shrink-0" /> Belum Terjawab
+                            </div>
+                        </div>
+                    </div>
+
+                    {test.proctoring_enabled && (
+                        <div className="bg-white border border-border rounded-3xl p-6 shadow-sm space-y-5 overflow-hidden relative">
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -translate-y-12 translate-x-12" />
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                                <Activity className="w-3 h-3 text-primary" /> Integrity Monitor
+                            </h3>
+
+                            {/* Camera Feed Preview */}
+                            <div className={cn("relative aspect-video bg-slate-100 rounded-2xl overflow-hidden transition-all duration-300", 
+                                cameraActive && !faceDetected ? "border-2 border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.3)] ring-4 ring-rose-50" : "border border-border"
+                            )}>
+                                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transition-all duration-500" />
+                                <canvas ref={canvasRef} className="hidden" />
+                                {!cameraActive && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-rose-500 bg-rose-50/90 backdrop-blur-sm">
+                                        <CameraOff className="w-8 h-8 mb-2" />
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-center px-4">Kamera Terputus</span>
+                                    </div>
+                                )}
+                                
+                                <div className={cn("absolute bottom-3 left-3 flex items-center gap-1.5 backdrop-blur-md px-2.5 py-1.5 rounded-lg border transition-colors shadow-sm", 
+                                    !cameraActive ? "bg-white/80 border-slate-200 text-slate-700" :
+                                    !faceDetected ? "bg-rose-50 border-rose-200 text-rose-700" : 
+                                    "bg-white/80 border-emerald-100 text-emerald-800"
+                                )}>
+                                    <div className={cn("w-2 h-2 rounded-full animate-pulse", !cameraActive ? "bg-rose-500" : !faceDetected ? "bg-rose-500" : "bg-emerald-500")} />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">
+                                        {!cameraActive ? "Offline" : !faceDetected ? "Wajah Tidak Terdeteksi!" : "Live AI Monitoring"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between text-[10px] font-bold">
+                                    <span className="text-slate-400 capitalize flex items-center gap-1.5"><Monitor className="w-3 h-3" /> Monitor Layar</span>
+                                    <span className={cn(multiScreen ? "text-rose-500" : "text-emerald-500")}>
+                                        {multiScreen ? "Terdeteksi" : "Layar Tunggal"}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between text-[10px] font-bold">
+                                    <span className="text-slate-400 capitalize flex items-center gap-1.5"><Maximize2 className="w-3 h-3" /> Fullscreen</span>
+                                    <span className={cn(isFullscreen ? "text-emerald-500" : "text-amber-500")}>
+                                        {isFullscreen ? "Aktif" : "Tidak Aktif"}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between text-[10px] font-bold">
+                                    <span className="text-slate-400 capitalize flex items-center gap-1.5"><Activity className="w-3 h-3" /> Deteksi Wajah</span>
+                                    <span className={cn(faceDetected ? "text-emerald-500" : "text-rose-500")}>
+                                        {faceDetected ? "Terdeteksi" : "Tidak Terdeteksi"}
+                                    </span>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between text-[10px] font-bold mb-1">
+                                        <span className="text-slate-400 capitalize flex items-center gap-1.5"><Mic className="w-3 h-3" /> Grafik Audio AI (Mic)</span>
+                                        <span className={audioLevel > 60 ? "text-rose-500" : audioLevel > 40 ? "text-amber-500" : "text-emerald-500"}>{audioLevel > 60 ? "Sangat Bising" : audioLevel > 40 ? "Bising" : "Hening"}</span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                                        <div className="h-full bg-emerald-500 transition-all duration-75" style={{ width: `${Math.min(100, Math.max(0, audioLevel))}%` }} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-100">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Log Aktivitas (Real-time):</p>
+                                <div className="space-y-2">
+                                    {personalLogs.length > 0 ? (
+                                        personalLogs.map((log, i) => (
+                                            <div key={i} className="text-[9px] flex gap-2 leading-relaxed animate-in slide-in-from-right-2">
+                                                <span className="text-primary font-black whitespace-nowrap">[{log.time}]</span>
+                                                <span className="text-slate-600 font-medium">{log.message}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-[9px] text-slate-400 italic">Belum ada aktivitas tercatat...</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3">
+                        <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-amber-800 leading-relaxed font-semibold">Semua jawaban tersimpan sementara secara lokal. Klik "Selesaikan Tes" jika sudah yakin dengan semua jawaban.</p>
+                    </div>
                 </div>
             </div>
 
-            {/* Mobile Navigator Placeholder (Bottom fixed on mobile) */}
+            {/* Mobile Navigator (Bottom fixed on mobile) */}
             <div className="lg:hidden fixed bottom-6 left-0 right-0 px-4 z-50">
                 <div className="bg-slate-950/80 backdrop-blur-xl border border-white/10 p-3 rounded-2xl shadow-2xl flex items-center justify-between overflow-x-auto scrollbar-hide">
                     <div className="flex gap-2 pr-4">
@@ -746,8 +835,7 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                             <button
                                 key={i}
                                 onClick={() => setCurrentIndex(i)}
-                                className={`w-8 h-8 rounded-lg text-[10px] font-bold shrink-0 border transition-all ${currentIndex === i ? 'bg-primary border-primary text-white scale-110 shadow-lg' : (answers[questions[i].id] ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-white/5 border-white/10 text-white/40')
-                                    }`}
+                                className={`w-8 h-8 rounded-lg text-[10px] font-bold shrink-0 border transition-all ${currentIndex === i ? 'bg-primary border-primary text-white scale-110 shadow-lg' : (answers[questions[i].id] ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-white/5 border-white/10 text-white/40')}`}
                             >
                                 {i + 1}
                             </button>

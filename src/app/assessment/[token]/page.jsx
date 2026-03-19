@@ -18,6 +18,7 @@ export default async function AssessmentEntryPage({ params }) {
             *,
             assessments (
                 id, title, description, duration_minutes,
+                proctoring_enabled,
                 questions (*)
             ),
             applications (full_name, email)

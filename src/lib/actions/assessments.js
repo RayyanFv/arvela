@@ -13,6 +13,7 @@ export async function logProctoringEvent({ assignment_id, event_type, details, s
     const supabase = createAdminSupabaseClient()
     
     const { error } = await supabase
+        .from('proctoring_logs')
         .insert({
             assignment_id,
             type: event_type, 
@@ -271,7 +272,6 @@ export async function assignAssessment({ assessment_id, application_id }) {
         .single()
 
     if (error) {
-        if (error.code === '23505') throw new Error('Kandidat sudah pernah diberikan assessment ini.')
         throw new Error(error.message)
     }
 

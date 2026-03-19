@@ -8,7 +8,7 @@ import { Users, Briefcase, Mail, Phone, Clock, Download } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
 
-export const metadata = { title: 'Kantong Kandidat — Arvela HR' }
+export const metadata = { title: 'Kandidat — Arvela HR' }
 
 export default async function CandidatesPage({ searchParams }) {
     const authClient = await createServerSupabaseClient()

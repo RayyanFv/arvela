@@ -172,13 +172,6 @@ export default function BulkAssigner({ assessmentId, candidates = [] }) {
                     </table>
                 </div>
             </div>
-
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex gap-3 items-start">
-                <AlertCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-blue-700 leading-relaxed">
-                    <strong>Catatan:</strong> Kandidat yang sudah pernah diberikan assessment ini tidak akan dikirimi email ganda untuk mencegah spam. Gunakan fitur "Bulk Assign" untuk efisiensi waktu saat mengundang banyak peserta sekaligus.
-                </p>
-            </div>
         </div>
     )
 }

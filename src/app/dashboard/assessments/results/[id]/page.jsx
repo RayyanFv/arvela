@@ -208,25 +208,41 @@ export default function AssessmentResultPage({ params }) {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-3 gap-3">
                                 <div className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm text-center">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Tab Swaps</p>
-                                    <p className="text-2xl font-black text-slate-900 leading-none">{violations.filter(l => l.log_type.includes('tab_switch')).length}</p>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Tab / Focus</p>
+                                    <p className="text-2xl font-black text-slate-900 leading-none">{violations.filter(l => ['tab_switch_blur', 'window_blur'].includes(l.type)).length}</p>
                                 </div>
                                 <div className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm text-center">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Cheat Triggers</p>
-                                    <p className="text-2xl font-black text-slate-900 leading-none">{violations.filter(l => ['copy_attempt', 'paste_attempt', 'right_click'].includes(l.log_type)).length}</p>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Cheat / Tools</p>
+                                    <p className="text-2xl font-black text-slate-900 leading-none">{violations.filter(l => ['copy_attempt', 'paste_attempt', 'devtools_detected'].includes(l.type)).length}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm text-center">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Face / Audio</p>
+                                    <p className="text-2xl font-black text-slate-900 leading-none">{violations.filter(l => ['no_face_detected', 'speech_detected', 'multiple_faces'].includes(l.type)).length}</p>
                                 </div>
                             </div>
 
-                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="space-y-2 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
                                 {violations.map(log => (
-                                    <div key={log.id} className="bg-white border border-rose-100/50 p-3 rounded-2xl flex justify-between items-center group hover:border-rose-300 transition-colors">
-                                        <div className="flex flex-col">
-                                            <span className="text-[9px] font-black text-rose-500 uppercase tracking-tight mb-1">{log.log_type.replace(/_/g, ' ')}</span>
-                                            <span className="text-[10px] text-slate-600 font-bold leading-tight">{log.details?.message}</span>
+                                    <div key={log.id} className="bg-white border border-rose-100/50 p-3 rounded-2xl group hover:border-rose-300 transition-colors">
+                                        <div className="flex justify-between items-start gap-3">
+                                            <div className="flex flex-col flex-1 min-w-0">
+                                                <span className="text-[9px] font-black text-rose-500 uppercase tracking-tight mb-1">{log.type?.replace(/_/g, ' ') || 'Unknown'}</span>
+                                                <span className="text-[10px] text-slate-600 font-bold leading-tight">{log.details?.message}</span>
+                                            </div>
+                                            <span className="text-[9px] text-slate-400 font-bold tabular-nums shrink-0">{new Date(log.timestamp).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}</span>
                                         </div>
-                                        <span className="text-[9px] text-slate-400 font-bold tabular-nums ml-4">{new Date(log.timestamp).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}</span>
+                                        {log.screenshot_url && (
+                                            <a href={log.screenshot_url} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                                                <img 
+                                                    src={log.screenshot_url} 
+                                                    alt="Capture saat anomali" 
+                                                    className="w-full max-w-xs h-auto rounded-xl border border-slate-200 hover:border-rose-400 transition-colors cursor-zoom-in shadow-sm"
+                                                />
+                                                <span className="text-[8px] text-slate-400 font-bold mt-1 block">📸 Klik untuk memperbesar</span>
+                                            </a>
+                                        )}
                                     </div>
                                 ))}
                             </div>
