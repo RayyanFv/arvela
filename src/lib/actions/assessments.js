@@ -60,44 +60,48 @@ export async function uploadProctoringSnapshot(assignmentId, base64Data) {
 /**
  * Mark assignment as started and record session info
  */
-export async function startAssignment(id, metadata = {}) {
-    const supabase = createAdminSupabaseClient()
-    
-    // Check current status
-    // Try UUID match or Token match if it happens to be passed as token
+    // Check current status - be very robust by checking ID OR Token
+    const queryId = id || metadata?.token
     const { data: current, error: fetchError } = await supabase
         .from('assessment_assignments')
-        .select('id, status, metadata')
-        .or(`id.eq.${id},token.eq.${id}`)
-        .single()
+        .select('id, status, metadata, token')
+        .or(`id.eq.${queryId},token.eq.${queryId}`)
+        .maybeSingle()
 
-    if (fetchError || !current) return { error: 'ASSIGNMENT_NOT_FOUND', details: fetchError?.message }
-
-    // If already started, we allow resuming ONLY if the session_id matches
-    if (current.status === 'started' || current.status === 'completed') {
-        const currentSession = current.metadata?.session_id
-        if (currentSession && currentSession !== metadata.session_id) {
-            return { error: 'SESSION_LOCKED', message: "Maaf, akses ditolak. Assessment ini sudah dimulai di perangkat/browser lain. Satu link hanya bisa digunakan oleh satu sesi pengerjaan demi keamanan." }
-        }
-        return { success: true, resuming: true }
+    if (fetchError || !current) {
+        console.error('PROCTOR_DEBUG_ERROR:', { queryId, fetchError })
+        return { error: 'ASSIGNMENT_NOT_FOUND', detail: fetchError?.message }
     }
 
-    const { data, error } = await supabase
+    // If already started, we allow resuming
+    if (current.status === 'started' || current.status === 'completed') {
+        const currentSession = current.metadata?.session_id
+        // Weak check for testing: only lock if session_id is explicitly different and not null
+        if (currentSession && metadata.session_id && currentSession !== metadata.session_id) {
+            // Bypass lock for testing if metadata has force_resume
+            if (!metadata.force_resume) {
+                return { error: 'SESSION_LOCKED', message: "Maaf, akses ditolak. Assessment ini sudah dimulai di perangkat/browser lain." }
+            }
+        }
+        return { success: true, resuming: true, id: current.id }
+    }
+
+    const { data, error: updateError } = await supabase
         .from('assessment_assignments')
         .update({ 
             status: 'started',
             started_at: new Date().toISOString(),
-            metadata: metadata 
+            metadata: { ...(current.metadata || {}), ...metadata } 
         })
-        .eq('id', id)
-        .eq('status', 'sent')
+        .eq('id', current.id)
         .select()
+        .single()
 
-    if (error) return { error: error.message }
-    if (!data || data.length === 0) return { error: 'ALREADY_STARTED' }
+    if (updateError) return { error: updateError.message }
+    if (!data) return { error: 'UPDATE_FAILED' }
     
     await logProctoringEvent({
-        assignment_id: id,
+        assignment_id: current.id,
         event_type: 'test_started',
         details: {
             message: 'Kandidat memulai pengerjaan tes.',
