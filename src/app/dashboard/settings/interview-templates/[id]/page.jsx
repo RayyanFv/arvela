@@ -1,19 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Trash2, GripVertical, Save, HelpCircle, ChevronLeft } from 'lucide-react'
+import { Plus, Trash2, GripVertical, Save, HelpCircle, ChevronLeft, Star } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { saveInterviewTemplate } from '@/lib/actions/interviews'
 
-export default function TemplateEditorPage({ params }) {
-    const { id } = params
+export default function TemplateEditorPage({ params: paramsPromise }) {
+    const { id } = use(paramsPromise)
     const isNew = id === 'new'
     const router = useRouter()
     const [loading, setLoading] = useState(!isNew)
-    const [template, setTemplate] = useState({ title: '', questions: [] })
+    const [template, setTemplate] = useState({ title: '', questions: [], scorecard_criteria: [] })
 
     useEffect(() => {
         if (!isNew) {
@@ -56,6 +56,26 @@ export default function TemplateEditorPage({ params }) {
         const next = [...template.questions]
         next[idx] = { ...next[idx], [part]: val }
         setTemplate({ ...template, questions: next })
+    }
+
+    const addCriteria = () => {
+        const key = `score_${Math.random().toString(36).substring(7)}`
+        setTemplate({
+            ...template,
+            scorecard_criteria: [...(template.scorecard_criteria || []), { key, label: '', desc: '', max_score: 5 }]
+        })
+    }
+
+    const removeCriteria = (idx) => {
+        const next = [...template.scorecard_criteria]
+        next.splice(idx, 1)
+        setTemplate({ ...template, scorecard_criteria: next })
+    }
+
+    const updateCriteria = (idx, part, val) => {
+        const next = [...template.scorecard_criteria]
+        next[idx] = { ...next[idx], [part]: val }
+        setTemplate({ ...template, scorecard_criteria: next })
     }
 
     if (loading) return <div className="p-8">Loading...</div>
@@ -147,6 +167,55 @@ export default function TemplateEditorPage({ params }) {
                                             </Button>
                                         </div>
                                     </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="pt-10 border-t border-slate-100 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Star className="w-5 h-5 text-amber-500" />
+                            <h2 className="text-lg font-black text-slate-900 tracking-tight">Kriteria Scorecard (Kuantitatif)</h2>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={addCriteria} className="h-9 rounded-xl border-amber-200 text-amber-600 font-bold text-[10px] uppercase tracking-widest hover:bg-amber-50 px-4">
+                            <Plus className="w-4 h-4 mr-1.5" /> Tambah Kriteria
+                        </Button>
+                    </div>
+
+                    {!template.scorecard_criteria || template.scorecard_criteria.length === 0 ? (
+                        <div className="bg-amber-50/50 border-2 border-dashed border-amber-100 rounded-[32px] p-10 text-center">
+                            <p className="text-[10px] text-amber-600/60 font-black uppercase tracking-widest leading-relaxed">
+                                Opsional: Tambahkan kriteria penilaian kuantitatif (1-5)<br/>untuk standarisasi skor kandidat di sidebar live.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {template.scorecard_criteria.map((c, idx) => (
+                                <div key={idx} className="p-5 bg-slate-50 border border-slate-100 rounded-3xl space-y-3 group relative">
+                                    <div className="flex items-center gap-3">
+                                        <Input
+                                            placeholder="Label (mis. Komunikasi)"
+                                            value={c.label}
+                                            onChange={e => updateCriteria(idx, 'label', e.target.value)}
+                                            className="h-10 rounded-xl border-none bg-white font-bold text-sm"
+                                        />
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => removeCriteria(idx)}
+                                            className="h-8 w-8 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg shrink-0"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                    <Input
+                                        placeholder="Deskripsi singkat kriteria..."
+                                        value={c.desc}
+                                        onChange={e => updateCriteria(idx, 'desc', e.target.value)}
+                                        className="h-9 rounded-xl border-none bg-white/50 text-[10px] font-medium"
+                                    />
                                 </div>
                             ))}
                         </div>

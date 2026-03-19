@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import Script from 'next/script'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,7 +30,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { MatrixQuestion } from '@/components/assessment/MatrixQuestion'
 import { GameTaskPlaceholder } from '@/components/assessment/GameTaskPlaceholder'
-import { logProctoringEvent, startAssignment } from '@/lib/actions/assessments'
+import { logProctoringEvent, startAssignment, uploadProctoringSnapshot } from '@/lib/actions/assessments'
+import { useProctoring } from '@/hooks/useProctoring'
 
 export default function AssessmentInterface({ assignment, test, questions, candidateName }) {
     const router = useRouter()
@@ -40,12 +42,27 @@ export default function AssessmentInterface({ assignment, test, questions, candi
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState('')
     const [agreed, setAgreed] = useState(false)
-    const [tabSwitches, setTabSwitches] = useState(0)
     const [personalLogs, setPersonalLogs] = useState([])
-    const [cameraActive, setCameraActive] = useState(false)
-    const [multiScreen, setMultiScreen] = useState(false)
+    const [tabSwitches, setTabSwitches] = useState(0)
     const timerRef = useRef(null)
-    const videoRef = useRef(null)
+
+    // Proctoring Hook
+    const { 
+        videoRef, 
+        canvasRef, 
+        cameraActive, 
+        multiScreen, 
+        faceApiLoaded, 
+        initializeFaceApi 
+    } = useProctoring({
+        assignmentId: assignment.id,
+        enabled: started && !submitting && test.proctoring_enabled,
+        onAnomaliesLogged: (type, msg) => {
+            const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            setPersonalLogs(prev => [{ time, message: msg }, ...prev].slice(0, 5))
+            if (type === 'tab_switch_blur') setTabSwitches(prev => prev + 1)
+        }
+    })
 
     // Clear interval on unmount
     useEffect(() => {
@@ -78,24 +95,92 @@ export default function AssessmentInterface({ assignment, test, questions, candi
         }
     }, [answers, currentIndex, started, assignment.id])
 
-    async function startTest() {
+    useEffect(() => {
+        // Initialize or retrieve Session ID
+        let sessionId = localStorage.getItem(`arvela_asgn_session_${assignment.id}`)
+        if (!sessionId) {
+            sessionId = crypto.randomUUID()
+            localStorage.setItem(`arvela_asgn_session_${assignment.id}`, sessionId)
+        }
+
+        // If assignment is already started on the server, we need to verify session ownership
+        if (assignment.status === 'started') {
+            verifySession(sessionId)
+        }
+    }, [assignment.id, assignment.status])
+
+    async function verifySession(sessionId) {
         setSubmitting(true)
         const browserMeta = {
             browser: navigator.userAgent,
             platform: navigator.platform,
             resolution: `${window.screen.width}x${window.screen.height}`,
-            uaShort: navigator.userAgent.substring(0, 50) + "..."
+            session_id: sessionId
+        }
+        
+        const res = await startAssignment(assignment.id, browserMeta)
+        setSubmitting(false)
+
+        if (res.error === 'SESSION_LOCKED') {
+            setError(res.message)
+            return
+        }
+        
+        // If success or resuming, it's our session
+        if (res.success || res.resuming) {
+            setStarted(true)
+            // Resume timer if needed (currently timer is local but we could sync with server)
+            if (assignment.started_at) {
+                const elapsed = Math.floor((new Date() - new Date(assignment.started_at)) / 1000)
+                setTimeLeft(Math.max(0, test.duration_minutes * 60 - elapsed))
+                
+                // Start timer
+                if (!timerRef.current) {
+                    timerRef.current = setInterval(() => {
+                        setTimeLeft(prev => {
+                            if (prev <= 1) {
+                                clearInterval(timerRef.current)
+                                autoSubmit()
+                                return 0
+                            }
+                            return prev - 1
+                        })
+                    }, 1000)
+                }
+            }
+        }
+    }
+
+    async function startTest() {
+        let sessionId = localStorage.getItem(`arvela_asgn_session_${assignment.id}`)
+        if (!sessionId) {
+            sessionId = crypto.randomUUID()
+            localStorage.setItem(`arvela_asgn_session_${assignment.id}`, sessionId)
+        }
+
+        setSubmitting(true)
+        const browserMeta = {
+            browser: navigator.userAgent,
+            platform: navigator.platform,
+            resolution: `${window.screen.width}x${window.screen.height}`,
+            uaShort: navigator.userAgent.substring(0, 50) + "...",
+            session_id: sessionId
         }
 
         const res = await startAssignment(assignment.id, browserMeta)
         setSubmitting(false)
 
         if (res.error) {
-            // Check if it's already started elsewhere
+            if (res.error === 'SESSION_LOCKED') {
+                setError(res.message)
+                return
+            }
             if (res.error.includes('duplicate') || res.error.includes('already started')) {
                 setError("Sesi tes ini sudah dimulai di perangkat lain. Untuk alasan keamanan, tes hanya dapat dibuka di satu browser.")
                 return
             }
+            setError(res.error)
+            return
         }
 
         setStarted(true)
@@ -112,140 +197,10 @@ export default function AssessmentInterface({ assignment, test, questions, candi
         }, 1000)
     }
 
-    // FEAT: Proctoring Tracker
-    useEffect(() => {
-        if (!started || submitting) return
-
-        const addPersonalLog = (msg) => {
-            const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-            setPersonalLogs(prev => [{ time, message: msg }, ...prev].slice(0, 5))
-        }
-
-        const handleBlur = () => {
-            setTabSwitches(prev => prev + 1)
-            const detail = 'Dideteksi berpindah tab atau meninggalkan jendela browser.'
-            addPersonalLog(detail)
-            logProctoringEvent({
-                assignment_id: assignment.id,
-                event_type: 'tab_switch_blur',
-                details: detail
-            })
-        }
-
-        const handleFocus = () => {
-            logProctoringEvent({
-                assignment_id: assignment.id,
-                event_type: 'tab_switch_focus',
-                details: 'Kandidat kembali ke jendela tes.'
-            })
-        }
-
-        const handleCopy = (e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            const detail = 'Mencoba menyalin teks (Copy - DIBLOKIR).'
-            addPersonalLog(detail)
-            logProctoringEvent({
-                assignment_id: assignment.id,
-                event_type: 'copy_attempt',
-                details: detail
-            })
-            alert('Fitur salin (Copy) dinonaktifkan untuk menjaga integritas tes.')
-        }
-
-        const handlePaste = (e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            const detail = 'Mencoba menempel teks (Paste - DIBLOKIR).'
-            addPersonalLog(detail)
-            logProctoringEvent({
-                assignment_id: assignment.id,
-                event_type: 'paste_attempt',
-                details: detail
-            })
-            alert('Fitur tempel (Paste) dinonaktifkan untuk menjaga integritas tes.')
-        }
-
-        const handleContextMenu = (e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            const detail = 'Mencoba klik kanan menu konteks (DIBLOKIR).'
-            addPersonalLog(detail)
-            logProctoringEvent({
-                assignment_id: assignment.id,
-                event_type: 'right_click',
-                details: detail
-            })
-        }
-
-        // Multi-screen detection
-        const checkScreens = () => {
-            if (window.screen.availWidth > window.innerWidth * 1.5 || (window.screen.width > 2500 && window.innerWidth < 1500)) {
-                 if (!multiScreen) {
-                    setMultiScreen(true)
-                    const detail = 'Terdeteksi penggunaan layar tambahan atau setup multi-monitor.'
-                    addPersonalLog(detail)
-                    logProctoringEvent({
-                        assignment_id: assignment.id,
-                        event_type: 'multi_screen_detected',
-                        details: detail
-                    })
-                 }
-            } else {
-                setMultiScreen(false)
-            }
-        }
-
-        window.addEventListener('resize', checkScreens)
-        checkScreens()
-
-        window.addEventListener('blur', handleBlur)
-        window.addEventListener('focus', handleFocus)
-        document.addEventListener('copy', handleCopy)
-        document.addEventListener('paste', handlePaste)
-        document.addEventListener('contextmenu', handleContextMenu)
-
-        return () => {
-            window.removeEventListener('blur', handleBlur)
-            window.removeEventListener('focus', handleFocus)
-            window.removeEventListener('resize', checkScreens)
-            document.removeEventListener('copy', handleCopy)
-            document.removeEventListener('paste', handlePaste)
-            document.removeEventListener('contextmenu', handleContextMenu)
-            if (videoRef.current?.srcObject) {
-                videoRef.current.srcObject.getTracks().forEach(track => track.stop())
-            }
-        }
-    }, [started, submitting, assignment.id, multiScreen])
-
-    // Camera initializer
-    useEffect(() => {
-        if (started && !submitting) {
-            async function enableCamera() {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-                    if (videoRef.current) {
-                        videoRef.current.srcObject = stream
-                        setCameraActive(true)
-                    }
-                } catch (err) {
-                    console.warn('Camera access denied or not available')
-                    logProctoringEvent({
-                        assignment_id: assignment.id,
-                        event_type: 'camera_unavailable',
-                        details: 'Gagal mengakses kamera atau akses ditolak kandidat.'
-                    })
-                }
-            }
-            enableCamera()
-        }
-    }, [started, assignment.id, submitting])
-
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600)
         const m = Math.floor((seconds % 3600) / 60)
         const s = seconds % 60
-        return `${h > 0 ? h + ':' : ''}${m < 10 && h > 0 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`
     }
 
     function handleOptionSelect(qId, option, type) {
@@ -405,9 +360,14 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                     </h3>
                     <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-3">
                         <ul className="text-[12px] text-slate-500 space-y-2">
-                            <li className="flex items-start gap-2 italic">1. Saya memahami bahwa tes ini diawasi secara otomatis oleh sistem **Arvela Integrity Proctoring**.</li>
-                            <li className="flex items-start gap-2 italic">2. Segala bentuk perpindahan tab, copy-paste, dan klik kanan akan dicatat sebagai pelanggaran integritas.</li>
-                            <li className="flex items-start gap-2 italic">3. Upaya kecurangan dapat mengakibatkan pembatalan otomatis pada proses rekrutmen saya.</li>
+                            <li className="flex items-start gap-2 italic">1. Saya akan mengerjakan tes ini secara mandiri tanpa bantuan AI, orang lain, atau sumber luar yang tidak diizinkan.</li>
+                            <li className="flex items-start gap-2 italic">2. Saya memahami bahwa pengerjaan tes ini memiliki batas waktu yang ketat.</li>
+                            {test.proctoring_enabled && (
+                                <>
+                                    <li className="flex items-start gap-2 italic">3. Saya memahami bahwa tes ini diawasi secara otomatis oleh sistem **Arvela Integrity Proctoring**.</li>
+                                    <li className="flex items-start gap-2 italic">4. Segala bentuk perpindahan tab, suara mencurigakan, dan kamera akan dicatat sebagai bukti.</li>
+                                </>
+                            )}
                         </ul>
                     </div>
                     
@@ -434,9 +394,19 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                     </ul>
                 </div>
 
+                {error && (
+                    <div className="bg-rose-50 border border-rose-200 text-rose-600 p-6 rounded-[32px] flex flex-col items-center gap-4 animate-shake text-center mb-8">
+                        <ShieldAlert className="w-12 h-12 text-rose-600" />
+                        <div className="space-y-1">
+                            <p className="font-black uppercase tracking-widest text-[10px]">Security Exception</p>
+                            <p className="text-sm font-bold leading-relaxed">{error}</p>
+                        </div>
+                    </div>
+                )}
+
                 <Button
                     onClick={startTest}
-                    disabled={!agreed || submitting}
+                    disabled={!agreed || submitting || !!error}
                     className="w-full h-14 rounded-2xl font-black text-lg bg-slate-950 text-white hover:bg-slate-900 shadow-xl shadow-slate-300 transform active:scale-95 transition-all group disabled:opacity-30 disabled:grayscale"
                 >
                     {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
@@ -467,7 +437,12 @@ export default function AssessmentInterface({ assignment, test, questions, candi
     const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0
 
     return (
-        <div className="max-w-4xl w-full flex flex-col lg:flex-row gap-8 items-start relative pb-20">
+        <div className="min-h-screen bg-[#FDFDFF] font-sans selection:bg-primary selection:text-white">
+            <Script 
+                src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js" 
+                onLoad={initializeFaceApi}
+            />
+            {/* Nav Header */}
             {/* Left Column: Question Side */}
             <div className="flex-1 w-full space-y-6">
 
@@ -528,7 +503,7 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                                                 isSelected ? "bg-white border-white text-primary" : "bg-slate-50 border-slate-200 text-slate-400 group-hover:border-primary group-hover:text-primary",
                                                 currentQ.type === 'multiple_select' ? "rounded-md" : "rounded-full"
                                             )}>
-                                                {isSelected && currentQ.type === 'multiple_select' ? <Check className="w-3.5 h-3.5" /> : String.fromCharCode(65 + i)}
+                                                {isSelected && currentQ.type === 'multiple_select' ? <Check className="w-3.5 h-3.5" /> : (currentQ.type === 'multiple_select' ? "" : String.fromCharCode(65 + i))}
                                             </div>
                                             <span className={`text-sm font-semibold transition-colors duration-200 ${isSelected ? 'text-white' : 'text-slate-700'
                                                 }`}>
@@ -706,52 +681,55 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                 </div>
 
                 {/* Candidate Multi-Proctor Panel */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-white space-y-5 overflow-hidden relative">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl -translate-y-12 translate-x-12" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                        <Activity className="w-3 h-3 text-primary" /> Integrity Monitor
-                    </h3>
+                {test.proctoring_enabled && (
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-white space-y-5 overflow-hidden relative">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl -translate-y-12 translate-x-12" />
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                            <Activity className="w-3 h-3 text-primary" /> Integrity Monitor
+                        </h3>
 
-                    {/* Camera Feed Preview */}
-                    <div className="relative aspect-video bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden group">
-                        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" />
-                        {!cameraActive && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-rose-500 bg-rose-500/10">
-                                <CameraOff className="w-8 h-8 mb-2" />
-                                <span className="text-[8px] font-bold uppercase tracking-widest text-center px-4">Kamera Tidak Aktif</span>
-                            </div>
-                        )}
-                        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10">
-                            <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", cameraActive ? "bg-emerald-500" : "bg-rose-500")} />
-                            <span className="text-[8px] font-bold uppercase tracking-widest">Live Feed</span>
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between text-[10px] font-bold">
-                            <span className="text-slate-400 capitalize flex items-center gap-1.5"><Monitor className="w-3 h-3" /> Multi-Screen</span>
-                            <span className={cn(multiScreen ? "text-rose-500" : "text-emerald-500")}>
-                                {multiScreen ? "Terdeteksi" : "Layar Tunggal"}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-slate-800">
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Sistem Log Real-time:</p>
-                        <div className="space-y-2">
-                            {personalLogs.length > 0 ? (
-                                personalLogs.map((log, i) => (
-                                    <div key={i} className="text-[9px] flex gap-2 leading-relaxed animate-in slide-in-from-right-2">
-                                        <span className="text-primary font-bold whitespace-nowrap opacity-60">[{log.time}]</span>
-                                        <span className="text-slate-400 font-medium">{log.message}</span>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-[9px] text-slate-600 italic">Belum ada aktivitas tercatat...</p>
+                        {/* Camera Feed Preview */}
+                        <div className="relative aspect-video bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden group">
+                            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" />
+                            <canvas ref={canvasRef} className="hidden" />
+                            {!cameraActive && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-rose-500 bg-rose-500/10">
+                                    <CameraOff className="w-8 h-8 mb-2" />
+                                    <span className="text-[8px] font-bold uppercase tracking-widest text-center px-4">Kamera Tidak Aktif</span>
+                                </div>
                             )}
+                            <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10">
+                                <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", cameraActive ? "bg-emerald-500" : "bg-rose-500")} />
+                                <span className="text-[8px] font-bold uppercase tracking-widest">Live AI Monitoring</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between text-[10px] font-bold">
+                                <span className="text-slate-400 capitalize flex items-center gap-1.5"><Monitor className="w-3 h-3" /> Multi-Screen</span>
+                                <span className={cn(multiScreen ? "text-rose-500" : "text-emerald-500")}>
+                                    {multiScreen ? "Terdeteksi" : "Layar Tunggal"}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-800">
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Sistem Log Real-time:</p>
+                            <div className="space-y-2">
+                                {personalLogs.length > 0 ? (
+                                    personalLogs.map((log, i) => (
+                                        <div key={i} className="text-[9px] flex gap-2 leading-relaxed animate-in slide-in-from-right-2">
+                                            <span className="text-primary font-bold whitespace-nowrap opacity-60">[{log.time}]</span>
+                                            <span className="text-slate-400 font-medium">{log.message}</span>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-[9px] text-slate-600 italic">Belum ada aktivitas tercatat...</p>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3">
                     <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />

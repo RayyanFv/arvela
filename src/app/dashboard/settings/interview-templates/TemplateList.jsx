@@ -55,7 +55,7 @@ export default function TemplateList({ initialTemplates }) {
                                 <ClipboardCheck className="w-7 h-7" />
                             </div>
                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Link href={`/dashboard/settings/interview-templates/${template.id}/edit`}>
+                                <Link href={`/dashboard/settings/interview-templates/${template.id}`}>
                                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100">
                                         <Edit2 className="w-4 h-4" />
                                     </Button>
@@ -79,7 +79,7 @@ export default function TemplateList({ initialTemplates }) {
                             </p>
                         </div>
 
-                        <Link href={`/dashboard/settings/interview-templates/${template.id}/edit`} className="block pt-2">
+                        <Link href={`/dashboard/settings/interview-templates/${template.id}`} className="block pt-2">
                             <Button className="w-full bg-slate-950 text-white rounded-2xl h-12 font-bold group-hover:bg-primary transition-all">
                                 Atur Pertanyaan <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                             </Button>

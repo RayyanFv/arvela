@@ -32,6 +32,7 @@ export default function AssessmentBasicForm({ initialData = null }) {
     const [showScore, setShowScore] = useState(initialData?.show_score || false)
     const [assessmentType, setAssessmentType] = useState(initialData?.assessment_type || 'custom')
     const [dimensionConfig, setDimensionConfig] = useState(initialData?.dimension_config || null)
+    const [proctoringEnabled, setProctoringEnabled] = useState(initialData?.proctoring_enabled || false)
 
     async function handleSubmit(e) {
         e.preventDefault()
@@ -45,7 +46,8 @@ export default function AssessmentBasicForm({ initialData = null }) {
                 duration_minutes: parseInt(duration),
                 show_score: showScore,
                 assessment_type: assessmentType,
-                dimension_config: dimensionConfig
+                dimension_config: dimensionConfig,
+                proctoring_enabled: proctoringEnabled
             })
 
             if (res.success) {
@@ -147,8 +149,23 @@ export default function AssessmentBasicForm({ initialData = null }) {
                             className="w-5 h-5 rounded-md"
                         />
                         <div className="space-y-1 leading-none">
-                            <Label htmlFor="showScore" className="text-sm font-bold text-slate-800 cursor-pointer">Umumkan Nilai ke Pelamar</Label>
-                            <p className="text-[10px] text-slate-500 font-medium">Jika aktif, pelamar dapat melihat skor mereka di dashboard portal.</p>
+                            <Label htmlFor="showScore" className="text-sm font-bold text-slate-800 cursor-pointer">Umumkan Nilai</Label>
+                            <p className="text-[10px] text-slate-500 font-medium">Peserta dapat melihat skor.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3 bg-primary/5 p-4 rounded-2xl border border-primary/10">
+                        <Checkbox
+                            id="proctoringEnabled"
+                            checked={proctoringEnabled}
+                            onCheckedChange={setProctoringEnabled}
+                            className="w-5 h-5 rounded-md border-primary/30"
+                        />
+                        <div className="space-y-1 leading-none">
+                            <Label htmlFor="proctoringEnabled" className="text-sm font-bold text-primary cursor-pointer flex items-center gap-1.5">
+                                AI Integrity Proctoring
+                            </Label>
+                            <p className="text-[10px] text-primary/60 font-medium leading-tight">Pantau tab-switch, suara, dan kamera secara otomatis.</p>
                         </div>
                     </div>
                 </div>

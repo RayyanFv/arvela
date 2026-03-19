@@ -2,12 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { assignAssessment, updateAssignmentScore } from '@/lib/actions/assessments'
+import Link from 'next/link'
+import { assignAssessment } from '@/lib/actions/assessments'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import {
     Select,
     SelectContent,
@@ -19,7 +16,6 @@ import {
     ClipboardCheck,
     Send,
     Loader2,
-    CheckCircle2,
     Clock,
     FileText,
     ExternalLink,
@@ -30,9 +26,6 @@ export default function CandidateAssessmentBox({ application, assessments = [], 
     const router = useRouter()
     const [selectedId, setSelectedId] = useState('')
     const [loading, setLoading] = useState(false)
-    const [reviewingId, setReviewingId] = useState(null)
-    const [points, setPoints] = useState(0)
-    const [notes, setNotes] = useState('')
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
@@ -49,24 +42,6 @@ export default function CandidateAssessmentBox({ application, assessments = [], 
                 application_id: application.id
             })
             setSelectedId('')
-            router.refresh()
-        } catch (error) {
-            alert(error.message)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    async function handleSubmitScore() {
-        if (!reviewingId) return
-        setLoading(true)
-        try {
-            await updateAssignmentScore({
-                assignment_id: reviewingId.id,
-                points: parseInt(points),
-                notes
-            })
-            setReviewingId(null)
             router.refresh()
         } catch (error) {
             alert(error.message)
@@ -102,27 +77,23 @@ export default function CandidateAssessmentBox({ application, assessments = [], 
                                             </span>
                                         )}
                                         {asgn.proctoring_logs?.length > 0 && (
-                                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-rose-50 border border-rose-100 text-rose-600 rounded text-[10px] font-black animate-pulse">
+                                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-rose-50 border border-rose-100 text-rose-600 rounded text-[10px] font-black">
                                                 <ShieldAlert className="w-2.5 h-2.5" />
                                                 PROCTORING ALERT ({asgn.proctoring_logs.length})
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                                <div className="text-[10px] text-slate-400 font-medium">
+                                <div className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
                                     {asgn.status === 'sent' && <Clock className="w-3 h-3 inline mr-1" />}
                                     {asgn.status === 'completed' && (
-                                        <button
-                                            onClick={() => {
-                                                setReviewingId(asgn)
-                                                setPoints(asgn.total_score || 0)
-                                                setNotes('')
-                                            }}
+                                        <Link
+                                            href={`/dashboard/assessments/results/${asgn.id}`}
                                             className="ml-2 bg-white border border-slate-200 px-3 py-1 rounded-lg text-[9px] font-bold text-slate-500 hover:text-primary hover:border-primary transition-all shadow-sm flex items-center gap-1.5"
                                         >
                                             <FileText className="w-2.5 h-2.5" />
                                             {asgn.total_score === null ? 'Detail & Review' : 'Hasil Assessment'}
-                                        </button>
+                                        </Link>
                                     )}
                                 </div>
                             </div>
@@ -179,189 +150,6 @@ export default function CandidateAssessmentBox({ application, assessments = [], 
             <p className="text-[10px] text-center text-slate-400 bg-slate-50 py-2 rounded-lg border border-dashed border-slate-200">
                 Pengerjaan akan otomatis terdeteksi skor & statusnya.
             </p>
-
-            {/* Review Modal Simple */}
-            {reviewingId && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5 transform animate-in slide-in-from-bottom-5 duration-400 flex flex-col max-h-[90vh]">
-                        <div className="flex items-center gap-3 shrink-0">
-                            <div className="w-10 h-10 bg-primary/5 rounded-xl flex items-center justify-center">
-                                <ClipboardCheck className="w-5 h-5 text-primary" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900">Review Hasil Assessment</h3>
-                                <p className="text-[11px] text-slate-500 font-medium tracking-tight">Tinjau jawaban kandidat & berikan skor final.</p>
-                            </div>
-                        </div>
-
-                        {/* Answers Review Area */}
-                        <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
-                              {(() => {
-                                const violations = (reviewingId?.proctoring_logs || []).filter(l => 
-                                    !['test_started', 'test_submitted', 'test_viewed'].includes(l.log_type)
-                                )
-                                if (violations.length === 0) return null
-
-                                return (
-                                <div className="bg-rose-50/50 border border-rose-200 rounded-2xl p-6 space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-xs font-black text-rose-600 uppercase tracking-widest flex items-center gap-2">
-                                            <ShieldAlert className="w-5 h-5" /> 
-                                            Proctoring Analysis & Integrity Report
-                                        </p>
-                                        <div className={cn(
-                                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border",
-                                            violations.length > 5 ? "bg-rose-600 text-white border-rose-700" : "bg-amber-100 text-amber-700 border-amber-200"
-                                        )}>
-                                            {violations.length > 5 ? "High Risk (Potential Fraud)" : "Medium Risk (Warning)"}
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <div className="bg-white p-3 rounded-xl border border-rose-100 text-center shadow-sm">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 leading-none tracking-tight">Tab Switches</p>
-                                            <p className="text-lg font-black text-slate-900 leading-none mt-1">{violations.filter(l => l.log_type.includes('tab_switch')).length}</p>
-                                        </div>
-                                        <div className="bg-white p-3 rounded-xl border border-rose-100 text-center shadow-sm">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 leading-none tracking-tight">Copy/Paste</p>
-                                            <p className="text-lg font-black text-slate-900 leading-none mt-1">{violations.filter(l => l.log_type.includes('copy') || l.log_type.includes('paste')).length}</p>
-                                        </div>
-                                        <div className="bg-white p-3 rounded-xl border border-rose-100 text-center shadow-sm">
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase mb-1 leading-none tracking-tight">Menu/Context</p>
-                                            <p className="text-lg font-black text-slate-900 leading-none mt-1">{violations.filter(l => l.log_type === 'right_click').length}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                                        {violations.map(log => (
-                                            <div key={log.id} className="flex justify-between items-center bg-white/70 p-2.5 rounded-xl border border-red-50/50 hover:border-red-100/50 transition-colors">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] font-black text-rose-500 uppercase tracking-tight leading-none mb-1">{log.log_type.replace(/_/g, ' ')}</span>
-                                                    <span className="text-[10px] text-slate-500 font-medium leading-tight">{log.details?.message || 'Aktivitas mencurigakan terdeteksi.'}</span>
-                                                </div>
-                                                <span className="text-[9px] text-slate-400 font-bold tabular-nums whitespace-nowrap ml-4">{new Date(log.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                )
-                             })()}
-
-                            {reviewingId?.answers?.length > 0 ? (
-                                    reviewingId.answers.map((ans, idx) => {
-                                        let displayAnswer = ans.answer_text
-                                        try {
-                                            const parsed = JSON.parse(ans.answer_text)
-                                            if (Array.isArray(parsed)) {
-                                                displayAnswer = parsed.join(', ')
-                                            } else if (typeof parsed === 'object') {
-                                                displayAnswer = Object.entries(parsed)
-                                                    .map(([k, v]) => `${k}: ${v}`)
-                                                    .join('\n')
-                                            }
-                                        } catch(e) {}
-
-                                        const isCorrect = ans.is_reviewed && ans.points_earned === ans.questions?.points
-
-                                        return (
-                                            <div key={ans.id} className="bg-slate-50/50 border border-slate-100 rounded-2xl p-5 space-y-4">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div>
-                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Soal {idx + 1} — {ans.questions?.type?.split('_').join(' ').toUpperCase()}</p>
-                                                        <p className="text-sm font-bold text-slate-800 leading-tight">{ans.questions?.prompt}</p>
-                                                    </div>
-                                                    <div className="flex flex-col items-end gap-1 shrink-0">
-                                                        <span className="text-[10px] font-extrabold px-2 py-1 bg-slate-200/50 text-slate-600 rounded-lg border border-slate-200/50">
-                                                            {ans.questions?.points} Poin
-                                                        </span>
-                                                        {ans.is_reviewed && (
-                                                            <span className={cn(
-                                                                "text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter",
-                                                                isCorrect ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
-                                                            )}>
-                                                                {isCorrect ? 'Correct' : 'Partial/Wrong'}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-white border border-slate-200/60 rounded-xl p-4 shadow-sm relative overflow-hidden group">
-                                                    <div className={cn(
-                                                        "absolute left-0 top-0 w-1.5 h-full opacity-50",
-                                                        isCorrect ? "bg-emerald-500" : "bg-primary"
-                                                    )} />
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 leading-none">Jawaban Kandidat:</p>
-                                                    <p className="text-sm font-extrabold text-slate-900 leading-relaxed font-mono whitespace-pre-wrap">{displayAnswer || '(Tidak ada jawaban)'}</p>
-
-                                                    {ans.questions?.correct_answer && (
-                                                        <div className="mt-4 pt-4 border-t border-slate-100">
-                                                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2 leading-none">Kunci Jawaban:</p>
-                                                            <p className="text-xs font-bold text-emerald-800 opacity-60">
-                                                                {Array.isArray(ans.questions.correct_answer) ? ans.questions.correct_answer.join(', ') : String(ans.questions.correct_answer)}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )
-                                    })
-                            ) : (
-                                <div className="py-10 text-center space-y-2">
-                                    <FileText className="w-10 h-10 text-slate-200 mx-auto" />
-                                    <p className="text-sm text-slate-400 font-medium">Beban jawaban tidak ditemukan.</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="pt-4 border-t border-slate-100 space-y-4 shrink-0">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Skor Akhir (0-100)</Label>
-                                    <Input
-                                        type="number"
-                                        value={points}
-                                        onChange={(e) => setPoints(e.target.value)}
-                                        className="h-11 rounded-2xl font-black text-lg focus:ring-primary/20"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Status Assessment</Label>
-                                    <div className="h-11 rounded-2xl bg-slate-50 border border-slate-200 flex items-center px-4">
-                                        <span className="text-sm font-bold text-green-600">Selesai (Completed)</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Catatan Reviewer</Label>
-                                <Textarea
-                                    placeholder="Opsional: Tambahkan alasan atau feedback..."
-                                    value={notes}
-                                    onChange={(e) => setNotes(e.target.value)}
-                                    className="h-20 rounded-2xl text-sm resize-none focus:ring-primary/20"
-                                />
-                            </div>
-
-                            <div className="flex gap-3 pt-2">
-                                <Button
-                                    variant="ghost"
-                                    className="flex-1 h-12 rounded-2xl font-bold text-slate-500 hover:bg-slate-100"
-                                    onClick={() => setReviewingId(null)}
-                                >
-                                    Tutup
-                                </Button>
-                                <Button
-                                    className="flex-[1.5] h-12 rounded-2xl font-bold gap-2 shadow-xl shadow-primary/20"
-                                    onClick={handleSubmitScore}
-                                    disabled={loading}
-                                >
-                                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Simpan Skor Final'}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }

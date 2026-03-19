@@ -9,6 +9,7 @@ import { formatDistanceToNow, format } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
 import StageUpdater from './StageUpdater'
 import CandidateAssessmentBox from './AssessmentBox'
+import CandidateInterviewBox from './InterviewBox'
 import RecruitmentDocManager from './RecruitmentDocManager'
 import HiringModal from './HiringModal'
 import { Button } from '@/components/ui/button'
@@ -118,6 +119,19 @@ export default async function CandidateDetailPage({ params }) {
         .select('*')
         .eq('application_id', id)
         .order('created_at', { ascending: false })
+
+    // FEAT: Interviews & Templates
+    const { data: interviews } = await supabase
+        .from('interviews')
+        .select('*')
+        .eq('application_id', id)
+        .order('scheduled_date', { ascending: true })
+
+    const { data: interviewTemplates } = await supabase
+        .from('interview_templates')
+        .select('*')
+        .eq('company_id', profile.company_id)
+        .order('title', { ascending: true })
 
     const sortedHistory = [...(app.stage_history || [])].sort(
         (a, b) => new Date(b.created_at) - new Date(a.created_at)
@@ -469,6 +483,12 @@ export default async function CandidateDetailPage({ params }) {
                             <RecruitmentDocManager applicationId={app.id} initialDocs={recDocs || []} />
                         </div>
                     )}
+
+                    <CandidateInterviewBox
+                        application={app}
+                        templates={interviewTemplates || []}
+                        interviews={interviews || []}
+                    />
 
                     <CandidateAssessmentBox
                         application={app}

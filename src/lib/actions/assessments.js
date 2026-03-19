@@ -9,16 +9,15 @@ import { sendEmail } from '@/lib/email/resend'
 /**
  * Log a proctoring event (candidate-facing)
  */
-export async function logProctoringEvent({ assignment_id, event_type, details }) {
+export async function logProctoringEvent({ assignment_id, event_type, details, screenshot_url = null }) {
     const supabase = createAdminSupabaseClient()
     
-    // In DB table it's log_type
     const { error } = await supabase
-        .from('proctoring_logs')
         .insert({
             assignment_id,
-            log_type: event_type, 
+            type: event_type, 
             details: typeof details === 'string' ? { message: details } : details,
+            screenshot_url,
             timestamp: new Date().toISOString()
         })
 
@@ -30,17 +29,64 @@ export async function logProctoringEvent({ assignment_id, event_type, details })
 }
 
 /**
+ * Upload proctoring screenshot to storage
+ */
+export async function uploadProctoringSnapshot(assignmentId, base64Data) {
+    const supabase = createAdminSupabaseClient()
+    
+    // Clean base64
+    const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, '')
+    const buffer = Buffer.from(base64Content, 'base64')
+    
+    const fileName = `${assignmentId}/${Date.now()}.jpg`
+    const { data: uploadData, error: uploadErr } = await supabase
+        .storage
+        .from('proctoring-captures')
+        .upload(fileName, buffer, {
+            contentType: 'image/jpeg',
+            upsert: true
+        })
+
+    if (uploadErr) throw uploadErr
+
+    const { data: publicUrl } = supabase
+        .storage
+        .from('proctoring-captures')
+        .getPublicUrl(fileName)
+
+    return publicUrl.publicUrl
+}
+
+/**
  * Mark assignment as started and record session info
  */
 export async function startAssignment(id, metadata = {}) {
     const supabase = createAdminSupabaseClient()
     
+    // Check current status
+    const { data: current } = await supabase
+        .from('assessment_assignments')
+        .select('status, metadata')
+        .eq('id', id)
+        .single()
+
+    if (!current) return { error: 'ASSIGNMENT_NOT_FOUND' }
+
+    // If already started, we allow resuming ONLY if the session_id matches
+    if (current.status === 'started' || current.status === 'completed') {
+        const currentSession = current.metadata?.session_id
+        if (currentSession && currentSession !== metadata.session_id) {
+            return { error: 'SESSION_LOCKED', message: "Maaf, akses ditolak. Assessment ini sudah dimulai di perangkat/browser lain. Satu link hanya bisa digunakan oleh satu sesi pengerjaan demi keamanan." }
+        }
+        return { success: true, resuming: true }
+    }
+
     const { data, error } = await supabase
         .from('assessment_assignments')
         .update({ 
             status: 'started',
             started_at: new Date().toISOString(),
-            metadata: metadata // Store browser info etc
+            metadata: metadata 
         })
         .eq('id', id)
         .eq('status', 'sent')
@@ -55,7 +101,8 @@ export async function startAssignment(id, metadata = {}) {
         details: {
             message: 'Kandidat memulai pengerjaan tes.',
             browser: metadata.browser,
-            platform: metadata.platform
+            platform: metadata.platform,
+            session_id: metadata.session_id
         }
     })
 
@@ -92,6 +139,7 @@ export async function saveAssessment(payload) {
         show_score: payload.show_score,
         assessment_type: payload.assessment_type || 'custom',
         dimension_config: payload.dimension_config || null,
+        proctoring_enabled: payload.proctoring_enabled || false,
         company_id: profile.company_id
     }
 
@@ -348,4 +396,32 @@ export async function updateAssignmentScore({ assignment_id, points, notes }) {
 
     revalidatePath(`/dashboard/assessments`)
     return { success: true }
+}
+
+/**
+ * Fetch a single assignment result with full details
+ */
+export async function getAssignmentResult(id) {
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+
+    const { data: assignment, error } = await admin
+        .from('assessment_assignments')
+        .select(`
+            *,
+            assessments (*, questions (*)),
+            applications (id, full_name, email, job_id, jobs (title)),
+            answers (*, questions (*)),
+            proctoring_logs (*)
+        `)
+        .eq('id', id)
+        .single()
+
+    if (error) throw new Error(error.message)
+    
+    // Safety check company
+    if (assignment.assessments.company_id !== profile.company_id) {
+        throw new Error('Access denied')
+    }
+
+    return assignment
 }

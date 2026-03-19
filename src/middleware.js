@@ -62,17 +62,6 @@ export async function middleware(request) {
             url.pathname = isEmployee ? '/staff' : '/portal'
             return NextResponse.redirect(url)
         }
-
-        // Sub-route granular protection
-        // Super Admin can ONLY access dashboard home and settings
-        if (role === 'super_admin') {
-            const allowedForSuperAdmin = ['/dashboard', '/dashboard/settings']
-            const isAllowed = allowedForSuperAdmin.some(p => path === p || path.startsWith(p + '/'))
-            if (!isAllowed) {
-                url.pathname = '/dashboard'
-                return NextResponse.redirect(url)
-            }
-        }
     }
 
     // 2. Staff Access Control

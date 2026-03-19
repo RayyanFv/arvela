@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ArrowLeft, CalendarDays, Clock, Video, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
-import { scheduleInterview } from '@/lib/actions/interviews'
+import { scheduleInterview, getInterviewTemplates } from '@/lib/actions/interviews'
+import { cn } from '@/lib/utils'
 
 export default function NewInterviewFormClient({ candidates, dbError, upcoming }) {
     const router = useRouter()
@@ -20,9 +21,23 @@ export default function NewInterviewFormClient({ candidates, dbError, upcoming }
         date: '',
         time: '',
         duration: '60',
-        format: 'online',
-        link: 'https://meet.google.com/xyz-abcd-efg'
+        format: 'online_internal',
+        link: '',
+        template_id: ''
     })
+    const [templates, setTemplates] = useState([])
+
+    useEffect(() => {
+        async function loadTemplates() {
+            try {
+                const data = await getInterviewTemplates()
+                setTemplates(data || [])
+            } catch (err) {
+                console.error('Failed to load templates:', err)
+            }
+        }
+        loadTemplates()
+    }, [])
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -106,15 +121,59 @@ export default function NewInterviewFormClient({ candidates, dbError, upcoming }
                             </div>
                         </div>
 
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {[
+                                { id: 'online_internal', label: 'Arvela Video (Jitsi)', desc: 'Built-in (Tidak perlu link)' },
+                                { id: 'online_external', label: 'Online (External)', desc: 'Zoom, Google Meet, dsb.' },
+                                { id: 'offline', label: 'Offline', desc: 'Tatap Muka' },
+                            ].map((opt) => (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, format: opt.id })}
+                                    className={cn(
+                                        "flex flex-col p-4 rounded-2xl border-2 text-left transition-all",
+                                        formData.format === opt.id 
+                                            ? "border-primary bg-primary/5 shadow-md shadow-primary/5" 
+                                            : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                                    )}
+                                >
+                                    <span className={cn("text-sm font-black mb-1", formData.format === opt.id ? "text-primary" : "text-slate-900")}>{opt.label}</span>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{opt.desc}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        {formData.format !== 'online_internal' && (
+                            <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                                <label className="text-sm font-black text-slate-900 flex items-center gap-2">
+                                    <Video className="w-4 h-4 text-slate-400" /> 
+                                    {formData.format === 'offline' ? 'Lokasi Kantor / Tempat Pertemuan' : 'Link Meeting (URL)'}
+                                </label>
+                                <Input
+                                    type="text"
+                                    className="h-12 rounded-xl bg-slate-50 border-slate-200"
+                                    placeholder={formData.format === 'offline' ? "Alamat lengkap kantor..." : "https://meet.google.com/..."}
+                                    value={formData.link}
+                                    onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                                />
+                            </div>
+                        )}
+
                         <div className="space-y-2">
-                            <label className="text-sm font-black text-slate-900 flex items-center gap-2"><Video className="w-4 h-4 text-slate-400" /> Link Pertemuan (Google Meet / Zoom)</label>
-                            <Input
-                                type="text"
-                                className="h-12 rounded-xl bg-slate-50 border-slate-200"
-                                placeholder="https://... atau masukkan alamat pertemuan offline"
-                                value={formData.link}
-                                onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                            />
+                            <label className="text-sm font-black text-slate-900 flex items-center gap-2">
+                                <Video className="w-4 h-4 text-slate-400" /> Pilih Template Pertanyaan
+                            </label>
+                            <select
+                                className="flex h-12 w-full items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-slate-50 cursor-pointer"
+                                value={formData.template_id}
+                                onChange={(e) => setFormData({ ...formData, template_id: e.target.value })}
+                            >
+                                <option value="">-- Tanpa Template (Kosong) --</option>
+                                {templates.map(t => (
+                                    <option key={t.id} value={t.id}>{t.title}</option>
+                                ))}
+                            </select>
                         </div>
 
                         <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
@@ -161,7 +220,7 @@ export default function NewInterviewFormClient({ candidates, dbError, upcoming }
                             ) : (
                                 upcoming.map((interview) => (
                                     <div key={interview.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors">
-                                        <h4 className="font-bold text-sm mb-1">{interview.applications?.full_name}</h4>
+                                        <h4 className="font-bold text-sm mb-1 text-white">{interview.applications?.full_name}</h4>
                                         <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
                                             <span className="flex items-center gap-1">
                                                 <CalendarDays className="w-3.5 h-3.5" />

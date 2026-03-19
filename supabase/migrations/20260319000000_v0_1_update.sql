@@ -12,6 +12,7 @@ ALTER TABLE public.applications ADD COLUMN IF NOT EXISTS screening_answers jsonb
 ALTER TABLE public.interviews ADD COLUMN IF NOT EXISTS jitsi_room_id text;
 ALTER TABLE public.interviews ADD COLUMN IF NOT EXISTS ai_review_result text;
 ALTER TABLE public.interviews ADD COLUMN IF NOT EXISTS recording_url text;
+ALTER TABLE public.interviews ADD COLUMN IF NOT EXISTS session_questions jsonb DEFAULT '[]'::jsonb;
 
 -- Proctoring
 CREATE TABLE IF NOT EXISTS public.proctoring_logs (
