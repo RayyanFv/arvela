@@ -60,6 +60,9 @@ export async function uploadProctoringSnapshot(assignmentId, base64Data) {
 /**
  * Mark assignment as started and record session info
  */
+export async function startAssignment(id, metadata = {}) {
+    const supabase = createAdminSupabaseClient()
+    
     // Check current status - be very robust by checking ID OR Token
     const queryId = id || metadata?.token
     const { data: current, error: fetchError } = await supabase
