@@ -19,15 +19,26 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { SearchInput } from '@/components/ui/SearchInput'
 
 export const metadata = { title: 'Daftar Interview — Arvela HR' }
 
-export default async function InterviewsPage() {
+export default async function InterviewsPage({ searchParams }) {
+    const params = await searchParams
+    const searchParam = params?.q?.toLowerCase() || ''
+
     let interviews = []
     try {
         interviews = await getAllInterviews()
     } catch (err) {
         console.error(err)
+    }
+
+    if (searchParam) {
+        interviews = interviews.filter(i => 
+            i.applications?.full_name?.toLowerCase().includes(searchParam) || 
+            i.applications?.jobs?.title?.toLowerCase().includes(searchParam)
+        )
     }
 
     const scheduled = interviews.filter(i => i.status === 'scheduled')
@@ -51,13 +62,11 @@ export default async function InterviewsPage() {
                             <Plus className="w-4 h-4" /> Tambah Interview
                         </Button>
                     </Link>
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl flex items-center px-4 h-12 group focus-within:ring-4 focus-within:ring-primary/10 transition-all">
-                        <Search className="w-4 h-4 text-slate-400 mr-3" />
-                        <input 
-                            placeholder="Cari kandidat..." 
-                            className="bg-transparent border-none outline-none text-sm font-bold w-48"
-                        />
-                    </div>
+                    <SearchInput 
+                        placeholder="Cari kandidat..." 
+                        className="w-48"
+                        inputClassName="bg-transparent border-slate-200"
+                    />
                     <Button variant="outline" className="h-12 rounded-2xl border-slate-200 font-bold gap-2 px-6">
                         <Filter className="w-4 h-4" /> Filter
                     </Button>

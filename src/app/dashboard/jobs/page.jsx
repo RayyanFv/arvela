@@ -2,6 +2,7 @@ import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/sup
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { FilterTabs } from '@/components/ui/FilterTabs'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Plus, Briefcase, MapPin, Clock, AlertCircle, ExternalLink } from 'lucide-react'
@@ -111,24 +112,17 @@ export default async function JobsPage({ searchParams }) {
             />
 
             {/* Filter Tabs */}
-            <div className="flex gap-1 mb-6 bg-secondary rounded-xl p-1 w-fit">
-                {[
-                    { key: 'all', label: `Semua (${counts.all})` },
-                    { key: 'published', label: `Aktif (${counts.published})` },
-                    { key: 'draft', label: `Draft (${counts.draft})` },
-                    { key: 'closed', label: `Tutup (${counts.closed})` },
-                ].map(tab => (
-                    <Link
-                        key={tab.key}
-                        href={`/dashboard/jobs${tab.key !== 'all' ? `?status=${tab.key}` : ''}`}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterStatus === tab.key
-                            ? 'bg-white text-foreground shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                    >
-                        {tab.label}
-                    </Link>
-                ))}
+            <div className="mb-6 w-fit">
+                <FilterTabs
+                    paramName="status"
+                    currentTab={filterStatus}
+                    tabs={[
+                        { key: 'all', label: `Semua (${counts.all})` },
+                        { key: 'published', label: `Aktif (${counts.published})` },
+                        { key: 'draft', label: `Draft (${counts.draft})` },
+                        { key: 'closed', label: `Tutup (${counts.closed})` },
+                    ]}
+                />
             </div>
 
             {/* Jobs List */}

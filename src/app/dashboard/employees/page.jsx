@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { SearchInput } from '@/components/ui/SearchInput'
 
 export const metadata = { title: 'Data Karyawan — Arvela HR' }
 
@@ -71,17 +72,24 @@ export default async function EmployeesPage({ searchParams }) {
                     title="Data Karyawan"
                     description="Kelola seluruh tim, onboarding, dan performa mereka."
                 />
-                <div className="flex items-center gap-3 pt-2">
-                    <Button variant="outline" className="h-11 rounded-xl border-slate-200 text-slate-600 font-bold gap-2">
-                        <Filter className="w-4 h-4" /> Filter
-                    </Button>
-                    <Link href="/dashboard/settings/users">
-                        <Button
-                            className="h-11 rounded-xl bg-primary text-white font-black hover:bg-brand-600 gap-2 shadow-lg shadow-primary/20"
-                        >
-                            <Plus className="w-4 h-4" /> Tambah Karyawan
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
+                    <SearchInput 
+                        placeholder="Cari nama atau email..." 
+                        defaultValue={search}
+                        className="w-full sm:w-56"
+                    />
+                    <div className="flex items-center gap-3">
+                        <Button variant="outline" className="h-11 rounded-xl border-slate-200 text-slate-600 font-bold gap-2">
+                            <Filter className="w-4 h-4" /> Filter
                         </Button>
-                    </Link>
+                        <Link href="/dashboard/settings/users">
+                            <Button
+                                className="h-11 rounded-xl bg-primary text-white font-black hover:bg-brand-600 gap-2 shadow-lg shadow-primary/20"
+                            >
+                                <Plus className="w-4 h-4" /> Tambah Karyawan
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
             </div>
 

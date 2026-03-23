@@ -5,6 +5,8 @@ import { StageBadge } from '@/components/candidates/StageBadge'
 import { STAGE_CONFIG, STAGE_ORDER } from '@/lib/constants/stages'
 import Link from 'next/link'
 import { Users, Briefcase, Mail, Phone, Clock, Download } from 'lucide-react'
+import { SearchInput } from '@/components/ui/SearchInput'
+import { FilterTabs } from '@/components/ui/FilterTabs'
 import { formatDistanceToNow } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
 
@@ -61,32 +63,22 @@ export default async function CandidatesPage({ searchParams }) {
             <div className="flex flex-wrap gap-3 mb-6">
                 {/* Search */}
                 <div className="relative">
-                    <input
-                        type="text"
+                    <SearchInput
                         placeholder="Cari nama atau email..."
                         defaultValue={search}
-                        className="h-9 pl-3 pr-3 rounded-lg border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 w-56"
+                        className="w-full sm:w-56"
                     />
                 </div>
 
                 {/* Stage filter */}
-                <div className="flex gap-1 bg-secondary rounded-xl p-1">
-                    {[
+                <FilterTabs
+                    paramName="stage"
+                    currentTab={filterStage}
+                    tabs={[
                         { key: 'all', label: 'Semua' },
                         ...STAGE_ORDER.map(s => ({ key: s, label: STAGE_CONFIG[s].label }))
-                    ].slice(0, 5).map(tab => (
-                        <Link
-                            key={tab.key}
-                            href={`/dashboard/candidates?${new URLSearchParams({ ...params, stage: tab.key }).toString()}`}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${filterStage === tab.key
-                                ? 'bg-white text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                        >
-                            {tab.label}
-                        </Link>
-                    ))}
-                </div>
+                    ].slice(0, 7)}
+                />
             </div>
 
             {/* Total */}
