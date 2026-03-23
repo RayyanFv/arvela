@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useProfile } from '@/hooks/use-profile'
 import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -149,8 +150,8 @@ export default function AdminOvertimePage() {
         setSubmitting(false)
     }
 
-    // Filter & search
-    const filtered = requests.filter(r => {
+    // ── useMemo: filtered list — tidak recompute kecuali deps berubah ─────────
+    const filtered = useMemo(() => requests.filter(r => {
         if (filterStatus !== 'all' && r.status !== filterStatus) return false
         if (searchQuery) {
             const q = searchQuery.toLowerCase()
@@ -159,21 +160,17 @@ export default function AdminOvertimePage() {
             return empName.includes(q) || dept.includes(q) || r.reason?.toLowerCase().includes(q)
         }
         return true
-    })
+    }), [requests, filterStatus, searchQuery])
 
-    // Stats
-    const stats = {
+    // ── useMemo: stats — tidak recompute setiap render ────────────────────────
+    const stats = useMemo(() => ({
         total: requests.length,
         pending: requests.filter(r => r.status === 'pending').length,
         approved: requests.filter(r => r.status === 'approved').length,
-        totalHours: requests.filter(r => r.status === 'approved').reduce((s, r) => s + (parseFloat(r.total_hours) || 0), 0),
-    }
-
-    if (loading) return (
-        <div className="flex items-center justify-center min-h-[60vh]">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        </div>
-    )
+        totalHours: requests
+            .filter(r => r.status === 'approved')
+            .reduce((s, r) => s + (parseFloat(r.total_hours) || 0), 0),
+    }), [requests])
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -325,7 +322,19 @@ export default function AdminOvertimePage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.length === 0 ? (
+                            {/* ── Skeleton rows saat loading — konten langsung terlihat ── */}
+                            {loading ? (
+                                [...Array(5)].map((_, i) => (
+                                    <tr key={i} className="border-b border-slate-50">
+                                        {[...Array(7)].map((_, j) => (
+                                            <td key={j} className="px-5 py-4">
+                                                <Skeleton className={`h-4 ${j === 0 ? 'w-32' : j === 4 ? 'w-28' : 'w-16'}`} />
+                                                {j === 0 && <Skeleton className="h-3 w-24 mt-1.5" />}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))
+                            ) : filtered.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="text-center py-16">
                                         <Timer className="w-10 h-10 text-slate-200 mx-auto mb-3" />

@@ -1,13 +1,16 @@
 'use client'
 
 // ──────────────────────────────────────────────────
-// MODULE  : Dashboard Overview (Mod 0) — Enhanced
-// FILE    : app/dashboard/page.jsx
-// TABLES  : profiles, companies, jobs, applications, employees, okrs, lms_courses, overtime_requests
-// ACCESS  : PROTECTED — hr, super_admin
+// MODULE  : Dashboard Overview — HR Admin
+// FILE    : app/dashboard/components/HRAdminDashboard.jsx
+// OPTIMIZATIONS:
+//   ✅ Solusi 1 — Profile diterima sebagai prop (no double fetch)
+//   ✅ Solusi 3 — Single RPC call ganti 7 query terpisah
+//   ✅ Solusi 5 — useMemo untuk semua derived data
+//   ✅ Solusi 6 — Single consolidated state object
 // ──────────────────────────────────────────────────
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
     Users, Briefcase, Trophy, TrendingUp,
@@ -54,153 +57,133 @@ const DONUT_COLORS = {
     applied: '#cbd5e1',
 }
 
-// ─── Chart Configs ────────────────────────────────────────────────────────────
 const weeklyChartConfig = {
     value: { label: 'Pelamar', color: 'hsl(var(--primary))' },
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-export function HRAdminDashboard() {
+// ── Hari dalam bahasa Indonesia sesuai urutan generate_series DB ──────────────
+const ID_WEEKDAY = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
+
+// ─── Solusi 6: Single consolidated state, bukan 12 useState terpisah ──────────
+const INITIAL_STATE = {
+    activeJobs: [],
+    recentApps: [],
+    stageCounts: {},
+    weeklyApps: [],
+    jobApplicantCounts: {},
+    totalApplicants: 0,
+    totalHired: 0,
+    totalEmployees: 0,
+    okrStats: { total: 0, avgProgress: 0 },
+    lmsStats: { courses: 0, published: 0 },
+    attendanceStats: { present: 0, early_leave: 0, leave: 0, sick: 0, absent: 0, holiday_present: 0 },
+    overtimeStats: { pending: 0, approved: 0, totalHours: 0 },
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+// ── Solusi 1: Terima profile + user dari parent (page.jsx) — no double fetch ──
+export function HRAdminDashboard({ profile, user }) {
     const supabase = createClient()
     const [loading, setLoading] = useState(true)
-    const [profile, setProfile] = useState(null)
-    const [stats, setStats] = useState({ totalJobs: 0, totalApplicants: 0, totalEmployees: 0, totalHired: 0 })
-    const [recentApps, setRecentApps] = useState([])
-    const [activeJobs, setActiveJobs] = useState([])
-    const [stageCounts, setStageCounts] = useState({})
-    const [weeklyApps, setWeeklyApps] = useState([])
-    const [okrStats, setOkrStats] = useState({ total: 0, avgProgress: 0 })
-    const [lmsStats, setLmsStats] = useState({ courses: 0, published: 0 })
-    const [jobApplicantCounts, setJobApplicantCounts] = useState({})
-    const [attendanceStats, setAttendanceStats] = useState({ present: 0, early_leave: 0, leave: 0, sick: 0, absent: 0, holiday_present: 0 })
-    const [overtimeStats, setOvertimeStats] = useState({ pending: 0, approved: 0, totalHours: 0 })
+
+    // ── Solusi 6: Satu state object, bukan 12 ────────────────────────────────
+    const [data, setData] = useState(INITIAL_STATE)
 
     useEffect(() => {
         async function load() {
-            const { data: { user } } = await supabase.auth.getUser()
-            const { data: prof, error: profErr } = await supabase
-                .from('profiles').select('*, companies(name)').eq('id', user.id).single()
-            
-            if (prof && !profErr) {
-                setProfile(prof)
-            } else {
-                setProfile({
-                    id: user.id,
-                    full_name: user.user_metadata?.full_name || 'HR',
-                    role: user.user_metadata?.role || 'hr_admin',
-                    company_id: user.user_metadata?.company_id || null,
-                    companies: { name: user.user_metadata?.company_name || 'Perusahaan' },
-                })
-            }
-
-            const cid = prof?.company_id || user.user_metadata?.company_id
+            // ── Solusi 1: company_id langsung dari prop, tidak perlu re-fetch ──
+            const cid = profile?.company_id || user?.user_metadata?.company_id
             if (!cid) { setLoading(false); return }
 
-            const [jobsRes, appsRes, empRes, okrsRes, coursesRes, attRes, otRes] = await Promise.all([
-                supabase.from('jobs')
-                    .select('id, title, work_type, location')
-                    .eq('company_id', cid).eq('status', 'published')
-                    .order('created_at', { ascending: false }),
-                supabase.from('applications')
-                    .select('id, job_id, stage, created_at, full_name, jobs(id, title)')
-                    .eq('company_id', cid)
-                    .order('created_at', { ascending: false }),
-                supabase.from('employees')
-                    .select('id', { count: 'exact', head: true }).eq('company_id', cid),
-                supabase.from('okrs')
-                    .select('id, total_progress')
-                    .eq('company_id', cid),
-                supabase.from('lms_courses')
-                    .select('id, status').eq('company_id', cid),
-                supabase.from('attendances')
-                    .select('status')
-                    .eq('company_id', cid)
-                    .eq('date', new Date().toLocaleDateString('en-CA')),
-                supabase.from('overtime_requests')
-                    .select('status, total_hours')
-                    .eq('company_id', cid),
-            ])
+            // ── Solusi 3: Single RPC call ganti 7 query + semua client loops ──
+            const { data: stats, error } = await supabase.rpc(
+                'get_hr_dashboard_stats',
+                { p_company_id: cid }
+            )
 
-            const jobs = jobsRes.data || []
-            const allApps = appsRes.data || []
+            if (error || !stats) {
+                console.error('Dashboard RPC error:', error)
+                setLoading(false)
+                return
+            }
 
-            setStats({
-                totalJobs: jobs.length,
-                totalApplicants: allApps.length,
-                totalEmployees: empRes.count || 0,
-                totalHired: allApps.filter(a => a.stage === 'hired').length,
-            })
-            setRecentApps(allApps.slice(0, 6))
+            // Parse attendance (RPC returns object keyed by status)
+            const att = stats.attendance_today || {}
+            const attendanceStats = {
+                present:         att.present         || 0,
+                early_leave:     att.early_leave     || 0,
+                holiday_present: att.holiday_present || 0,
+                leave:           att.leave           || 0,
+                sick:            att.sick            || 0,
+                absent:          att.absent          || 0,
+            }
 
-            // Stage counts
-            const stageMap = {}
-            STAGES.forEach(s => { stageMap[s.key] = 0 })
-            allApps.forEach(a => { if (stageMap[a.stage] !== undefined) stageMap[a.stage]++ })
-            setStageCounts(stageMap)
+            // Parse weekly apps (DB returns [{date, count}], map to chart format)
+            const weeklyApps = (stats.weekly_apps || []).map(w => ({
+                label: ID_WEEKDAY[new Date(w.date).getDay()],
+                value: w.count || 0,
+            }))
 
-            // Applicants per job
-            const jobCounts = {}
-            jobs.forEach(j => { jobCounts[j.id] = 0 })
-            allApps.forEach(a => {
-                const jid = a.jobs?.id || a.job_id
-                if (jid) jobCounts[jid] = (jobCounts[jid] || 0) + 1
-            })
-            setJobApplicantCounts(jobCounts)
-            setActiveJobs(jobs.slice(0, 5))
-
-            // Weekly (last 7 days)
-            const now = new Date()
-            const weekly = Array.from({ length: 7 }, (_, i) => {
-                const d = new Date(now)
-                d.setDate(d.getDate() - (6 - i))
-                return {
-                    label: d.toLocaleDateString('id-ID', { weekday: 'short' }),
-                    value: allApps.filter(a => new Date(a.created_at).toDateString() === d.toDateString()).length
-                }
-            })
-            setWeeklyApps(weekly)
-
-            // OKR (already filtered by company_id in query)
-            const companyOkrs = okrsRes.data || []
-            const avgProgress = companyOkrs.length
-                ? Math.round(companyOkrs.reduce((a, o) => a + (o.total_progress || 0), 0) / companyOkrs.length) : 0
-            setOkrStats({ total: companyOkrs.length, avgProgress })
-
-            // LMS
-            const courses = coursesRes.data || []
-            setLmsStats({ courses: courses.length, published: courses.filter(c => c.status === 'published').length })
-
-            // Attendance
-            const atts = attRes.data || []
-            const attMap = { present: 0, early_leave: 0, leave: 0, sick: 0, absent: 0, holiday_present: 0 }
-            atts.forEach(a => { if (attMap[a.status] !== undefined) attMap[a.status]++ })
-            setAttendanceStats(attMap)
-
-            // Overtime
-            const otData = otRes.data || []
-            setOvertimeStats({
-                pending: otData.filter(o => o.status === 'pending').length,
-                approved: otData.filter(o => o.status === 'approved').length,
-                totalHours: otData.filter(o => o.status === 'approved').reduce((s, o) => s + (parseFloat(o.total_hours) || 0), 0),
+            // ── Solusi 6: Single setState — 1 re-render, bukan 10+ ───────────
+            setData({
+                activeJobs:         (stats.active_jobs || []).slice(0, 5),
+                recentApps:         stats.recent_apps  || [],
+                stageCounts:        stats.stage_counts || {},
+                weeklyApps,
+                jobApplicantCounts: stats.job_applicant_counts || {},
+                totalApplicants:    stats.total_applicants  || 0,
+                totalHired:         stats.total_hired        || 0,
+                totalEmployees:     stats.total_employees    || 0,
+                okrStats: {
+                    total:       stats.okr_stats?.total       || 0,
+                    avgProgress: stats.okr_stats?.avg_progress || 0,
+                },
+                lmsStats: {
+                    courses:   stats.lms_stats?.courses   || 0,
+                    published: stats.lms_stats?.published  || 0,
+                },
+                attendanceStats,
+                overtimeStats: {
+                    pending:    stats.overtime_stats?.pending     || 0,
+                    approved:   stats.overtime_stats?.approved    || 0,
+                    totalHours: stats.overtime_stats?.total_hours || 0,
+                },
             })
 
             setLoading(false)
         }
         load()
-    }, [])
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Derived
-    const totalWeekly = weeklyApps.reduce((a, d) => a + d.value, 0)
-    const funnelMax = Math.max(...STAGES.map(s => stageCounts[s.key] ?? 0), 1)
+    // ── Solusi 5: useMemo — tidak recompute setiap render ────────────────────
+    const totalWeekly = useMemo(
+        () => data.weeklyApps.reduce((a, d) => a + d.value, 0),
+        [data.weeklyApps]
+    )
 
-    const donutData = [
-        { name: 'Hired', value: stageCounts.hired || 0, color: DONUT_COLORS.hired },
-        { name: 'Interview / Offer', value: (stageCounts.interview || 0) + (stageCounts.offered || 0), color: DONUT_COLORS.active },
-        { name: 'Proses', value: (stageCounts.screening || 0) + (stageCounts.assessment || 0), color: DONUT_COLORS.process },
-        { name: 'Applied', value: stageCounts.applied || 0, color: DONUT_COLORS.applied },
-    ]
+    const funnelMax = useMemo(
+        () => Math.max(...STAGES.map(s => data.stageCounts[s.key] ?? 0), 1),
+        [data.stageCounts]
+    )
 
-    const dateStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    const donutData = useMemo(() => [
+        { name: 'Hired',             value: data.stageCounts.hired || 0,                                           color: DONUT_COLORS.hired   },
+        { name: 'Interview / Offer', value: (data.stageCounts.interview || 0) + (data.stageCounts.offered || 0),   color: DONUT_COLORS.active  },
+        { name: 'Proses',            value: (data.stageCounts.screening || 0) + (data.stageCounts.assessment || 0), color: DONUT_COLORS.process },
+        { name: 'Applied',           value: data.stageCounts.applied || 0,                                          color: DONUT_COLORS.applied },
+    ], [data.stageCounts])
+
+    const statCards = useMemo(() => [
+        { label: 'Lowongan Aktif',  value: data.activeJobs.length,    icon: Briefcase,    color: 'text-blue-500',    bg: 'bg-blue-50',    href: '/dashboard/jobs',       tooltip: 'Jumlah lowongan pekerjaan yang masih terbuka dan sedang menerima pelamar.' },
+        { label: 'Total Pelamar',   value: data.totalApplicants,       icon: Users,        color: 'text-primary',     bg: 'bg-brand-50',   href: '/dashboard/candidates', tooltip: 'Total seluruh kandidat yang melamar di semua lowongan perusahaan.' },
+        { label: 'Karyawan Aktif',  value: data.totalEmployees,        icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50', href: '/dashboard/employees',  tooltip: 'Jumlah karyawan aktif yang terdaftar di dalam sistem saat ini.' },
+        { label: 'Total Hired',     value: data.totalHired,            icon: Trophy,       color: 'text-amber-500',   bg: 'bg-amber-50',   href: '/dashboard/candidates', tooltip: 'Jumlah kandidat yang berhasil direkrut dan dipekerjakan melalui platform ini.' },
+    ], [data.activeJobs.length, data.totalApplicants, data.totalEmployees, data.totalHired])
+
+    const dateStr = useMemo(
+        () => new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+        []
+    )
 
     return (
         <div className="space-y-8 pb-24">
@@ -227,10 +210,10 @@ export function HRAdminDashboard() {
             {/* ── Quick Actions ── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 {[
-                    { label: 'Buat Lowongan', href: '/dashboard/jobs/new', icon: Briefcase, gradient: 'from-blue-500 to-indigo-600' },
-                    { label: 'Lihat Kandidat', href: '/dashboard/candidates', icon: Users, gradient: 'from-primary to-orange-500' },
-                    { label: 'Kelola Lembur', href: '/dashboard/overtime', icon: Timer, gradient: 'from-violet-500 to-purple-600' },
-                    { label: 'Monitor Kehadiran', href: '/dashboard/attendance', icon: Clock, gradient: 'from-emerald-500 to-teal-600' },
+                    { label: 'Buat Lowongan',      href: '/dashboard/jobs/new',    icon: Briefcase, gradient: 'from-blue-500 to-indigo-600' },
+                    { label: 'Lihat Kandidat',      href: '/dashboard/candidates',  icon: Users,     gradient: 'from-primary to-orange-500' },
+                    { label: 'Kelola Lembur',       href: '/dashboard/overtime',    icon: Timer,     gradient: 'from-violet-500 to-purple-600' },
+                    { label: 'Monitor Kehadiran',   href: '/dashboard/attendance',  icon: Clock,     gradient: 'from-emerald-500 to-teal-600' },
                 ].map(action => (
                     <Link key={action.href} href={action.href}>
                         <div className="group relative overflow-hidden rounded-2xl p-4 bg-white border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer">
@@ -247,12 +230,7 @@ export function HRAdminDashboard() {
 
             {/* ── Stat Cards ── */}
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-                {[
-                    { label: 'Lowongan Aktif', value: stats.totalJobs, icon: Briefcase, color: 'text-blue-500', bg: 'bg-blue-50', href: '/dashboard/jobs', tooltip: 'Jumlah lowongan pekerjaan yang masih terbuka dan sedang menerima pelamar.' },
-                    { label: 'Total Pelamar', value: stats.totalApplicants, icon: Users, color: 'text-primary', bg: 'bg-brand-50', href: '/dashboard/candidates', tooltip: 'Total seluruh kandidat yang melamar di semua lowongan perusahaan.' },
-                    { label: 'Karyawan Aktif', value: stats.totalEmployees, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50', href: '/dashboard/employees', tooltip: 'Jumlah karyawan aktif yang terdaftar di dalam sistem saat ini.' },
-                    { label: 'Total Hired', value: stats.totalHired, icon: Trophy, color: 'text-amber-500', bg: 'bg-amber-50', href: '/dashboard/candidates', tooltip: 'Jumlah kandidat yang berhasil direkrut dan dipekerjakan melalui platform ini.' },
-                ].map((s, i) => (
+                {statCards.map((s, i) => (
                     <Tooltip key={i}>
                         <TooltipTrigger asChild>
                             <Link href={s.href} className="block">
@@ -282,7 +260,7 @@ export function HRAdminDashboard() {
             {/* ── Charts Row ── */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
 
-                {/* Weekly Bar — Shadcn Chart */}
+                {/* Weekly Bar */}
                 <Card className="p-8 border-none shadow-sm rounded-3xl lg:col-span-1 !overflow-visible relative">
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -311,7 +289,7 @@ export function HRAdminDashboard() {
                         ? <Skeleton className="h-[120px] w-full" />
                         : (
                             <ChartContainer config={weeklyChartConfig} className="h-[120px] w-full">
-                                <BarChart data={weeklyApps} barSize={22} margin={{ top: 8, right: 0, left: -32, bottom: 0 }}>
+                                <BarChart data={data.weeklyApps} barSize={22} margin={{ top: 8, right: 0, left: -32, bottom: 0 }}>
                                     <XAxis
                                         dataKey="label"
                                         axisLine={false}
@@ -324,10 +302,10 @@ export function HRAdminDashboard() {
                                         content={<ChartTooltipContent hideLabel />}
                                     />
                                     <Bar dataKey="value" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))">
-                                        {weeklyApps.map((_, i) => (
+                                        {data.weeklyApps.map((_, i) => (
                                             <Cell
                                                 key={i}
-                                                fillOpacity={0.3 + (i / (weeklyApps.length - 1)) * 0.7}
+                                                fillOpacity={data.weeklyApps.length > 1 ? 0.3 + (i / (data.weeklyApps.length - 1)) * 0.7 : 1}
                                             />
                                         ))}
                                     </Bar>
@@ -337,7 +315,7 @@ export function HRAdminDashboard() {
                     }
                 </Card>
 
-                {/* Pipeline Donut — Shadcn Chart */}
+                {/* Pipeline Donut */}
                 <Card className="p-8 border-none shadow-sm rounded-3xl lg:col-span-1 !overflow-visible relative">
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -355,7 +333,6 @@ export function HRAdminDashboard() {
                         ? <div className="flex gap-6 items-center"><Skeleton className="w-28 h-28 rounded-full" /><Skeleton className="flex-1 h-24" /></div>
                         : (
                             <div className="flex items-center gap-4">
-                                {/* Donut */}
                                 <div className="relative shrink-0" style={{ width: 120, height: 120 }}>
                                     <ResponsiveContainer width={120} height={120}>
                                         <PieChart>
@@ -387,11 +364,10 @@ export function HRAdminDashboard() {
                                         </PieChart>
                                     </ResponsiveContainer>
                                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                        <p className="text-xl font-black text-foreground leading-none">{stats.totalApplicants}</p>
+                                        <p className="text-xl font-black text-foreground leading-none">{data.totalApplicants}</p>
                                         <p className="text-[9px] text-muted-foreground font-bold mt-0.5">total</p>
                                     </div>
                                 </div>
-                                {/* Legend */}
                                 <div className="space-y-3 flex-1">
                                     {donutData.map((row, i) => (
                                         <div key={i} className="flex items-center gap-2.5">
@@ -420,7 +396,6 @@ export function HRAdminDashboard() {
                                     Rata-rata progres penyelesaian dari seluruh target OKR aktif karyawan saat ini.
                                 </TooltipContent>
                             </Tooltip>
-                            
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
                                     <Target className="w-5 h-5 text-amber-500" />
@@ -430,18 +405,19 @@ export function HRAdminDashboard() {
                             {loading ? <Skeleton className="h-12 w-full" /> : (
                                 <>
                                     <p className="text-xl font-black text-foreground mb-3">
-                                        {okrStats.total} <span className="text-sm font-semibold text-muted-foreground">sasaran aktif</span>
+                                        {data.okrStats.total} <span className="text-sm font-semibold text-muted-foreground">sasaran aktif</span>
                                     </p>
                                     <div className="flex justify-between text-xs font-bold text-muted-foreground mb-1.5">
-                                        <span>Progres Rata-rata</span><span>{Math.round(okrStats.avgProgress)}%</span>
+                                        <span>Progres Rata-rata</span><span>{data.okrStats.avgProgress}%</span>
                                     </div>
                                     <div className="h-2 bg-muted rounded-full overflow-hidden">
-                                        <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${okrStats.avgProgress}%` }} />
+                                        <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${data.okrStats.avgProgress}%` }} />
                                     </div>
                                 </>
                             )}
                         </Card>
                     </Link>
+
                     <Link href="/dashboard/attendance">
                         <Card className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md transition-all cursor-pointer relative group">
                             <Tooltip>
@@ -454,7 +430,6 @@ export function HRAdminDashboard() {
                                     Rekapitulasi absensi seluruh karyawan aktif pada hari ini.
                                 </TooltipContent>
                             </Tooltip>
-
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center shrink-0">
                                     <Clock className="w-5 h-5 text-rose-500" />
@@ -464,26 +439,25 @@ export function HRAdminDashboard() {
                             {loading ? <Skeleton className="h-12 w-full" /> : (
                                 <div className="flex items-end gap-6">
                                     <div>
-                                        <p className="text-2xl font-black text-emerald-500">{attendanceStats.present + attendanceStats.early_leave + attendanceStats.holiday_present}</p>
+                                        <p className="text-2xl font-black text-emerald-500">{data.attendanceStats.present + data.attendanceStats.early_leave + data.attendanceStats.holiday_present}</p>
                                         <p className="text-xs font-bold text-muted-foreground">Hadir</p>
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-black text-amber-500">{attendanceStats.leave + attendanceStats.sick}</p>
+                                        <p className="text-2xl font-black text-amber-500">{data.attendanceStats.leave + data.attendanceStats.sick}</p>
                                         <p className="text-xs font-bold text-muted-foreground">Cuti</p>
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-black text-rose-500">{attendanceStats.absent}</p>
+                                        <p className="text-2xl font-black text-rose-500">{data.attendanceStats.absent}</p>
                                         <p className="text-xs font-bold text-muted-foreground">Alpa</p>
                                     </div>
                                 </div>
                             )}
                         </Card>
                     </Link>
-                    {/* Overtime Quick Card */}
+
                     <Link href="/dashboard/overtime">
                         <Card className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md transition-all cursor-pointer relative overflow-hidden group">
                             <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full opacity-5 group-hover:opacity-10 transition-opacity" />
-                            
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div className="absolute top-6 right-6 cursor-help z-10">
@@ -494,26 +468,25 @@ export function HRAdminDashboard() {
                                     Data pengajuan lembur karyawan yang disetujui beserta ringkasan jam kerja yang belum dibayar/di-review.
                                 </TooltipContent>
                             </Tooltip>
-
                             <div className="flex items-center gap-3 mb-4 z-10 relative">
                                 <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center shrink-0">
                                     <Timer className="w-5 h-5 text-violet-500" />
                                 </div>
                                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Lembur</p>
-                                {overtimeStats.pending > 0 && (
+                                {data.overtimeStats.pending > 0 && (
                                     <Badge className="ml-2 bg-amber-100 text-amber-700 border-amber-200 border text-[10px] font-black rounded-lg px-2 py-0.5">
-                                        {overtimeStats.pending} Pending
+                                        {data.overtimeStats.pending} Pending
                                     </Badge>
                                 )}
                             </div>
                             {loading ? <Skeleton className="h-12 w-full" /> : (
                                 <div className="flex items-end gap-6">
                                     <div>
-                                        <p className="text-2xl font-black text-violet-600">{overtimeStats.approved}</p>
+                                        <p className="text-2xl font-black text-violet-600">{data.overtimeStats.approved}</p>
                                         <p className="text-xs font-bold text-muted-foreground">Disetujui</p>
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-black text-foreground">{overtimeStats.totalHours.toFixed(0)}<span className="text-sm text-muted-foreground font-semibold">h</span></p>
+                                        <p className="text-2xl font-black text-foreground">{Number(data.overtimeStats.totalHours).toFixed(0)}<span className="text-sm text-muted-foreground font-semibold">h</span></p>
                                         <p className="text-xs font-bold text-muted-foreground">Total Jam</p>
                                     </div>
                                 </div>
@@ -543,7 +516,7 @@ export function HRAdminDashboard() {
                 ) : (
                     <div className="space-y-3">
                         {STAGES.map(stage => {
-                            const count = stageCounts[stage.key] ?? 0
+                            const count = data.stageCounts[stage.key] ?? 0
                             const pct = (count / funnelMax) * 100
                             return (
                                 <div key={stage.key} className="flex items-center gap-4">
@@ -582,14 +555,14 @@ export function HRAdminDashboard() {
                             <div className="p-5 space-y-4">
                                 {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12" />)}
                             </div>
-                        ) : recentApps.length === 0 ? (
+                        ) : data.recentApps.length === 0 ? (
                             <div className="py-16 text-center">
                                 <Users className="w-10 h-10 text-muted mx-auto mb-3" />
                                 <p className="text-sm font-bold text-muted-foreground">Belum ada pelamar</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-border">
-                                {recentApps.map((app) => (
+                                {data.recentApps.map((app) => (
                                     <div key={app.id} className="px-5 py-4 flex items-center gap-4 hover:bg-muted/30 transition-colors group">
                                         <div className="w-9 h-9 bg-muted rounded-xl flex items-center justify-center font-black text-muted-foreground text-sm shrink-0 group-hover:bg-brand-50 group-hover:text-primary transition-colors">
                                             {app.full_name?.charAt(0)}
@@ -628,19 +601,19 @@ export function HRAdminDashboard() {
                     <div className="space-y-3">
                         {loading
                             ? [...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl" />)
-                            : activeJobs.length === 0 ? (
+                            : data.activeJobs.length === 0 ? (
                                 <Card className="py-12 text-center border-dashed border-2 border-border shadow-none rounded-2xl">
                                     <Briefcase className="w-8 h-8 text-muted mx-auto mb-2" />
                                     <p className="text-sm font-bold text-muted-foreground">Tidak ada lowongan aktif</p>
                                 </Card>
-                            ) : activeJobs.map(job => (
+                            ) : data.activeJobs.map(job => (
                                 <Link key={job.id} href={`/dashboard/jobs/${job.id}`}>
                                     <Card className="p-4 border-none shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all group mb-3">
                                         <div className="flex items-start justify-between gap-2 mb-2">
                                             <h4 className="font-bold text-foreground text-sm line-clamp-1 group-hover:text-primary transition-colors flex-1">{job.title}</h4>
                                             <div className="flex items-center gap-1 bg-brand-50 text-primary rounded-lg px-2 py-1 shrink-0">
                                                 <Users className="w-3 h-3" />
-                                                <span className="text-[10px] font-black">{jobApplicantCounts[job.id] ?? 0}</span>
+                                                <span className="text-[10px] font-black">{data.jobApplicantCounts[job.id] ?? 0}</span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 flex-wrap">

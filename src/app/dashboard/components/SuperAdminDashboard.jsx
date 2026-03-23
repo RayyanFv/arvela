@@ -1,6 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+// ──────────────────────────────────────────────────
+// MODULE  : Dashboard — Super Admin
+// FILE    : app/dashboard/components/SuperAdminDashboard.jsx
+// OPTIMIZATIONS:
+//   ✅ Solusi 1 — Profile diterima sebagai prop (no double fetch)
+//   ✅ Solusi 3 — Single RPC call ganti 2 query terpisah
+//   ✅ Solusi 5 — useMemo untuk derived data
+//   ✅ Solusi 6 — Single consolidated state object
+// ──────────────────────────────────────────────────
+
+import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
     ShieldCheck, Users, Mail, UserPlus,
@@ -14,83 +24,77 @@ import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
 import Link from 'next/link'
 import { ROLE_LABELS, ROLES } from '@/lib/constants/roles'
 
-export function SuperAdminDashboard() {
+// ─── Solusi 6: Single consolidated state ─────────────────────────────────────
+const INITIAL_STATE = {
+    totalProfiles:  0,
+    totalEmployees: 0,
+    roles:          {},
+    recentUsers:    [],
+}
+
+// ── Solusi 1: Terima profile + user dari parent (page.jsx) ────────────────────
+export function SuperAdminDashboard({ profile, user }) {
     const supabase = createClient()
     const [loading, setLoading] = useState(true)
-    const [profile, setProfile] = useState(null)
-    const [stats, setStats] = useState({ profiles: 0, employees: 0, roles: {} })
-    const [recentUsers, setRecentUsers] = useState([])
+
+    // ── Solusi 6: Satu state object ───────────────────────────────────────────
+    const [data, setData] = useState(INITIAL_STATE)
 
     useEffect(() => {
         async function load() {
-            const { data: { user } } = await supabase.auth.getUser()
-            
-            // Try profile query with company join
-            const { data: prof, error: profErr } = await supabase
-                .from('profiles').select('*, companies(name)').eq('id', user.id).single()
-            
-            if (prof && !profErr) {
-                setProfile(prof)
-            } else {
-                // Fallback to metadata
-                setProfile({
-                    id: user.id,
-                    full_name: user.user_metadata?.full_name || 'Admin',
-                    role: user.user_metadata?.role || 'super_admin',
-                    company_id: user.user_metadata?.company_id || null,
-                    companies: { name: user.user_metadata?.company_name || 'Perusahaan' },
-                })
-            }
-
-            const cid = prof?.company_id || user.user_metadata?.company_id
+            // ── Solusi 1: Langsung dari prop ──────────────────────────────────
+            const cid = profile?.company_id || user?.user_metadata?.company_id
             if (!cid) { setLoading(false); return }
 
-            const [profRes, empRes] = await Promise.all([
-                supabase.from('profiles')
-                    .select('id, full_name, email, role, created_at')
-                    .eq('company_id', cid)
-                    .order('created_at', { ascending: false }),
-                supabase.from('employees')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('company_id', cid)
-            ])
+            // ── Solusi 3: Single RPC call ganti 2 query ───────────────────────
+            const { data: stats, error } = await supabase.rpc(
+                'get_admin_dashboard_stats',
+                { p_company_id: cid }
+            )
 
-            const users = profRes.data || []
-            const rolesCount = {}
-            Object.values(ROLES).forEach(r => rolesCount[r] = 0)
-            
-            users.forEach(u => {
-                const r = u.role || 'user'
-                if (rolesCount[r] !== undefined) rolesCount[r]++
+            if (error || !stats) {
+                console.error('SuperAdmin Dashboard RPC error:', error)
+                setLoading(false)
+                return
+            }
+
+            // ── Solusi 6: Single setState → 1 re-render ────────────────────────
+            setData({
+                totalProfiles:  stats.total_profiles  || 0,
+                totalEmployees: stats.total_employees || 0,
+                roles:          stats.roles           || {},
+                recentUsers:    stats.recent_users    || [],
             })
 
-            setStats({
-                profiles: users.length,
-                employees: empRes.count || 0,
-                roles: rolesCount
-            })
-            setRecentUsers(users.slice(0, 8))
             setLoading(false)
         }
         load()
-    }, [])
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-    const getRoleBadgeColor = (role) => {
+    // ── Solusi 5: useMemo untuk derived + static data ─────────────────────────
+    const statCards = useMemo(() => [
+        { label: 'Total Akun Sistem',   value: data.totalProfiles,               icon: Users,       color: 'text-blue-500',    bg: 'bg-blue-50'    },
+        { label: 'Karyawan Terhubung',  value: data.totalEmployees,              icon: Building2,   color: 'text-emerald-500', bg: 'bg-emerald-50' },
+        { label: 'HR Administrator',    value: data.roles[ROLES.HR_ADMIN] ?? 0,  icon: KeyRound,    color: 'text-violet-500',  bg: 'bg-violet-50'  },
+        { label: 'Pemilik (Owner)',      value: data.roles[ROLES.OWNER] ?? 0,     icon: ShieldCheck, color: 'text-amber-500',   bg: 'bg-amber-50'   },
+    ], [data.totalProfiles, data.totalEmployees, data.roles])
+
+    const getRoleBadgeColor = useMemo(() => (role) => {
         switch (role) {
             case ROLES.SUPER_ADMIN: return 'bg-rose-100 text-rose-700 border-rose-200'
-            case ROLES.OWNER: return 'bg-amber-100 text-amber-700 border-amber-200'
-            case ROLES.HR_ADMIN: return 'bg-violet-100 text-violet-700 border-violet-200'
-            case ROLES.EMPLOYEE: return 'bg-emerald-100 text-emerald-700 border-emerald-200'
-            case ROLES.CANDIDATE: return 'bg-blue-100 text-blue-700 border-blue-200'
-            default: return 'bg-slate-100 text-slate-700 border-slate-200'
+            case ROLES.OWNER:       return 'bg-amber-100 text-amber-700 border-amber-200'
+            case ROLES.HR_ADMIN:    return 'bg-violet-100 text-violet-700 border-violet-200'
+            case ROLES.EMPLOYEE:    return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+            case ROLES.CANDIDATE:   return 'bg-blue-100 text-blue-700 border-blue-200'
+            default:                return 'bg-slate-100 text-slate-700 border-slate-200'
         }
-    }
+    }, [])
 
     return (
         <div className="space-y-8 pb-24 animate-in slide-in-from-bottom-4 duration-700">
             <Breadcrumbs />
 
-            {/* Header */}
+            {/* ── Header ── */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight flex items-center gap-3">
@@ -107,14 +111,9 @@ export function SuperAdminDashboard() {
                 </Link>
             </div>
 
-            {/* System Status Row */}
+            {/* ── System Status Row ── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                {[
-                    { label: 'Total Akun Sistem', value: stats.profiles, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
-                    { label: 'Karyawan Terhubung', value: stats.employees, icon: Building2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-                    { label: 'HR Administrator', value: stats.roles[ROLES.HR_ADMIN], icon: KeyRound, color: 'text-violet-500', bg: 'bg-violet-50' },
-                    { label: 'Pemilik (Owner)', value: stats.roles[ROLES.OWNER], icon: ShieldCheck, color: 'text-amber-500', bg: 'bg-amber-50' },
-                ].map((s, i) => (
+                {statCards.map((s, i) => (
                     <Card key={i} className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md transition-all">
                         <div className="flex items-center gap-3 mb-4">
                             <div className={`w-10 h-10 flex flex-col items-center justify-center rounded-xl shrink-0 ${s.bg}`}>
@@ -122,12 +121,15 @@ export function SuperAdminDashboard() {
                             </div>
                             <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{s.label}</p>
                         </div>
-                        {loading ? <Skeleton className="h-8 w-14" /> : <p className="text-3xl font-black">{s.value}</p>}
+                        {loading
+                            ? <Skeleton className="h-8 w-14" />
+                            : <p className="text-3xl font-black">{s.value ?? 0}</p>
+                        }
                     </Card>
                 ))}
             </div>
 
-            {/* User Directory */}
+            {/* ── User Directory ── */}
             <Card className="p-6 md:p-8 border-none shadow-sm rounded-3xl">
                 <div className="flex items-center justify-between mb-8">
                     <div>
@@ -143,14 +145,14 @@ export function SuperAdminDashboard() {
                     <div className="space-y-4">
                         {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-2xl" />)}
                     </div>
-                ) : recentUsers.length === 0 ? (
+                ) : data.recentUsers.length === 0 ? (
                     <div className="py-12 text-center border-dashed border-2 border-slate-100 rounded-3xl">
                         <Users className="w-10 h-10 text-muted mx-auto mb-3" />
                         <p className="text-sm font-bold text-muted-foreground">Tidak ada pengguna terdeteksi.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {recentUsers.map(u => (
+                        {data.recentUsers.map(u => (
                             <div key={u.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:border-slate-200 transition-all gap-4 group">
                                 <div className="flex items-center gap-4 min-w-0">
                                     <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center font-black text-slate-400 group-hover:text-primary transition-colors shrink-0">
