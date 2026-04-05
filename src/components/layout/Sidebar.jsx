@@ -17,6 +17,7 @@ import {
     Clock,
     ChevronLeft,
     Settings,
+    FileText,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -96,11 +97,24 @@ export function Sidebar({ isOpen, setIsOpen }) {
             ]
         },
         {
+            label: 'Manajemen Konten',
+            roles: [ROLES.SUPER_ADMIN],
+            items: [
+                { icon: FileText, label: 'Artikel Blog', href: '/dashboard/articles' },
+            ]
+        },
+        {
             label: 'Konfigurasi',
             roles: [ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HR_ADMIN],
             items: [
                 { icon: Settings, label: 'Manajemen User', href: '/dashboard/settings/users' },
-                { icon: ClipboardCheck, label: 'Template Interview', href: '/dashboard/settings/interview-templates' },
+            ]
+        },
+        {
+            label: 'Master Data',
+            roles: [ROLES.SUPER_ADMIN],
+            items: [
+                { icon: Briefcase, label: 'Perusahaan (Company)', href: '/dashboard/companies' },
             ]
         }
     ]

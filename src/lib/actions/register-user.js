@@ -21,7 +21,7 @@ import { revalidatePath } from 'next/cache'
 export async function registerUser(payload) {
     const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
-    const { email, full_name, role: targetRole, department, password, job_title, application_id } = payload
+    const { email, full_name, role: targetRole, department, password, job_title, application_id, company_id } = payload
 
     // ─── Validate inputs ──────────────────────
     if (!email || !full_name || !targetRole) {
@@ -60,12 +60,14 @@ export async function registerUser(payload) {
     // Wait for DB trigger to create profile, then ensure it has correct data
     await new Promise(r => setTimeout(r, 800))
 
+    const targetCompanyId = profile.role === ROLES.SUPER_ADMIN && company_id ? company_id : profile.company_id
+
     await admin.from('profiles').upsert({
         id: userId,
         email,
         full_name,
         role: targetRole,
-        company_id: profile.company_id,
+        company_id: targetCompanyId,
         department: department || null,
     }, { onConflict: 'id' })
 
@@ -73,7 +75,7 @@ export async function registerUser(payload) {
     if (targetRole === ROLES.EMPLOYEE) {
         const { error: empError } = await admin.from('employees').upsert({
             profile_id: userId,
-            company_id: profile.company_id,
+            company_id: targetCompanyId,
             application_id: application_id || null,
             job_title: job_title || (department ? `Staff ${department}` : 'Team Member'),
             department: department || 'General',
@@ -89,7 +91,7 @@ export async function registerUser(payload) {
             await admin.from('applications')
                 .update({ stage: 'hired', updated_at: new Date().toISOString() })
                 .eq('id', application_id)
-                .eq('company_id', profile.company_id)
+                .eq('company_id', targetCompanyId)
         }
     }
 
@@ -139,5 +141,12 @@ export async function getRegisterableRoles() {
         roles.push({ value: r, label: ROLE_LABELS[r] })
     }
 
-    return roles
+    let companies = []
+    if (profile.role === ROLES.SUPER_ADMIN) {
+        const { admin } = await getAuthProfile({ requireAdmin: true })
+        const { data } = await admin.from('companies').select('id, name').order('name')
+        companies = data || []
+    }
+
+    return { roles, companies, isSuperAdmin: profile.role === ROLES.SUPER_ADMIN }
 }

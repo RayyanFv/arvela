@@ -119,6 +119,7 @@ function Navbar() {
                         <Users className="w-3.5 h-3.5" /> Portal Pelamar
                     </Link>
                     <Link href="/about" className="hover:text-primary transition-colors">Company Profile</Link>
+                    <Link href="/articles" className="hover:text-primary transition-colors">Articles</Link>
                     <a href="#bandingkan" className="hover:text-primary transition-colors">Perbandingan</a>
                     <a href="#harga" className="hover:text-primary transition-colors">Harga</a>
                 </div>

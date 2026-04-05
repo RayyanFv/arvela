@@ -62,6 +62,14 @@ export async function middleware(request) {
             url.pathname = isEmployee ? '/staff' : '/portal'
             return NextResponse.redirect(url)
         }
+        
+        // Granular check for super_admin features
+        const isSuperAdminFeature = path.startsWith('/dashboard/articles') || path.startsWith('/dashboard/companies')
+        
+        if (isSuperAdminFeature && role !== 'super_admin') {
+            url.pathname = '/dashboard'
+            return NextResponse.redirect(url)
+        }
     }
 
     // 2. Staff Access Control

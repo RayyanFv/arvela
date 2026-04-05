@@ -15,6 +15,8 @@ import { ROLE_LABELS } from '@/lib/constants/roles'
 export function RegisterUserDialog() {
     const [open, setOpen] = useState(false)
     const [roles, setRoles] = useState([])
+    const [companies, setCompanies] = useState([])
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false)
     const [isPending, startTransition] = useTransition()
     const [result, setResult] = useState(null)
     const [error, setError] = useState(null)
@@ -24,6 +26,7 @@ export function RegisterUserDialog() {
     const [email, setEmail] = useState('')
     const [fullName, setFullName] = useState('')
     const [role, setRole] = useState('')
+    const [companyId, setCompanyId] = useState('')
     const [department, setDepartment] = useState('')
     const [password, setPassword] = useState('')
     const [jobTitle, setJobTitle] = useState('')
@@ -33,12 +36,20 @@ export function RegisterUserDialog() {
 
     useEffect(() => {
         if (open) {
-            getRegisterableRoles().then(setRoles).catch(() => setRoles([]))
+            getRegisterableRoles().then((data) => {
+                setRoles(data.roles || [])
+                setCompanies(data.companies || [])
+                setIsSuperAdmin(data.isSuperAdmin || false)
+            }).catch(() => {
+                setRoles([])
+                setCompanies([])
+            })
             // Reset form
             setResult(null)
             setError(null)
             setEmail('')
             setRole('')
+            setCompanyId('')
             setDepartment('')
             setPassword('')
             setJobTitle('')
@@ -79,6 +90,7 @@ export function RegisterUserDialog() {
                     email,
                     full_name: fullName,
                     role,
+                    company_id: companyId,
                     department,
                     password,
                     job_title: jobTitle,
@@ -189,6 +201,23 @@ export function RegisterUserDialog() {
                                 ))}
                             </select>
                         </div>
+
+                        {isSuperAdmin && (
+                            <div>
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Perusahaan Tujuan</label>
+                                <select
+                                    required
+                                    value={companyId}
+                                    onChange={e => setCompanyId(e.target.value)}
+                                    className="w-full h-11 rounded-xl border border-slate-200 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all bg-white"
+                                >
+                                    <option value="">Pilih Perusahaan...</option>
+                                    {companies.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
                         <div>
                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 block">Departemen <span className="text-slate-300">(opsional)</span></label>
