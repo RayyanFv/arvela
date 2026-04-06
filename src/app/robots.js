@@ -1,4 +1,5 @@
 export default function robots() {
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id';
     return {
         rules: [
             {
@@ -7,6 +8,6 @@ export default function robots() {
                 disallow: ['/api/', '/admin/', '/dashboard/', '/staff/', '/assessment/'],
             },
         ],
-        sitemap: 'https://arvela.id/sitemap.xml',
+        sitemap: `${baseUrl}/sitemap.xml`,
     };
 }

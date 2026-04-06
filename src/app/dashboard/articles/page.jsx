@@ -2,6 +2,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { Plus, Edit, Trash2, Globe, FileX } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { deleteArticle } from '@/lib/actions/articles'
 
 export const dynamic = 'force-dynamic'
 
@@ -90,21 +91,32 @@ export default async function ArticlesListPage() {
                                                 day: 'numeric', month: 'short', year: 'numeric'
                                             })}
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                                <Link 
-                                                    href={`/articles/${article.slug}`}
-                                                    target="_blank"
-                                                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition-colors"
-                                                    title="Preview Artikel"
-                                                >
-                                                    <Globe className="w-4 h-4" />
-                                                </Link>
+                                        <td className="px-6 py-4 flex items-center justify-end gap-2">
+                                                {article.status === 'published' && (
+                                                    <Link 
+                                                        href={`/articles/${article.slug}`}
+                                                        target="_blank"
+                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-200 text-slate-400 hover:text-slate-700 transition-colors"
+                                                        title="Preview Artikel"
+                                                    >
+                                                        <Globe className="w-4 h-4" />
+                                                    </Link>
+                                                )}
                                                 <Link 
                                                     href={`/dashboard/articles/${article.id}/edit`}
                                                     className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 hover:bg-primary/10 hover:text-primary text-slate-400 transition-colors"
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </Link>
+                                                <form action={deleteArticle.bind(null, article.id)}>
+                                                    <button 
+                                                        type="submit"
+                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 hover:bg-rose-100 hover:text-rose-600 text-slate-400 transition-colors"
+                                                        title="Hapus Artikel"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </form>
                                         </td>
                                     </tr>
                                 ))}

@@ -33,11 +33,26 @@ export default async function sitemap() {
         priority: 0.6,
     }));
 
-    // 3. Static Routes
+    // 3. Fetch Articles
+    const { data: articles } = await supabase
+        .from('articles')
+        .select('slug, updated_at, published_at')
+        .eq('status', 'published');
+
+    const articleRoutes = (articles || []).map((article) => ({
+        url: `${baseUrl}/articles/${article.slug}`,
+        lastModified: new Date(article.updated_at || article.published_at || new Date()).toISOString().split('T')[0],
+        changeFrequency: 'weekly',
+        priority: 0.8,
+    }));
+
+    // 4. Static Routes
     const staticRoutes = [
         '',
         '/login',
         '/register',
+        '/articles',
+        '/about',
     ].map((route) => ({
         url: `${baseUrl}${route}`,
         lastModified: new Date().toISOString().split('T')[0],
@@ -45,5 +60,5 @@ export default async function sitemap() {
         priority: route === '' ? 1 : 0.5,
     }));
 
-    return [...staticRoutes, ...companyRoutes, ...jobRoutes];
+    return [...staticRoutes, ...companyRoutes, ...jobRoutes, ...articleRoutes];
 }

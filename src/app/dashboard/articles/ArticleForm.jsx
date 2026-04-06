@@ -8,13 +8,37 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, ArrowLeft } from 'lucide-react'
+import { Loader2, ArrowLeft, Bold, Italic, Link as LinkIcon, Heading2, List } from 'lucide-react'
 import Link from 'next/link'
+import { useRef } from 'react'
 
 export function ArticleForm({ initialData = null }) {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const textareaRef = useRef(null)
+
+    const insertFormat = (formatTemplate) => {
+        const el = textareaRef.current
+        if (!el) return
+        
+        const start = el.selectionStart
+        const end = el.selectionEnd
+        const text = el.value
+        
+        let before = text.substring(0, start)
+        let selection = text.substring(start, end) || 'Teks'
+        let after = text.substring(end, text.length)
+        
+        const replacement = formatTemplate.replace('{text}', selection)
+        
+        el.value = before + replacement + after
+        el.dispatchEvent(new Event('input', { bubbles: true }))
+        el.focus()
+        
+        const offset = formatTemplate.indexOf('{text}')
+        el.setSelectionRange(start + offset, start + offset + selection.length)
+    }
 
     const isEditing = !!initialData
 
@@ -82,7 +106,17 @@ export function ArticleForm({ initialData = null }) {
 
                     <div className="space-y-2">
                         <Label>Konten Artikel (Markdown supported / HTML)</Label>
+                        <div className="flex items-center gap-1 mb-2 bg-slate-50 border border-slate-200 p-1.5 rounded-lg w-fit">
+                            <button type="button" onClick={() => insertFormat('**{text}**')} className="p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 rounded transition-colors" title="Bold"><Bold className="w-4 h-4"/></button>
+                            <button type="button" onClick={() => insertFormat('_{text}_')} className="p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 rounded transition-colors" title="Italic"><Italic className="w-4 h-4"/></button>
+                            <div className="w-px h-5 bg-slate-200 mx-1"></div>
+                            <button type="button" onClick={() => insertFormat('[{text}](https://)')} className="p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 rounded transition-colors" title="Link"><LinkIcon className="w-4 h-4"/></button>
+                            <div className="w-px h-5 bg-slate-200 mx-1"></div>
+                            <button type="button" onClick={() => insertFormat('## {text}\n')} className="p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 rounded transition-colors" title="Heading 2"><Heading2 className="w-4 h-4"/></button>
+                            <button type="button" onClick={() => insertFormat('\n- {text}\n')} className="p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 rounded transition-colors" title="Bullet List"><List className="w-4 h-4"/></button>
+                        </div>
                         <Textarea 
+                            ref={textareaRef}
                             name="content" 
                             required 
                             defaultValue={initialData?.content} 

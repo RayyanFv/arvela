@@ -57,6 +57,8 @@ export const SEO_CONFIG = {
  * Returns complete metadata object for Next.js
  */
 export function getMetadata(overrides = {}) {
+    const canonicalUrl = overrides.url || SEO_CONFIG.url;
+    
     return {
         title: overrides.title || SEO_CONFIG.title.default,
         description: overrides.description || SEO_CONFIG.description,
@@ -67,6 +69,9 @@ export function getMetadata(overrides = {}) {
             ...SEO_CONFIG.og,
             title: overrides.title || SEO_CONFIG.og.title,
             description: overrides.description || SEO_CONFIG.og.description,
+            url: canonicalUrl,
+            type: overrides.type || SEO_CONFIG.og.type,
+            ...(overrides.openGraph || {})
         },
         twitter: {
             ...SEO_CONFIG.twitter,
@@ -74,7 +79,7 @@ export function getMetadata(overrides = {}) {
             description: overrides.description || SEO_CONFIG.description,
         },
         alternates: {
-            canonical: SEO_CONFIG.url,
+            canonical: canonicalUrl,
         },
         robots: {
             index: true,

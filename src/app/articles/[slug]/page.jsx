@@ -67,6 +67,31 @@ export default async function ArticleDetailPage({ params }) {
             </div>
 
             <article className="max-w-3xl mx-auto px-6 py-12 md:py-20">
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            "@context": "https://schema.org",
+                            "@type": "Article",
+                            "headline": article.meta_title || article.title,
+                            "description": article.meta_description || 'Baca artikel selengkapnya di Arvela Articles.',
+                            "author": {
+                                "@type": "Person",
+                                "name": article.author_name || article.profiles?.full_name || 'Tim Arvela'
+                            },
+                            "datePublished": article.published_at,
+                            "dateModified": article.updated_at || article.published_at,
+                            "publisher": {
+                                "@type": "Organization",
+                                "name": "Arvela HR",
+                                "logo": {
+                                    "@type": "ImageObject",
+                                    "url": `${process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'}/arvela-logo.png`
+                                }
+                            }
+                        })
+                    }}
+                />
                 <header className="mb-12 text-center md:text-left">
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mb-6">
                         <span className="text-primary text-[10px] font-black uppercase tracking-[0.2em] bg-primary/5 px-3 py-1 rounded-full">
