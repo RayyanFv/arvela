@@ -171,7 +171,7 @@ export default function LandingPage() {
                             Otomatisasi HRIS yang<br className="hidden md:block" /> Menghemat <span className="font-serif italic text-primary">Ribuan Jam</span><br className="hidden md:block" /> Kerja Rekrutmen.
                         </h1>
                         <p className="text-foreground/70 text-lg md:text-xl font-medium leading-relaxed mb-8 md:mb-12 max-w-lg mx-auto lg:mx-0">
-                            Tinggalkan tumpukan form kertas dan rekap Excel manual. Arvela menghubungkan rekrutmen cerdas (ATS), asesmen kandidat, absensi, hingga manajemen performa dalam satu ekosistem platform HR terintegrasi yang elegan.
+                            Tinggalkan tumpukan form kertas dan rekap Excel manual. Arvela menghubungkan rekrutmen cerdas (ATS), asesmen kandidat, absensi, hingga manajemen performa dalam satu ekosistem platform HR terintegrasi.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                             <a href="#pilot" className="bg-foreground hover:bg-foreground/90 text-background font-black text-base md:text-lg px-8 md:px-10 py-4 md:py-5 border-2 border-foreground rounded-none shadow-[6px_6px_0px_0px_rgba(238,117,34,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(238,117,34,1)] flex items-center gap-3 justify-center">
@@ -186,27 +186,69 @@ export default function LandingPage() {
                     {/* Right — Interactive Preview */}
                     <div className="relative group px-4 md:px-0">
                         <div className="relative bg-background p-6 md:p-8 border-2 border-foreground shadow-[12px_12px_0px_0px_rgba(14,13,10,1)]">
-                            <div className="border border-border p-6 md:p-8 space-y-5 md:space-y-6">
-                                <div className="flex items-center justify-between border-b border-border pb-5 md:pb-6">
+                            <div className="border border-border p-5 md:p-6 bg-foreground text-background">
+                                <div className="flex items-center justify-between border-b border-background/20 pb-4 mb-5">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 border border-foreground flex items-center justify-center bg-primary/10">
-                                            <MapPin className="w-5 h-5 text-primary" />
+                                        <div className="w-10 h-10 border border-background/20 flex items-center justify-center bg-primary">
+                                            <Users className="w-5 h-5 text-white" />
                                         </div>
                                         <div>
-                                            <p className="text-xs font-black text-foreground uppercase tracking-widest">Attendance Center</p>
-                                            <p className="text-[10px] text-foreground/60 font-serif italic">Verified via Geofence + Selfie</p>
+                                            <p className="text-sm font-black text-background uppercase tracking-widest">Arvela Ecosystem</p>
+                                            <p className="text-[12px] font-bold text-primary mt-0.5">Rekrutmen • Asesmen • HRIS</p>
                                         </div>
                                     </div>
-                                    <Badge className="bg-foreground text-background rounded-none border-none font-black text-[9px] md:text-[10px] uppercase tracking-widest">LIVE</Badge>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                    <div className="h-20 md:h-24 bg-background border border-border p-3 md:p-4">
-                                        <p className="text-[8px] md:text-[9px] font-black text-foreground/50 uppercase tracking-widest mb-1">Clock In</p>
-                                        <p className="text-xl md:text-2xl font-serif text-foreground tracking-tighter italic">08:02:15</p>
+
+                                <div className="space-y-3 relative">
+                                    {/* Connecting Line */}
+                                    <div className="absolute left-4 top-6 bottom-6 w-px bg-background/20 -z-10 hidden sm:block"></div>
+
+                                    {/* Stage 1 */}
+                                    <div className="bg-background/10 border border-background/20 p-3 flex items-start gap-3 sm:gap-4 cursor-default transition-colors hover:bg-background/20">
+                                        <div className="w-8 h-8 rounded-full border border-background/30 flex items-center justify-center bg-background/20 shrink-0">
+                                            <Briefcase className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <p className="text-sm font-black text-background uppercase tracking-wider">Job Portal & ATS</p>
+                                                <Badge className="bg-background/20 text-background/70 border-none text-[9px] rounded-none uppercase tracking-widest hidden sm:inline-flex">Filter Otomatis</Badge>
+                                            </div>
+                                            <p className="text-xs text-background/80 leading-relaxed">
+                                                Dian melamar posisi <strong className="text-white font-black underline decoration-primary decoration-2 underline-offset-2">Frontend Developer</strong> via portal karier.
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="h-20 md:h-24 bg-background border border-border p-3 md:p-4">
-                                        <p className="text-[8px] md:text-[9px] font-black text-foreground/50 uppercase tracking-widest mb-1">Status</p>
-                                        <p className="text-xs md:text-sm font-black text-primary">Terdaftar Aktif</p>
+
+                                    {/* Stage 2 */}
+                                    <div className="bg-background/10 border border-background/20 p-3 flex items-start gap-3 sm:gap-4 cursor-default border-l-2 border-l-primary transition-colors hover:bg-background/20">
+                                        <div className="w-8 h-8 rounded-full border border-background/30 flex items-center justify-center bg-primary shrink-0 shadow-[0_0_10px_rgba(238,117,34,0.3)]">
+                                            <ClipboardCheck className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <p className="text-sm font-black text-background uppercase tracking-wider">Asesmen Kandidat</p>
+                                                <Badge className="bg-primary text-white border-none text-[9px] rounded-none uppercase tracking-widest hidden sm:inline-flex">Skor: 92/100</Badge>
+                                            </div>
+                                            <p className="text-xs text-background/80 leading-relaxed">
+                                                Kandidat menyelesaikan <strong className="text-white font-black underline decoration-primary decoration-2 underline-offset-2">Online Test & Interview</strong>.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Stage 3 */}
+                                    <div className="bg-background/5 border border-background/10 p-3 flex items-start gap-3 sm:gap-4 cursor-default opacity-80 hover:opacity-100 transition-colors">
+                                        <div className="w-8 h-8 rounded-full border border-background/30 flex items-center justify-center bg-background/20 shrink-0">
+                                            <FileSignature className="w-4 h-4 text-white/70" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <p className="text-sm font-black text-background uppercase tracking-wider">Core HRIS</p>
+                                                <Badge className="bg-background/20 text-background/70 border-none text-[9px] rounded-none uppercase tracking-widest hidden sm:inline-flex">Hired</Badge>
+                                            </div>
+                                            <p className="text-xs text-background/80 leading-relaxed">
+                                                Data otomatis terhubung ke <strong className="text-white font-black underline decoration-primary decoration-2 underline-offset-2">Onboarding & Operasional Karyawan</strong>.
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -231,9 +273,10 @@ export default function LandingPage() {
                         <div className="relative w-full h-64 md:h-80 border-2 border-foreground bg-foreground p-2 shadow-[8px_8px_0px_0px_rgba(238,117,34,1)] group">
                             <div className="absolute inset-0 border-2 border-background z-10 pointer-events-none opacity-20 group-hover:opacity-100 transition-opacity m-4 mix-blend-difference" />
                             <Image
-                                src="/images/hardware_ecosystem.png"
-                                alt="Disconnected legacy systems illustration"
+                                src="https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?auto=format&fit=crop&q=80&w=800"
+                                alt="Stressed HR worker overwhelmed by administrative tasks"
                                 fill
+                                sizes="(max-width: 768px) 100vw, 50vw"
                                 className="object-cover opacity-80 mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-500 grayscale group-hover:grayscale-0"
                             />
                         </div>
@@ -304,7 +347,7 @@ export default function LandingPage() {
                                 </p>
                             </div>
                         </div>
-                        
+
                         {/* Visual Connector / CTA to the Bridge */}
                         <a href="#modul" className="border-2 border-primary bg-primary p-8 flex flex-col justify-center items-center text-center group hover:bg-background hover:border-foreground transition-colors cursor-pointer">
                             <div className="w-16 h-16 border-2 border-foreground bg-background mb-4 flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(14,13,10,1)]">
@@ -342,7 +385,7 @@ export default function LandingPage() {
                     <div className="text-center mb-16 md:mb-24">
                         <span className="text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-4 block">Modul & Fitur Inti</span>
                         <h2 className="text-5xl md:text-7xl font-black text-foreground leading-[0.9] tracking-tighter mb-8">
-                            Tiga Modul. <br className="hidden md:block"/> <span className="font-serif italic text-primary">Satu Ekosistem.</span>
+                            Tiga Modul. <br className="hidden md:block" /> <span className="font-serif italic text-primary">Satu Ekosistem.</span>
                         </h2>
                         <p className="text-foreground/70 font-medium max-w-2xl mx-auto text-base md:text-lg">
                             Mulai dari memposting lowongan, menguji kandidat dengan proctoring AI, hingga memantau absen dan performa harian. Arvela memutus rantai administrasi HR yang berbelit.
@@ -374,17 +417,25 @@ export default function LandingPage() {
                         </div>
 
                         {/* Card 2: Assessment */}
-                        <div className="border-2 border-border bg-background p-8 flex flex-col group hover:border-foreground transition-colors">
+                        <div className="border-2 border-border bg-background p-8 flex flex-col group hover:border-foreground transition-colors shadow-sm hover:shadow-[6px_6px_0px_0px_rgba(14,13,10,1)]">
                             <div className="flex justify-between items-start mb-8">
                                 <div className="w-12 h-12 border border-border flex items-center justify-center text-foreground group-hover:border-primary group-hover:text-primary transition-colors">
-                                    <MonitorPlay className="w-6 h-6" />
+                                    <ClipboardCheck className="w-6 h-6" />
                                 </div>
                                 <span className="border border-foreground text-foreground text-[8px] font-black uppercase tracking-widest px-2 py-1">Asesmen</span>
                             </div>
-                            <h4 className="text-2xl font-black text-foreground mb-4 tracking-tighter uppercase">AI Proctoring</h4>
-                            <p className="text-foreground/80 text-base font-medium leading-relaxed flex-grow">
-                                Uji kandidat dengan tes kustom (PG/Essay). Dilengkapi sistem deteksi joki kamera dan penilaian skor instan.
+                            <h4 className="text-2xl font-black text-foreground mb-4 tracking-tighter uppercase leading-tight">6+ Tipe Soal & <br/>AI Proctoring</h4>
+                            <p className="text-foreground/80 text-sm font-medium leading-relaxed flex-grow mb-6">
+                                Lebih dari sekadar Pilihan Ganda & Esai. Rancang tes interaktif dengan <strong className="text-foreground font-bold">Input Numerik, Matrix/Skala Likert, Ranking,</strong> hingga simulasi <strong className="font-serif italic text-primary">Game-based Task</strong>.
                             </p>
+                            <div className="pt-5 border-t border-border mt-auto">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">Keamanan Anti Joki:</p>
+                                <div className="flex flex-wrap gap-2">
+                                    <span className="text-[9px] bg-slate-100 px-2 py-1 border border-border text-foreground font-bold uppercase tracking-wider">Live Face AI</span>
+                                    <span className="text-[9px] bg-slate-100 px-2 py-1 border border-border text-foreground font-bold uppercase tracking-wider">Audio Radar</span>
+                                    <span className="text-[9px] bg-slate-100 px-2 py-1 border border-border text-foreground font-bold uppercase tracking-wider">No Alt-Tab</span>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Card 3: Transition / Onboarding */}
@@ -459,7 +510,7 @@ export default function LandingPage() {
                             </span>
                             <span className="text-[11px] font-black uppercase tracking-widest">12 dari 20 Kuota Pilot Terisi</span>
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-serif text-foreground mb-6 tracking-tighter italic text-center leading-[1.1]">Ekosistem Terintegrasi.<br className="hidden md:block"/> Harga Terjangkau.</h2>
+                        <h2 className="text-4xl md:text-5xl font-serif text-foreground mb-6 tracking-tighter italic text-center leading-[1.1]">Ekosistem Terintegrasi.<br className="hidden md:block" /> Harga Terjangkau.</h2>
                         <p className="text-foreground/70 font-medium text-base md:text-lg max-w-3xl mx-auto">
                             Job Portal, Asesmen, dan HRIS kini menyatu tanpa batasan data. Akses CV kandidat 100% transparan tanpa biaya <em>"unlock"</em> tersembunyi.
                         </p>

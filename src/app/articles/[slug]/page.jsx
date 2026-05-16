@@ -20,11 +20,31 @@ export async function generateMetadata({ params }) {
 
     if (!article) return getMetadata({ title: 'Artikel Tidak Ditemukan' })
 
-    return getMetadata({
-        title: article.meta_title || article.title,
-        description: article.meta_description || 'Baca artikel selengkapnya di Arvela Articles.',
-        keywords: article.keywords ? article.keywords.join(', ') : '',
-    })
+    const metaTitle = article.meta_title || `${article.title} | Arvela HR Blog`
+    const metaDesc = article.meta_description || `Panduan dan wawasan lengkap tentang ${article.title}. Pelajari praktik terbaik HR, rekrutmen, dan manajemen talenta bersama Arvela.`
+    const keywords = article.keywords ? article.keywords.join(', ') : 'HRIS, Artikel HR, Panduan HR, Manajemen Talenta, Rekrutmen'
+
+    return {
+        title: metaTitle,
+        description: metaDesc,
+        keywords: keywords,
+        openGraph: {
+            title: metaTitle,
+            description: metaDesc,
+            type: 'article',
+            url: `https://arvela.id/articles/${slug}`,
+            siteName: 'Arvela HR',
+            authors: ['Arvela Team'],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: metaTitle,
+            description: metaDesc,
+        },
+        alternates: {
+            canonical: `https://arvela.id/articles/${slug}`
+        }
+    }
 }
 
 export const revalidate = 60
@@ -77,8 +97,12 @@ export default async function ArticleDetailPage({ params }) {
                                 "name": "Arvela",
                                 "logo": {
                                     "@type": "ImageObject",
-                                    "url": `${process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'}/arvela-logo.png`
+                                    "url": `https://arvela.id/icon.png`
                                 }
+                            },
+                            "mainEntityOfPage": {
+                                "@type": "WebPage",
+                                "@id": `https://arvela.id/articles/${slug}`
                             }
                         })
                     }}
@@ -93,8 +117,8 @@ export default async function ArticleDetailPage({ params }) {
                         <span className="text-primary text-[10px] font-black uppercase tracking-[0.2em] bg-background border-2 border-primary px-3 py-1 shadow-[2px_2px_0px_0px_rgba(238,117,34,1)]">
                             {article.category || 'Research & Guide'}
                         </span>
-                        <div className="flex items-center text-xs font-bold text-foreground/50 gap-1.5 font-serif italic">
-                            <Calendar className="w-3.5 h-3.5" />
+                        <div className="flex items-center text-sm font-bold text-foreground/70 gap-2 font-serif italic">
+                            <Calendar className="w-4 h-4" />
                             {new Date(article.published_at).toLocaleDateString('id-ID', {
                                 day: 'numeric', month: 'long', year: 'numeric'
                             })}
@@ -111,8 +135,8 @@ export default async function ArticleDetailPage({ params }) {
                                 <UserCircle className="w-6 h-6 text-primary" />
                             </div>
                             <div>
-                                <p className="text-[10px] uppercase font-black tracking-widest text-foreground/50 mb-0.5">Author</p>
-                                <p className="text-sm font-bold text-foreground font-serif italic">"{article.author_name || article.profiles?.full_name || 'Tim Arvela'}"</p>
+                                <p className="text-xs uppercase font-black tracking-widest text-foreground/50 mb-1">Author</p>
+                                <p className="text-lg font-bold text-foreground font-serif italic">"{article.author_name || article.profiles?.full_name || 'Tim Arvela'}"</p>
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
@@ -123,15 +147,16 @@ export default async function ArticleDetailPage({ params }) {
                     </div>
                 </header>
 
-                <div className="prose prose-slate prose-lg md:prose-xl max-w-none 
-                    prose-headings:font-black prose-headings:tracking-tight prose-headings:text-foreground prose-headings:uppercase
-                    prose-a:text-primary prose-a:font-bold prose-a:no-underline hover:prose-a:underline
-                    prose-p:text-foreground/80 prose-p:leading-relaxed prose-p:font-medium prose-p:font-sans
+                <div className="prose prose-slate md:prose-lg max-w-[720px] mx-auto 
+                    prose-headings:font-black prose-headings:tracking-tight prose-headings:text-foreground prose-headings:mb-4 prose-headings:mt-10
+                    prose-h2:text-3xl prose-h3:text-2xl
+                    prose-a:text-primary prose-a:font-bold prose-a:underline hover:prose-a:text-foreground
+                    prose-p:text-foreground/80 prose-p:leading-[1.8] prose-p:font-medium prose-p:mb-6
                     prose-strong:text-foreground prose-strong:font-black
-                    prose-li:text-foreground/80
-                    text-[17px] md:text-[19px] whitespace-pre-wrap">
-                    {article.content}
-                </div>
+                    prose-li:text-foreground/80 prose-li:leading-[1.8] prose-ul:mb-6
+                    text-lg"
+                    dangerouslySetInnerHTML={{ __html: article.content }}
+                />
 
                 <div className="mt-24">
                     <div className="bg-primary text-foreground border-2 border-foreground p-8 md:p-12 text-center relative overflow-hidden flex flex-col items-center shadow-[12px_12px_0px_0px_rgba(14,13,10,1)]">

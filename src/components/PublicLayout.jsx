@@ -17,8 +17,8 @@ export function PublicNavbar() {
 
     const navLinks = [
         { href: '/#modul', label: 'Solusi' },
-        { href: '/about', label: 'Company Profile' },
-        { href: '/articles', label: 'Articles' },
+        { href: '/about', label: 'Profil Perusahaan' },
+        { href: '/articles', label: 'Artikel' },
         { href: '/#bandingkan', label: 'Perbandingan' },
         { href: '/#harga', label: 'Harga' },
     ]
@@ -105,7 +105,7 @@ export function PublicFooter() {
                 <div>
                     <p className="text-foreground font-black text-[11px] mb-6 uppercase tracking-[0.2em]">Navigasi & Legal</p>
                     <div className="space-y-4">
-                        <Link href="/about" className="text-foreground/70 hover:text-primary text-sm font-bold block transition-colors">Company Profile & Pitch</Link>
+                        <Link href="/about" className="text-foreground/70 hover:text-primary text-sm font-bold block transition-colors">Profil Perusahaan</Link>
                         <Link href="/careers" className="text-foreground/70 hover:text-primary text-sm font-bold block transition-colors">
                             Portal Pelamar / Kandidat
                         </Link>
