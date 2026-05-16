@@ -48,8 +48,8 @@ export const SEO_CONFIG = {
         cardType: 'summary_large_image',
     },
     icons: {
-        icon: '/arvela-logo.png',
-        apple: '/arvela-logo.png',
+        icon: '/icon.svg',
+        apple: '/icon.svg',
     }
 };
 
