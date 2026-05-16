@@ -1,6 +1,7 @@
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
 import { LogOut, Briefcase, ChevronRight, Building2, MapPin, Clock, ClipboardCheck, ArrowRight, LayoutDashboard, Search, Bell } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatDistanceToNow } from 'date-fns'
@@ -8,7 +9,15 @@ import { id as localeID } from 'date-fns/locale'
 import { STAGE_CONFIG } from '@/lib/constants/stages'
 import JobBoardUI from './JobBoardUI'
 
-export const metadata = { title: 'Portal Karir — Arvela' }
+export const metadata = { 
+    title: 'Portal Karir — Arvela',
+    description: 'Temukan ratusan lowongan kerja terbaik dari berbagai perusahaan top. Lamar posisi idaman Anda dalam hitungan menit di Arvela Career.',
+    openGraph: {
+        title: 'Arvela Career: Portal Lowongan Pekerjaan Modern',
+        description: 'Peluang karir terbaik dari perusahaan inovatif, langsung di ujung jari Anda.',
+        type: 'website'
+    }
+}
 export const dynamic = 'force-dynamic'
 
 export default async function CandidatePortalPage({ searchParams }) {
@@ -30,7 +39,7 @@ export default async function CandidatePortalPage({ searchParams }) {
     let assignments = []
 
     let isStaffOrAdmin = false
-    let autoRedirectPath = '/portal'
+    let autoRedirectPath = '/careers'
     let staffLabel = 'Portal Staff'
     let roleName = 'Kandidat Terverifikasi'
 
@@ -88,14 +97,25 @@ export default async function CandidatePortalPage({ searchParams }) {
         }
     }
 
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        itemListElement: (allJobs || []).slice(0, 15).map((job, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            url: `https://arvela.id/${job.companies?.slug}/${job.slug}`
+        }))
+    }
+
     return (
         <div className="min-h-screen bg-[#F8FAFC]">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
             {/* Main Navbar */}
             <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between gap-8">
-                    <Link href="/portal" className="flex items-center gap-3 shrink-0">
-                        <div className="w-10 h-10 overflow-hidden flex items-center justify-center shrink-0">
-                            <img src="/arvela-logo.png" alt="Arvela" className="w-full h-full object-contain" />
+                    <Link href="/careers" className="flex items-center gap-3 shrink-0">
+                        <div className="w-10 h-10 overflow-hidden flex items-center justify-center shrink-0 relative">
+                            <Image src="/icon.svg" alt="Arvela Catalyst" fill sizes="40px" className="object-contain" />
                         </div>
                         <div className="hidden md:flex flex-col">
                             <span className="font-extrabold text-xl tracking-tight text-slate-900 leading-none">
@@ -108,16 +128,23 @@ export default async function CandidatePortalPage({ searchParams }) {
                     {/* Navigation Desktop */}
                     <nav className="hidden md:flex items-center gap-1 flex-1">
                         <Link
-                            href="/portal?view=jobs"
+                            href="/careers?view=jobs"
                             className={`px-4 py-2 font-bold text-sm rounded-lg transition-all ${view === 'jobs' ? 'bg-brand-50 text-primary' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
                         >
                             Jelajahi Lowongan
                         </Link>
                         <Link
-                            href="/portal?view=apps"
+                            href="/careers?view=apps"
                             className={`px-4 py-2 font-bold text-sm rounded-lg transition-all ${view === 'apps' ? 'bg-brand-50 text-primary' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
                         >
                             {user ? 'Aktivitas Saya' : 'Status Lamaran'}
+                        </Link>
+                        <div className="w-px h-4 bg-slate-200 mx-2" />
+                        <Link
+                            href="/"
+                            className="px-4 py-2 font-bold text-sm rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all flex items-center gap-1.5"
+                        >
+                            <Building2 className="w-3.5 h-3.5" /> Web Utama
                         </Link>
                     </nav>
 
@@ -136,7 +163,7 @@ export default async function CandidatePortalPage({ searchParams }) {
                                     <span className="text-[10px] font-medium text-slate-400">{roleName}</span>
                                 </div>
                                 <div className="h-10 w-px bg-slate-100 mx-1 hidden sm:block" />
-                                <form action="/portal/auth/logout" method="POST">
+                                <form action="/careers/auth/logout" method="POST">
                                     <button type="submit" className="text-sm font-bold text-slate-600 hover:text-destructive px-4 py-2 rounded-lg transition-all border border-slate-200 hover:border-destructive/20 hover:bg-destructive/5">
                                         Log Out
                                     </button>
@@ -144,12 +171,12 @@ export default async function CandidatePortalPage({ searchParams }) {
                             </div>
                         ) : (
                             <div className="flex items-center gap-2">
-                                <Link href="/portal/login">
+                                <Link href="/careers/login">
                                     <Button variant="ghost" className="rounded-lg h-10 px-4 font-bold text-slate-600">
                                         Masuk
                                     </Button>
                                 </Link>
-                                <Link href="/portal/login">
+                                <Link href="/careers/login">
                                     <Button className="rounded-lg h-10 px-6 font-bold bg-primary hover:bg-brand-600 text-white shadow-md shadow-primary/10">
                                         Daftar
                                     </Button>
@@ -162,16 +189,22 @@ export default async function CandidatePortalPage({ searchParams }) {
                 {/* Mobile Navigation (Bottom of Header) */}
                 <div className="md:hidden border-t border-slate-100 px-4 flex">
                     <Link
-                        href="/portal?view=jobs"
-                        className={`flex-1 text-center py-4 text-xs font-bold transition-all border-b-2 ${view === 'jobs' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
+                        href="/careers?view=jobs"
+                        className={`flex-1 text-center py-4 text-[11px] sm:text-xs font-bold transition-all border-b-2 ${view === 'jobs' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
                     >
-                        Jelajahi Lowongan
+                        Lowongan
                     </Link>
                     <Link
-                        href="/portal?view=apps"
-                        className={`flex-1 text-center py-4 text-xs font-bold transition-all border-b-2 ${view === 'apps' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
+                        href="/careers?view=apps"
+                        className={`flex-1 text-center py-4 text-[11px] sm:text-xs font-bold transition-all border-b-2 ${view === 'apps' ? 'border-primary text-primary' : 'border-transparent text-slate-500'}`}
                     >
-                        {user ? 'Aktivitas Saya' : 'Status'}
+                        {user ? 'Aktivitas' : 'Status'}
+                    </Link>
+                    <Link
+                        href="/"
+                        className="flex-1 text-center py-4 text-[11px] sm:text-xs font-bold transition-all border-b-2 border-transparent text-slate-500 flex items-center justify-center gap-1.5"
+                    >
+                        Web Utama
                     </Link>
                 </div>
             </header>
@@ -180,28 +213,37 @@ export default async function CandidatePortalPage({ searchParams }) {
                 {view === 'jobs' ? (
                     <>
                         {/* Hero Section */}
-                        <div className="bg-white border-b border-slate-100 py-20 sm:py-32 mb-10">
-                            <div className="max-w-6xl mx-auto px-4 text-center">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-50 text-primary rounded-full text-[10px] font-bold uppercase tracking-wider mb-6">
+                        <div className="relative border-b border-slate-100 py-24 sm:py-36 mb-10 overflow-hidden">
+                            <div className="absolute inset-0">
+                                <Image src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1920&q=80" alt="Office Background" fill sizes="100vw" priority className="object-cover opacity-30" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#F8FAFC] via-white/60 to-white/80 backdrop-blur-[1px]" />
+                            </div>
+                            <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-50 border border-brand-100 text-primary rounded-full text-[10px] font-bold uppercase tracking-wider mb-6 shadow-sm">
                                     Peluang Baru Setiap Hari
                                 </div>
                                 <h1 className="text-4xl sm:text-7xl font-extrabold text-slate-900 tracking-tight leading-[1] mb-8">
                                     Awali Karir <span className="text-primary italic">Impian</span> Anda <br className="hidden sm:block" /> di Arvela Career.
                                 </h1>
-                                <p className="text-slate-500 font-medium text-base sm:text-lg max-w-2xl mx-auto leading-relaxed mb-10">
+                                <p className="text-slate-600 font-medium text-base sm:text-lg max-w-2xl mx-auto leading-relaxed mb-10">
                                     Kami menghubungkan profesional berbakat dengan perusahaan inovatif.
                                     Lamar pekerjaan dalam hitungan menit dan pantau setiap prosesnya.
                                 </p>
                                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                    <div className="flex -space-x-3 overflow-hidden">
+                                    <div className="flex -space-x-3 overflow-hidden shadow-sm rounded-full bg-white p-1 pr-4 border border-slate-100">
                                         {[1, 2, 3, 4].map(i => (
-                                            <img key={i} src={`https://i.pravatar.cc/100?u=arvela-${i}`} className="inline-block h-10 w-10 rounded-full ring-4 ring-white" alt="Avatar" />
+                                            <div key={i} className="inline-block h-10 w-10 rounded-full ring-2 ring-white relative overflow-hidden">
+                                                <Image src={`https://i.pravatar.cc/100?u=arvela-${i}`} fill sizes="40px" className="object-cover" alt="Avatar" />
+                                            </div>
                                         ))}
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 ring-4 ring-white text-[10px] font-bold text-slate-500">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 ring-2 ring-white text-[10px] font-bold text-slate-500">
                                             +2k
                                         </div>
+                                        <p className="text-xs font-bold text-slate-600 ml-4 self-center hidden sm:block">
+                                            Bergabung dengan ribuan pelamar sukses
+                                        </p>
                                     </div>
-                                    <p className="text-sm font-semibold text-slate-600">
+                                    <p className="text-xs font-bold text-slate-600 sm:hidden">
                                         Bergabung dengan ribuan pelamar sukses
                                     </p>
                                 </div>
@@ -223,7 +265,7 @@ export default async function CandidatePortalPage({ searchParams }) {
                                         Login untuk memonitor progres lamaran, mengerjakan tes online, dan menerima undangan interview.
                                     </p>
                                 </div>
-                                <Link href="/portal/login" className="block">
+                                <Link href="/careers/login" className="block">
                                     <Button className="w-full h-14 rounded-xl font-bold bg-primary hover:bg-brand-600 text-white text-base shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95">
                                         Masuk ke Portal Kandidat
                                     </Button>
@@ -331,7 +373,7 @@ export default async function CandidatePortalPage({ searchParams }) {
                                             </div>
                                             <h3 className="text-xl font-bold text-slate-900 mb-2">Riwayat kosong</h3>
                                             <p className="text-slate-500 font-medium max-w-sm mx-auto mb-10">Anda belum memiliki riwayat lamaran. Yuk, mulai cari karir impianmu hari ini!</p>
-                                            <Link href="/portal?view=jobs">
+                                            <Link href="/careers?view=jobs">
                                                 <Button size="lg" className="rounded-xl font-bold h-12 px-8 bg-primary hover:bg-brand-600 text-white shadow-xl shadow-primary/20">Cari Lowongan Sekarang</Button>
                                             </Link>
                                         </div>

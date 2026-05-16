@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Briefcase, Clock, Building2, ArrowLeft, Globe, CalendarDays, Share2, Banknote } from 'lucide-react'
+import Image from 'next/image'
 
 export async function generateMetadata({ params }) {
     const { 'company-slug': companySlug, 'job-slug': jobSlug } = await params
@@ -16,10 +17,47 @@ export async function generateMetadata({ params }) {
         .eq('companies.slug', companySlug)
         .single()
 
-    if (!job) return { title: 'Lowongan Kerja' }
+    if (!job) return { title: 'Lowongan Kerja Tidak Ditemukan' }
+    
+    // Generate clean meta description from actual job content
+    const baseDesc = job.description || `Lamar posisi ${job.title} di ${job.companies.name}. Temukan rincian gaji, kualifikasi, dan benefit lainnya.`
+    const cleanDesc = baseDesc.replace(/[\r\n]+/g, ' ').substring(0, 155).trim() + '...'
+    
+    const keywords = [
+        job.title, 
+        job.companies.name, 
+        "Lowongan Kerja", 
+        "Karir", 
+        job.location || "Remote",
+        "Arvela"
+    ].join(', ')
+
     return {
-        title: `${job.title} — ${job.companies.name}`,
-        description: `Lamar posisi ${job.title} di ${job.companies.name}.`,
+        title: `${job.title} di ${job.companies.name} — Arvela Career`,
+        description: cleanDesc,
+        keywords: keywords,
+        alternates: {
+            canonical: `https://arvela.id/${companySlug}/${jobSlug}`
+        },
+        openGraph: {
+            title: `${job.title} di ${job.companies.name} — Arvela Career`,
+            description: cleanDesc,
+            type: 'article',
+            url: `https://arvela.id/${companySlug}/${jobSlug}`,
+            siteName: 'Arvela Career',
+            images: job.companies.logo_url ? [{
+                url: job.companies.logo_url,
+                width: 400,
+                height: 400,
+                alt: `Logo ${job.companies.name}`
+            }] : []
+        },
+        twitter: {
+            card: 'summary',
+            title: `${job.title} di ${job.companies.name}`,
+            description: cleanDesc,
+            images: job.companies.logo_url ? [job.companies.logo_url] : []
+        }
     }
 }
 
@@ -45,13 +83,72 @@ export default async function JobDetailPage({ params }) {
 
     if (!job || job.companies.slug !== companySlug) notFound()
 
+    // Generate valid ISO8601 string for deadlines / posted dates
+    const postedDate = job.published_at || new Date().toISOString()
+    const deadlineDate = job.deadline || new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString()
+
+    // Google Jobs REQUIRES description to be in HTML format
+    const htmlDescription = `
+        <p><strong>Deskripsi Pekerjaan:</strong></p>
+        <p>${(job.description || job.title).replace(/\n/g, '<br/>')}</p>
+        ${job.requirements ? `
+            <p><strong>Persyaratan & Kualifikasi:</strong></p>
+            <p>${job.requirements.replace(/\n/g, '<br/>')}</p>
+        ` : ''}
+    `
+
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'JobPosting',
+        title: job.title,
+        description: htmlDescription,
+        identifier: {
+            '@type': 'PropertyValue',
+            name: job.companies.name,
+            value: job.id
+        },
+        datePosted: postedDate,
+        validThrough: deadlineDate,
+        employmentType: job.employment_type === 'fulltime' ? 'FULL_TIME' : job.employment_type === 'parttime' ? 'PART_TIME' : job.employment_type === 'contract' ? 'CONTRACT' : 'INTERN',
+        hiringOrganization: {
+            '@type': 'Organization',
+            name: job.companies.name,
+            sameAs: job.companies.website || `https://arvela.id/${companySlug}`,
+            logo: job.companies.logo_url || 'https://arvela.id/icon.svg'
+        },
+        jobLocation: {
+            '@type': 'Place',
+            address: {
+                '@type': 'PostalAddress',
+                addressLocality: job.location || 'Remote',
+                addressCountry: 'ID'
+            }
+        },
+        jobLocationType: job.work_type === 'remote' ? 'TELECOMMUTE' : undefined
+    }
+
+    if (job.show_salary && job.salary_min) {
+        jsonLd.baseSalary = {
+            '@type': 'MonetaryAmount',
+            currency: job.salary_currency || 'IDR',
+            value: {
+                '@type': 'QuantitativeValue',
+                value: job.salary_min,
+                minValue: job.salary_min,
+                maxValue: job.salary_max || job.salary_min,
+                unitText: 'MONTH'
+            }
+        }
+    }
+
     return (
-        <div className="min-h-screen bg-[#F8FAFC]">
+        <article className="min-h-screen bg-[#F8FAFC]">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
             {/* Header / Nav */}
             <div className="bg-white border-b border-slate-200 sticky top-0 z-50">
                 <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
                     <Link
-                        href="/portal"
+                        href="/careers"
                         className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors"
                     >
                         <ArrowLeft className="w-4 h-4" />
@@ -70,11 +167,11 @@ export default async function JobDetailPage({ params }) {
                 <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-10 mb-8 shadow-sm">
                     <div className="flex flex-col md:flex-row md:items-center gap-6 justify-between">
                         <div className="flex items-center gap-5">
-                            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white border border-slate-100 rounded-xl flex items-center justify-center shadow-sm overflow-hidden shrink-0">
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white border border-slate-100 rounded-xl flex items-center justify-center shadow-sm overflow-hidden shrink-0 relative">
                                 {job.companies?.logo_url ? (
-                                    <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-cover" />
+                                    <Image src={job.companies.logo_url} alt={job.companies.name} fill sizes="80px" className="object-contain p-2" />
                                 ) : (
-                                    <Building2 className="w-10 h-10 text-slate-200" />
+                                    <Building2 className="w-10 h-10 text-slate-200 relative z-10" />
                                 )}
                             </div>
                             <div>
@@ -177,9 +274,11 @@ export default async function JobDetailPage({ params }) {
                             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Tentang Perusahaan</h3>
                             <div className="flex items-center gap-4 mb-6">
                                 {job.companies.logo_url ? (
-                                    <img src={job.companies.logo_url} alt={job.companies.name} className="w-12 h-12 rounded-lg object-cover border border-slate-100" />
+                                    <div className="w-12 h-12 rounded-lg border border-slate-100 relative overflow-hidden shrink-0">
+                                        <Image src={job.companies.logo_url} alt={job.companies.name} fill sizes="48px" className="object-contain p-1" />
+                                    </div>
                                 ) : (
-                                    <div className="w-12 h-12 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
+                                    <div className="w-12 h-12 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100 shrink-0">
                                         <Building2 className="w-6 h-6 text-slate-300" />
                                     </div>
                                 )}
@@ -209,6 +308,6 @@ export default async function JobDetailPage({ params }) {
                     </aside>
                 </div>
             </div>
-        </div>
+        </article>
     )
 }

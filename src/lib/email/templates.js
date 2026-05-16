@@ -17,7 +17,7 @@ const layout = (content) => `
 `
 
 export function getAppliedTemplate({ candidateName, jobTitle, companyName, portalUrl }) {
-  const fallbackUrl = portalUrl || 'https://arvela.id/portal/login'
+  const fallbackUrl = portalUrl || 'https://arvela.id/careers/login'
   return layout(`
     <div style="text-align: center; margin-bottom: 30px;">
       <div style="display: inline-block; background-color: #e0e7ff; padding: 15px; rounded: 50%; margin-bottom: 20px;">
@@ -92,7 +92,7 @@ export function getStageUpdateTemplate({ candidateName, jobTitle, companyName, t
 
   const customMessage = message ? `<div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${BRAND_COLOR}; font-style: italic;">"${message}"</div>` : ''
 
-  const fallbackUrl = portalUrl || 'https://arvela.id/portal/login'
+  const fallbackUrl = portalUrl || 'https://arvela.id/careers/login'
   const actionButton = toStage !== 'rejected'
     ? `<div style="margin-top: 20px; text-align: center;">
         <div style="margin-bottom: 20px;">

@@ -155,7 +155,7 @@ export async function scheduleInterview(params) {
         if (appData) {
             const displayFormat = (raw_format === 'online_internal' || raw_format === 'online') ? 'online' : 'offline'
             const emailLink = displayFormat === 'online' 
-                ? (jitsi_room_id ? `${process.env.NEXT_PUBLIC_SITE_URL}/portal/interview/${data.id}` : final_link)
+                ? (jitsi_room_id ? `${process.env.NEXT_PUBLIC_SITE_URL}/careers/interview/${data.id}` : final_link)
                 : final_link
 
             await sendEmail({

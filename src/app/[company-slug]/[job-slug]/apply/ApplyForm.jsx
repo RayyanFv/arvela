@@ -143,7 +143,7 @@ export default function ApplyForm({ job, company }) {
                 <div className="bg-brand-50 border border-brand-100 rounded-xl p-4 mb-6 max-w-sm w-full">
                     <h3 className="text-sm font-semibold text-foreground mb-1">Pantau Status Lamaran</h3>
                     <p className="text-xs text-muted-foreground mb-3">Anda dapat terus memeriksa proges rekrutmen tanpa sandi (password) via halaman Portal Kandidat.</p>
-                    <Link href="/portal/login" className={buttonVariants({ variant: 'outline', className: 'w-full h-9 text-xs' })}>
+                    <Link href="/careers/login" className={buttonVariants({ variant: 'outline', className: 'w-full h-9 text-xs' })}>
                         Buka Portal Kandidat
                     </Link>
                 </div>

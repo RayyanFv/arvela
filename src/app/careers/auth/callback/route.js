@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
-    const next = searchParams.get('next') ?? '/portal'
+    const next = searchParams.get('next') ?? '/careers'
 
     if (code) {
         const supabase = await createServerSupabaseClient()
@@ -16,5 +16,5 @@ export async function GET(request) {
     }
 
     // Return to sign in if code exchange fails
-    return NextResponse.redirect(new URL('/portal/login?error=Invalid+magic+link', request.url))
+    return NextResponse.redirect(new URL('/careers/login?error=Invalid+magic+link', request.url))
 }

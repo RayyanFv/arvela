@@ -14,7 +14,7 @@ export default function CopyPortalLinkButton({ email }) {
             const link = await getMagicLink({
                 email,
                 type: 'magiclink',
-                redirectTo: `${window.location.origin}/portal`
+                redirectTo: `${window.location.origin}/careers`
             })
             if (link) {
                 await navigator.clipboard.writeText(link)

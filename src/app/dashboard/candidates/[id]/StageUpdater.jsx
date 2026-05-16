@@ -265,7 +265,7 @@ export default function StageUpdater({ application, userRole }) {
                                         const link = await getMagicLink({
                                             email: application.email,
                                             type: 'magiclink',
-                                            redirectTo: `${window.location.origin}/portal`
+                                            redirectTo: `${window.location.origin}/careers`
                                         })
                                         if (link) {
                                             navigator.clipboard.writeText(link)

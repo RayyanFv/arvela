@@ -74,7 +74,7 @@ export default function LoginPage() {
             } else if (role === ROLES.EMPLOYEE) {
                 router.push('/staff')
             } else {
-                router.push('/portal')
+                router.push('/careers')
             }
             router.refresh()
         }, 800)

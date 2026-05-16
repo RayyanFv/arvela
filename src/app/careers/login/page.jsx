@@ -24,7 +24,7 @@ export default function CandidateLoginPage() {
         const { error: otpError } = await supabase.auth.signInWithOtp({
             email,
             options: {
-                emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/portal/auth/callback`
+                emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/careers/auth/callback`
             }
         })
 
@@ -38,7 +38,7 @@ export default function CandidateLoginPage() {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4">
-            <Link href="/portal" className="mb-8 flex items-center gap-2">
+            <Link href="/careers" className="mb-8 flex items-center gap-2">
                 <div className="w-10 h-10 overflow-hidden flex items-center justify-center">
                     <img src="/arvela-logo.png" alt="Arvela" className="w-full h-full object-contain" />
                 </div>

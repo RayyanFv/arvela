@@ -103,7 +103,7 @@ export async function updateStage(id, stage, customMessage = '') {
                 companyName: app.companies.name,
                 toStage: stage,
                 message: customMessage,
-                portalUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'}/portal/login`
+                portalUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'}/careers/login`
             })
         }).catch(console.error)
     }
@@ -141,7 +141,7 @@ export async function createOfferLetter({ applicationId, salary, startDate, expi
     await admin.from('applications').update({ stage: 'offering' }).eq('id', applicationId).eq('company_id', profile.company_id)
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'
-    const offerUrl = `${siteUrl}/portal/offer`
+    const offerUrl = `${siteUrl}/careers/offer`
 
     await sendEmail({
         to: app.email,
@@ -205,7 +205,7 @@ export async function submitApplication(payload) {
             candidateName: newApp.full_name,
             jobTitle: newApp.jobs.title,
             companyName: newApp.companies.name,
-            portalUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'}/portal`
+            portalUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'}/careers`
         })
     }).catch(console.error)
 

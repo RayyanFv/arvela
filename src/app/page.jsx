@@ -18,8 +18,9 @@ function JsonLd() {
         {
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
-            "name": "Arvela",
-            "operatingSystem": "Web",
+            "name": "Arvela HR",
+            "description": "Platform HRIS dan sistem manajemen rekrutmen terintegrasi nomor 1 di Indonesia. Solusi absensi online, ATS cerdas, manajemen talenta, dan asesmen dalam satu aplikasi HR.",
+            "operatingSystem": "Web, iOS, Android",
             "applicationCategory": "BusinessApplication, HRSoftware",
             "aggregateRating": {
                 "@type": "AggregateRating",
@@ -164,13 +165,13 @@ export default function LandingPage() {
                     <div className="text-center lg:text-left">
                         <div className="inline-flex items-center gap-2.5 bg-background border-2 border-foreground px-4 md:px-5 py-2 mb-8 shadow-[4px_4px_0px_0px_rgba(238,117,34,1)]">
                             <span className="w-2 h-2 bg-primary rounded-full" />
-                            <span className="text-foreground text-[10px] md:text-[11px] font-black uppercase tracking-widest leading-none">Terbuka Untuk Pilot Program</span>
+                            <h2 className="text-foreground text-[10px] md:text-[11px] font-black uppercase tracking-widest leading-none m-0">#1 Manajemen HR & Rekrutmen Terintegrasi</h2>
                         </div>
                         <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-foreground leading-[1] md:leading-[0.95] tracking-tighter mb-6 md:mb-8">
-                            Otomatisasi HR yang<br className="hidden md:block" /> Menghemat <span className="font-serif italic text-primary">Ribuan Jam</span><br className="hidden md:block" /> Kerja.
+                            Otomatisasi HRIS yang<br className="hidden md:block" /> Menghemat <span className="font-serif italic text-primary">Ribuan Jam</span><br className="hidden md:block" /> Kerja Rekrutmen.
                         </h1>
                         <p className="text-foreground/70 text-lg md:text-xl font-medium leading-relaxed mb-8 md:mb-12 max-w-lg mx-auto lg:mx-0">
-                            Tinggalkan tumpukan form kertas dan rekap Excel manual. Mulai dari rekrutmen, onboarding, hingga penilaian performa karyawan—semua terhubung dalam satu sistem yang elegan dan bebas hambatan.
+                            Tinggalkan tumpukan form kertas dan rekap Excel manual. Arvela menghubungkan rekrutmen cerdas (ATS), asesmen kandidat, absensi, hingga manajemen performa dalam satu ekosistem platform HR terintegrasi yang elegan.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                             <a href="#pilot" className="bg-foreground hover:bg-foreground/90 text-background font-black text-base md:text-lg px-8 md:px-10 py-4 md:py-5 border-2 border-foreground rounded-none shadow-[6px_6px_0px_0px_rgba(238,117,34,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(238,117,34,1)] flex items-center gap-3 justify-center">
@@ -321,7 +322,7 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center mb-16">
                         <p className="text-primary text-xs font-black uppercase tracking-widest mb-3">Data & Urgensi</p>
-                        <h2 className="text-3xl md:text-5xl font-serif text-background italic tracking-tighter text-center">Software HRIS & ATS yang paling dicari tim HR Indonesia.</h2>
+                        <h2 className="text-3xl md:text-5xl font-serif text-background italic leading-tight text-center">Software HRIS & ATS yang paling dicari tim HR Indonesia.</h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {STATS.map((s, i) => (

@@ -7,29 +7,29 @@ export const SEO_CONFIG = {
     themeColor: '#FC7E12', // Arvela Orange (Primary)
     colorScheme: 'light',
     title: {
-        default: 'Arvela: HRIS & Talent Management System Terbaik Indonesia',
+        default: 'Arvela: #1 Platform HRIS & Manajemen Rekrutmen Terintegrasi',
         template: '%s | Arvela HR'
     },
-    description: 'Platform HRIS Terintegrasi: ATS, Onboarding, Absensi GPS & OKR. Solusi modern untuk rekrutmen dan manajemen performa karyawan Indonesia.',
+    description: 'Arvela adalah #1 Platform Manajemen HR Terintegrasi di Indonesia. Solusi lengkap HRIS, sistem rekrutmen cerdas, asesmen kandidat, ATS, dan absensi dalam satu ekosistem.',
     keywords: [
+        'HRIS',
         'HRIS Indonesia',
-        'Applicant Tracking System Indonesia',
+        'Sistem Rekrutmen Terintegrasi',
+        'Platform Asesmen Kandidat',
+        'Manajemen HR Terintegrasi',
+        'Sistem HRIS Terbaik',
         'Software Rekrutmen',
-        'ATS Indonesia',
+        'Applicant Tracking System Indonesia',
+        'Manajemen Talenta Terintegrasi',
         'Sistem Absensi Online',
         'Manajemen Performa Karyawan',
-        'OKR Software',
-        'Onboarding Karyawan',
-        'Mekari Talenta Alternative',
-        'Talentics Alternative',
-        'Software HR Modern',
-        'Manajemen Talenta'
+        'Aplikasi HRD Indonesia'
     ],
     author: 'Arvela Team',
     url: 'https://arvela.id',
     og: {
-        title: 'Arvela — Solusi HR & Talent Management Terintegrasi',
-        description: 'Transformasi proses HR Anda dengan Arvela. Satu sistem untuk rekrutmen, absensi, dan pengembangan karyawan.',
+        title: 'Arvela — #1 Platform HRIS & Rekrutmen Terintegrasi',
+        description: 'Transformasi proses HR Anda dengan Arvela. Satu sistem manajemen talenta terintegrasi untuk rekrutmen, asesmen, absensi, hingga pengembangan karyawan.',
         type: 'website',
         locale: 'id_ID',
         siteName: 'Arvela HR',
@@ -38,7 +38,7 @@ export const SEO_CONFIG = {
                 url: '/og-image.png', // User should replace this with actual image
                 width: 1200,
                 height: 630,
-                alt: 'Arvela HRIS & ATS Indonesia'
+                alt: 'Arvela HRIS & Rekrutmen Terintegrasi'
             }
         ]
     },

@@ -57,7 +57,7 @@ export default function CandidateInterviewPage({ params: paramsPromise }) {
                     <p className="text-slate-500 font-medium mb-8 leading-relaxed">
                         Maaf, tautan wawancara ini tidak valid atau sdh kedaluwarsa. Silakan hubungi tim rekrutmen kami.
                     </p>
-                    <Link href="/portal">
+                    <Link href="/careers">
                         <Button className="w-full h-12 rounded-2xl font-black bg-slate-950 hover:bg-slate-800 transition-all">
                             Kembali ke Portal
                         </Button>
@@ -75,7 +75,7 @@ export default function CandidateInterviewPage({ params: paramsPromise }) {
              {/* Simple Header */}
              <div className="h-16 bg-slate-900/50 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-6 shrink-0 z-10">
                 <div className="flex items-center gap-4">
-                    <Link href="/portal">
+                    <Link href="/careers">
                         <div className="bg-white/10 p-2 rounded-xl hover:bg-white/20 transition-all cursor-pointer">
                             <ArrowLeft className="w-5 h-5 text-white" />
                         </div>

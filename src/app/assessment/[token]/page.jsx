@@ -40,7 +40,7 @@ export default async function AssessmentEntryPage({ params }) {
                     <p className="text-slate-500 mb-8 leading-relaxed">
                         Terima kasih, <strong>{assignment.applications?.full_name}</strong>. Kamu sudah menyelesaikan assessment ini. Tim HR akan segera meninjau hasilnya.
                     </p>
-                    <Link href="/portal">
+                    <Link href="/careers">
                         <Button className="w-full h-12 rounded-2xl font-bold bg-slate-900 text-white hover:bg-slate-800 transition-all">Kembali ke Portal</Button>
                     </Link>
                 </div>

@@ -59,7 +59,7 @@ export async function middleware(request) {
     // 1. Dashboard Access Control
     if (path.startsWith('/dashboard')) {
         if (!isAdmin) {
-            url.pathname = isEmployee ? '/staff' : '/portal'
+            url.pathname = isEmployee ? '/staff' : '/careers'
             return NextResponse.redirect(url)
         }
         
@@ -75,17 +75,17 @@ export async function middleware(request) {
     // 2. Staff Access Control
     if (path.startsWith('/staff')) {
         if (!isEmployee && !isAdmin) {
-            url.pathname = '/portal'
+            url.pathname = '/careers'
             return NextResponse.redirect(url)
         }
     }
 
     // 3. Auth Page Redirection
-    if (path === '/login' || path === '/portal/login') {
+    if (path === '/login' || path === '/careers/login') {
         if (user) {
             if (isAdmin) url.pathname = '/dashboard'
             else if (isEmployee) url.pathname = '/staff'
-            else url.pathname = '/portal'
+            else url.pathname = '/careers'
             return NextResponse.redirect(url)
         }
     }

@@ -468,7 +468,7 @@ export default function AssessmentInterface({ assignment, test, questions, candi
                 <p className="text-sm text-slate-500 mb-8 leading-relaxed">
                     Maaf, test ini belum memiliki pertanyaan. Harap hubungi Tim HR untuk informasi lebih lanjut.
                 </p>
-                <Link href="/portal">
+                <Link href="/careers">
                     <Button variant="outline" className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest">Kembali ke Portal</Button>
                 </Link>
             </div>

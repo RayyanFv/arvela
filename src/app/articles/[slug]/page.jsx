@@ -149,7 +149,7 @@ export default async function ArticleDetailPage({ params }) {
                                 <a href="https://wa.me/6285727627146" target="_blank" rel="noopener noreferrer" className="bg-background text-foreground font-black px-8 py-4 border-2 border-foreground shadow-[4px_4px_0px_0px_rgba(250,247,241,1)] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(250,247,241,1)] w-full sm:w-auto uppercase tracking-widest text-sm">
                                     Coba Arvela Sekarang
                                 </a>
-                                <Link href="/portal/login" className="bg-transparent text-foreground font-black px-8 py-4 transition-all border-2 border-foreground w-full sm:w-auto uppercase tracking-widest text-sm hover:bg-foreground hover:text-background">
+                                <Link href="/careers/login" className="bg-transparent text-foreground font-black px-8 py-4 transition-all border-2 border-foreground w-full sm:w-auto uppercase tracking-widest text-sm hover:bg-foreground hover:text-background">
                                     Login Portal
                                 </Link>
                             </div>
