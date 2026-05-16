@@ -339,12 +339,12 @@ export default function LandingPage() {
             <section id="modul" className="py-24 md:py-32 bg-background">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center mb-16 md:mb-24">
-                        <span className="text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-4 block">Satu Flow. Tanpa Data Terputus.</span>
+                        <span className="text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-4 block">Modul & Fitur Inti</span>
                         <h2 className="text-5xl md:text-7xl font-black text-foreground leading-[0.9] tracking-tighter mb-8">
-                            The Arvela <span className="font-serif italic text-primary">Bridge.</span>
+                            Tiga Modul. <br className="hidden md:block"/> <span className="font-serif italic text-primary">Satu Ekosistem.</span>
                         </h2>
                         <p className="text-foreground/70 font-medium max-w-2xl mx-auto text-base md:text-lg">
-                            Seluruh perjalanan talenta Anda berada dalam satu sistem yang tersinkronasi. Tanpa klik berlebih, tanpa rekap ulang.
+                            Mulai dari memposting lowongan, menguji kandidat dengan proctoring AI, hingga memantau absen dan performa harian. Arvela memutus rantai administrasi HR yang berbelit.
                         </p>
                     </div>
 
@@ -359,68 +359,86 @@ export default function LandingPage() {
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-foreground to-transparent" />
                             <div className="relative z-10 flex flex-col h-full">
-                                <div className="w-12 h-12 border border-primary/50 bg-background/10 backdrop-blur-sm flex items-center justify-center mb-8 text-primary">
-                                    <Mail className="w-6 h-6" />
+                                <div className="flex justify-between items-start mb-8">
+                                    <div className="w-12 h-12 border border-primary/50 bg-background/10 backdrop-blur-sm flex items-center justify-center text-primary">
+                                        <Briefcase className="w-6 h-6" />
+                                    </div>
+                                    <span className="bg-primary text-background text-[8px] font-black uppercase tracking-widest px-2 py-1">Job Portal</span>
                                 </div>
-                                <h4 className="text-2xl font-black text-background mb-4 tracking-tighter uppercase">Smart Pipeline</h4>
-                                <p className="text-background/70 text-sm font-serif italic leading-relaxed flex-grow">
-                                    "Otomatisasi info status kandidat via email setiap perpindahan stage. Data mengalir otomatis."
+                                <h4 className="text-2xl font-black text-background mb-4 tracking-tighter uppercase">Smart ATS Pipeline</h4>
+                                <p className="text-background/80 text-base font-medium leading-relaxed flex-grow">
+                                    Otomatisasi info status kandidat via email setiap perpindahan stage. Drag-and-drop kandidat ala Kanban.
                                 </p>
                             </div>
                         </div>
 
-                        {/* Card 2: Scorecards */}
+                        {/* Card 2: Assessment */}
                         <div className="border-2 border-border bg-background p-8 flex flex-col group hover:border-foreground transition-colors">
-                            <div className="w-12 h-12 border border-border flex items-center justify-center mb-8 text-foreground">
-                                <ClipboardCheck className="w-6 h-6" />
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="w-12 h-12 border border-border flex items-center justify-center text-foreground group-hover:border-primary group-hover:text-primary transition-colors">
+                                    <MonitorPlay className="w-6 h-6" />
+                                </div>
+                                <span className="border border-foreground text-foreground text-[8px] font-black uppercase tracking-widest px-2 py-1">Asesmen</span>
                             </div>
-                            <h4 className="text-2xl font-black text-foreground mb-4 tracking-tighter uppercase">Hiring Scorecard</h4>
-                            <p className="text-foreground/70 text-sm font-serif italic leading-relaxed flex-grow">
-                                "Evaluasi kandidat berbasis data kompetensi nyata, bukan sekadar intuisi tim interviewer."
+                            <h4 className="text-2xl font-black text-foreground mb-4 tracking-tighter uppercase">AI Proctoring</h4>
+                            <p className="text-foreground/80 text-base font-medium leading-relaxed flex-grow">
+                                Uji kandidat dengan tes kustom (PG/Essay). Dilengkapi sistem deteksi joki kamera dan penilaian skor instan.
                             </p>
                         </div>
 
-                        {/* Card 3: Transition */}
+                        {/* Card 3: Transition / Onboarding */}
                         <div className="border-2 border-border bg-background p-8 flex flex-col group hover:border-foreground transition-colors">
-                            <div className="w-12 h-12 border border-border flex items-center justify-center mb-8 text-foreground">
-                                <FileSignature className="w-6 h-6" />
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="w-12 h-12 border border-border flex items-center justify-center text-foreground group-hover:border-primary group-hover:text-primary transition-colors">
+                                    <FileSignature className="w-6 h-6" />
+                                </div>
+                                <span className="border border-foreground text-foreground text-[8px] font-black uppercase tracking-widest px-2 py-1">HRIS & Ops</span>
                             </div>
-                            <h4 className="text-2xl font-black text-foreground mb-4 tracking-tighter uppercase">Instant Setup</h4>
-                            <p className="text-foreground/70 text-sm font-serif italic leading-relaxed flex-grow">
-                                "Surat penawaran digital otomatis mengaktifkan fitur orientasi untuk karyawan baru."
+                            <h4 className="text-2xl font-black text-foreground mb-4 tracking-tighter uppercase">1-Click Onboarding</h4>
+                            <p className="text-foreground/80 text-base font-medium leading-relaxed flex-grow">
+                                Satu klik 'Hired', kandidat langsung memiliki E-File karyawan aktif dan terhubung ke sistem presensi.
                             </p>
                         </div>
 
                         {/* Card 4: Attendance */}
                         <div className="border-2 border-border bg-background p-8 flex flex-col group hover:border-foreground transition-colors">
-                            <div className="w-12 h-12 border border-border flex items-center justify-center mb-8 text-foreground">
-                                <MapPin className="w-6 h-6" />
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="w-12 h-12 border border-border flex items-center justify-center text-foreground group-hover:border-primary group-hover:text-primary transition-colors">
+                                    <MapPin className="w-6 h-6" />
+                                </div>
+                                <span className="border border-foreground text-foreground text-[8px] font-black uppercase tracking-widest px-2 py-1">HRIS & Ops</span>
                             </div>
-                            <h4 className="text-2xl font-black text-foreground mb-4 tracking-tighter uppercase">Presensi GPS</h4>
-                            <p className="text-foreground/70 text-sm font-serif italic leading-relaxed flex-grow">
-                                "Pantau kehadiran presisi dengan verifikasi GPS Geofencing dan foto selfie."
+                            <h4 className="text-2xl font-black text-foreground mb-4 tracking-tighter uppercase">Presensi GPS Presisi</h4>
+                            <p className="text-foreground/80 text-base font-medium leading-relaxed flex-grow">
+                                Pantau kehadiran dengan Geofencing radius ketat, verifikasi foto selfie, dan deteksi Fake GPS.
                             </p>
                         </div>
 
-                        {/* Card 5: Learning */}
+                        {/* Card 5: Employer Branding */}
                         <div className="border-2 border-border bg-background p-8 flex flex-col group hover:border-foreground transition-colors">
-                            <div className="w-12 h-12 border border-border flex items-center justify-center mb-8 text-foreground">
-                                <GraduationCap className="w-6 h-6" />
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="w-12 h-12 border border-border flex items-center justify-center text-foreground group-hover:border-primary group-hover:text-primary transition-colors">
+                                    <Layout className="w-6 h-6" />
+                                </div>
+                                <span className="border border-foreground text-foreground text-[8px] font-black uppercase tracking-widest px-2 py-1">Job Portal</span>
                             </div>
-                            <h4 className="text-2xl font-black text-foreground mb-4 tracking-tighter uppercase">Learning Path</h4>
-                            <p className="text-foreground/70 text-sm font-serif italic leading-relaxed flex-grow">
-                                "Portal belajar mandiri dengan Quiz dan Sertifikat otomatis yang terhubung ke modul performa."
+                            <h4 className="text-2xl font-black text-foreground mb-4 tracking-tighter uppercase">Career Page Builder</h4>
+                            <p className="text-foreground/80 text-base font-medium leading-relaxed flex-grow">
+                                Bangun halaman karir perusahaan yang elegan dan profesional dalam hitungan menit untuk menarik top talent.
                             </p>
                         </div>
 
                         {/* Card 6: Performance */}
                         <div className="border-2 border-foreground bg-primary p-8 flex flex-col group shadow-[6px_6px_0px_0px_rgba(14,13,10,1)]">
-                            <div className="w-12 h-12 border border-foreground bg-background flex items-center justify-center mb-8 text-foreground">
-                                <LineChart className="w-6 h-6" />
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="w-12 h-12 border border-foreground bg-background flex items-center justify-center text-foreground">
+                                    <LineChart className="w-6 h-6" />
+                                </div>
+                                <span className="border border-foreground bg-background text-foreground text-[8px] font-black uppercase tracking-widest px-2 py-1">HRIS & Ops</span>
                             </div>
-                            <h4 className="text-2xl font-black text-foreground mb-4 tracking-tighter uppercase">Continuous OKR</h4>
-                            <p className="text-foreground/90 text-sm font-serif italic leading-relaxed flex-grow">
-                                "Data rekrutmen dan pelatihan sebelumnya menjadi basis evaluasi performa yang lebih akurat."
+                            <h4 className="text-2xl font-black text-foreground mb-4 tracking-tighter uppercase">Continuous OKR & KPI</h4>
+                            <p className="text-foreground/90 text-base font-medium leading-relaxed flex-grow">
+                                Evaluasi kinerja berbasis data. Hubungkan target perusahaan dengan pencapaian harian karyawan secara transparan.
                             </p>
                         </div>
                     </div>

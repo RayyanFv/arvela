@@ -15,12 +15,13 @@ import { PublicNavbar, PublicFooter } from '@/components/PublicLayout'
 function EnterpriseROICalculator() {
     const [employees, setEmployees] = useState(15)
     const [avgSalary, setAvgSalary] = useState(3000000)
+    const [bundlePrice, setBundlePrice] = useState(99000)
 
     // Asumsi: Waktu administratif HR (manual) memakan waktu 1.5 jam / karyawan / bulan
     const hoursSavedPerEmployee = 1.5
     const hourlyRate = (avgSalary / 160) // 160 jam kerja / bulan
     const timeSavedValue = employees * hoursSavedPerEmployee * hourlyRate
-    const arvelaCost = employees * 3000 // Rp 3.000 / karyawan (HRIS & Ops Module)
+    const arvelaCost = (employees * 3000) + bundlePrice
 
     const netSavings = timeSavedValue - arvelaCost
 
@@ -61,6 +62,30 @@ function EnterpriseROICalculator() {
                             className="w-full h-2 bg-border rounded-none appearance-none cursor-pointer accent-primary hover:bg-foreground/20 transition-colors"
                         />
                     </div>
+
+                    <div className="space-y-4 pt-4 border-t border-border">
+                        <label className="text-xs font-black uppercase tracking-widest text-foreground block mb-2">Paket Rekrutmen & Asesmen (Opsional)</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            <button 
+                                onClick={() => setBundlePrice(0)} 
+                                className={`border-2 py-3 text-[10px] sm:text-xs font-black uppercase tracking-widest transition-colors ${bundlePrice === 0 ? 'bg-primary border-primary text-background shadow-[4px_4px_0px_0px_rgba(14,13,10,1)]' : 'border-border text-foreground hover:border-foreground'}`}
+                            >
+                                Pilot (0)
+                            </button>
+                            <button 
+                                onClick={() => setBundlePrice(99000)} 
+                                className={`border-2 py-3 text-[10px] sm:text-xs font-black uppercase tracking-widest transition-colors ${bundlePrice === 99000 ? 'bg-foreground border-foreground text-background shadow-[4px_4px_0px_0px_rgba(238,117,34,1)]' : 'border-border text-foreground hover:border-foreground'}`}
+                            >
+                                Pro (99K)
+                            </button>
+                            <button 
+                                onClick={() => setBundlePrice(249000)} 
+                                className={`border-2 py-3 text-[10px] sm:text-xs font-black uppercase tracking-widest transition-colors ${bundlePrice === 249000 ? 'bg-foreground border-foreground text-background shadow-[4px_4px_0px_0px_rgba(238,117,34,1)]' : 'border-border text-foreground hover:border-foreground'}`}
+                            >
+                                Max (249K)
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -72,7 +97,7 @@ function EnterpriseROICalculator() {
                             <span className="text-3xl font-serif italic text-background">Rp {(arvelaCost).toLocaleString('id-ID')}</span>
                         </div>
                         <p className="text-xs font-medium text-background/50 mt-2 font-serif italic">
-                            Hanya Rp 3.000 per pengguna (Modul HRIS & Ops)
+                            HRIS: {employees} × Rp 3.000 + Bundle Loker: Rp {(bundlePrice).toLocaleString('id-ID')}
                         </p>
                     </div>
 
