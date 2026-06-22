@@ -55,7 +55,6 @@ export function PublicNavbar() {
                 <div className="flex items-center gap-3 md:gap-4">
                     <Link 
                         href="/login" 
-                        onClick={(e) => { e.preventDefault(); alert("Sistem HRIS & Asesmen sedang dalam persiapan rilis. Silakan mulai Pilot Promo via WhatsApp untuk akses prioritas."); }}
                         className="text-xs md:text-sm font-bold text-foreground/70 hover:text-foreground transition-colors"
                     >
                         Login

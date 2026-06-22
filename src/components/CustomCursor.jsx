@@ -53,10 +53,16 @@ export function CustomCursor() {
                 marginTop: isPointer ? '-24px' : '-8px',
             }}
         >
-            <div className={`absolute inset-0 transition-all duration-300 flex items-center justify-center ${isPointer ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}>
-                <div className="w-full h-full bg-primary rounded-full shadow-[0_0_10px_rgba(238,117,34,0.5)]" />
+            {/* Changing bullet style on hover: turns from solid to a larger ring */}
+            <div className="absolute inset-0 transition-all duration-300 flex items-center justify-center">
+                <div className={`w-full h-full rounded-full transition-all duration-300 ${
+                    isPointer 
+                        ? 'bg-primary/10 border-2 border-primary shadow-[0_0_12px_rgba(238,117,34,0.4)]' 
+                        : 'bg-primary shadow-[0_0_10px_rgba(238,117,34,0.5)]'
+                }`} />
             </div>
             
+            {/* Commented out the hover cursor that shows the logo
             <div className={`absolute inset-0 transition-all duration-300 flex items-center justify-center ${isPointer ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
                 <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-[0_0_8px_rgba(238,117,34,0.8)]">
                     <rect x="8" y="36" width="17" height="40" rx="8.5" fill="#EE7522"/>
@@ -64,6 +70,7 @@ export function CustomCursor() {
                     <rect x="56" y="26" width="17" height="50" rx="8.5" fill="#EE7522"/>
                 </svg>
             </div>
+            */}
         </div>
     )
 }
