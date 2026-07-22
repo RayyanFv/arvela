@@ -15,7 +15,7 @@ export function DeleteAssessmentButton({ id, title }) {
         try {
             await deleteAssessment(id)
         } catch (err) {
-            console.error(err)
+
             alert('Gagal menghapus assessment')
         } finally {
             setIsDeleting(false)

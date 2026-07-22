@@ -24,7 +24,7 @@ async function fetchProfileOnce() {
             _cachedProfile = profile
             return profile
         } catch (e) {
-            console.error('Failed to fetch effective profile:', e)
+
             return null
         } finally {
             _inflightPromise = null

@@ -18,6 +18,7 @@ export function PublicNavbar() {
     const navLinks = [
         { href: '/#modul', label: 'Solusi' },
         { href: '/about', label: 'Profil Perusahaan' },
+        { href: '/affiliate', label: 'Program Affiliate' },
         { href: '/articles', label: 'Artikel' },
         { href: '/#bandingkan', label: 'Perbandingan' },
         { href: '/#harga', label: 'Harga' },

@@ -300,7 +300,7 @@ export default function PitchDeckPage() {
                         <a href="https://wa.me/6285727627146" className="bg-foreground text-background font-black text-lg px-10 py-5 transition-all shadow-[6px_6px_0px_0px_rgba(250,247,241,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_rgba(250,247,241,1)] flex items-center justify-center">
                             Mulai 15 Hari Pilot Gratis <ArrowRight className="w-5 h-5 ml-2" />
                         </a>
-                        <a href="mailto:hey.aicareer@gmail.com" className="bg-transparent border-2 border-foreground text-foreground font-black text-lg px-10 py-5 hover:bg-foreground hover:text-background transition-colors flex items-center justify-center">
+                        <a href="https://wa.me/6285727627146?text=halo%20kak%20mau%20tanya%20solusi%20kustom%20Arvela" target="_blank" rel="noopener noreferrer" className="bg-transparent border-2 border-foreground text-foreground font-black text-lg px-10 py-5 hover:bg-foreground hover:text-background transition-colors flex items-center justify-center">
                             Tanya Solusi Kustom
                         </a>
                     </div>

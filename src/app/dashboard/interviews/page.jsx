@@ -31,7 +31,7 @@ export default async function InterviewsPage({ searchParams }) {
     try {
         interviews = await getAllInterviews()
     } catch (err) {
-        console.error(err)
+
     }
 
     if (searchParam) {

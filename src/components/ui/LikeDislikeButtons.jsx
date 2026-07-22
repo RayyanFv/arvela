@@ -42,7 +42,7 @@ export function LikeDislikeButtons({ articleId, initialLikes = 0, initialDislike
                 await updateArticleMetric(articleId, type, 'increment')
             }
         } catch (error) {
-            console.error('Failed to vote', error)
+
         } finally {
             setIsPending(false)
         }

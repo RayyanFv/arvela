@@ -105,7 +105,7 @@ export async function updateStage(id, stage, customMessage = '') {
                 message: customMessage,
                 portalUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'}/careers/login`
             })
-        }).catch(console.error)
+        }).catch(() => {})
     }
 }
 
@@ -207,7 +207,7 @@ export async function submitApplication(payload) {
             companyName: newApp.companies.name,
             portalUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://arvela.id'}/careers`
         })
-    }).catch(console.error)
+    }).catch(() => {})
 
     return { success: true, id: newApp.id }
 }
@@ -367,7 +367,7 @@ export async function hireCandidate({ applicationId, department, jobTitle, templ
             loginInstruction = `Akun baru telah dibuat untuk Anda di platform Arvela. Klik tombol di bawah untuk mengatur password dan mulai proses <strong>Onboarding</strong> Anda.`
         }
     } catch (e) {
-        console.warn('Failed to generate recovery link:', e.message)
+
     }
 
     sendEmail({
@@ -391,7 +391,7 @@ export async function hireCandidate({ applicationId, department, jobTitle, templ
                 <p style="font-size: 12px; color: #9ca3af; text-align: center;">&copy; ${new Date().getFullYear()} Arvela HCM System</p>
             </div>
         `
-    }).catch(console.error)
+    }).catch(() => {})
 
     return { success: true }
 }

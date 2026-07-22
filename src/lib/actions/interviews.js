@@ -173,7 +173,7 @@ export async function scheduleInterview(params) {
             })
         }
     } catch (emailErr) {
-        console.error('Failed to send interview email:', emailErr)
+
     }
 
     revalidatePath(`/dashboard/candidates/${application_id}`)

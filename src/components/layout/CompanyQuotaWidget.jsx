@@ -38,7 +38,7 @@ export function CompanyQuotaWidget({ companyId }) {
                     assessments: asmRes.count || 0
                 })
             } catch (e) {
-                console.error('Failed to load company quota stats:', e)
+
             } finally {
                 setLoading(false)
             }

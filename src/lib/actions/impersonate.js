@@ -59,7 +59,7 @@ export async function impersonateUser(targetUserId) {
     const cookieStore = await cookies()
     cookieStore.set(IMPERSONATE_COOKIE, targetUserId, {
         path: '/',
-        httpOnly: false, // Accessible by client JS for smooth client-side fetch
+        httpOnly: false, // Must be readable by client JS (impersonate-client.js) for effective userId resolution
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 4 // 4 hours

@@ -45,7 +45,7 @@ export default function AssessmentResultPage({ params }) {
                 setPoints(res.total_score || 0)
                 setNotes(res.reviewer_notes || '')
             } catch (err) {
-                console.error(err)
+
             } finally {
                 setLoading(false)
             }

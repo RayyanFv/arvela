@@ -57,7 +57,7 @@ export function OwnerDashboard({ profile, user }) {
             )
 
             if (error || !stats) {
-                console.error('Owner Dashboard RPC error:', error)
+
                 setLoading(false)
                 return
             }

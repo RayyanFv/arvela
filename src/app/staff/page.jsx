@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { OnboardingList } from '@/components/staff/OnboardingList'
 import { OKRSection } from '@/components/staff/OKRSection'
-import { getEffectiveUserId } from '@/lib/impersonate-client'
+import { getEffectiveProfileServer } from '@/lib/actions/impersonate'
 
 export default function StaffDashboard() {
     const [employee, setEmployee] = useState(null)
@@ -33,14 +33,11 @@ export default function StaffDashboard() {
     const supabase = createClient()
 
     async function fetchData() {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
+        const res = await getEffectiveProfileServer()
+        if (!res?.user) return
 
-        const userId = getEffectiveUserId(user)
-
-        // 1. Employee data and Role verification
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single()
-        if (profile) setUserRole(profile.role)
+        const userId = res.user.id
+        if (res.profile?.role) setUserRole(res.profile.role)
 
         const { data: emp, error: empError } = await supabase
             .from('employees')

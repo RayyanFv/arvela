@@ -33,7 +33,7 @@ export default function NewInterviewFormClient({ candidates, dbError, upcoming }
                 const data = await getInterviewTemplates()
                 setTemplates(data || [])
             } catch (err) {
-                console.error('Failed to load templates:', err)
+
             }
         }
         loadTemplates()

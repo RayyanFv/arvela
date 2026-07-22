@@ -24,7 +24,6 @@ export async function logProctoringEvent({ assignment_id, event_type, details, s
         })
 
     if (error) {
-        console.error('Failed to log proctoring event:', error)
         return { error: error.message }
     }
     return { success: true }
@@ -74,7 +73,6 @@ export async function startAssignment(id, metadata = {}) {
         .maybeSingle()
 
     if (fetchError || !current) {
-        console.error('PROCTOR_DEBUG_ERROR:', { queryId, fetchError })
         return { error: 'ASSIGNMENT_NOT_FOUND', detail: fetchError?.message }
     }
 
@@ -311,7 +309,7 @@ export async function assignAssessment({ assessment_id, application_id }) {
             `
         })
     } catch (emailError) {
-        console.error('Failed to send assessment email:', emailError)
+
     }
 
     revalidatePath(`/dashboard/candidates/${assignment.application_id}`)

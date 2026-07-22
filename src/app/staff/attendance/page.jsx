@@ -59,7 +59,7 @@ export default function AttendancePage() {
             .single()
 
         if (empErr) {
-            console.error('Error fetching employee:', empErr)
+
             setError('Gagal memuat data karyawan: ' + empErr.message)
         } else if (emp) {
             setEmployee(emp)
@@ -92,7 +92,7 @@ export default function AttendancePage() {
                 .maybeSingle()
 
             if (attErr && attErr.code !== 'PGRST116') { // PGRST116 is 'no rows' which is normal
-                console.error('Error fetching attendance:', attErr)
+
             }
             setAttendance(att)
 
@@ -120,7 +120,7 @@ export default function AttendancePage() {
                 setActiveLeave(reqData[0])
             }
         } else {
-            console.warn('No employee record found for user:', user.id)
+
         }
         setLoading(false)
     }

@@ -98,7 +98,7 @@ export async function registerUser(payload) {
         }, { onConflict: 'profile_id' })
 
         if (empError) {
-            console.warn('Employee record creation failed:', empError.message)
+
         }
 
         // ─── If linked to application, update application stage ─────
@@ -120,7 +120,7 @@ export async function registerUser(payload) {
         })
         resetUrl = resetLink?.properties?.action_link || null
     } catch (e) {
-        console.warn('Failed to generate reset link:', e.message)
+
     }
 
     revalidatePath('/dashboard')

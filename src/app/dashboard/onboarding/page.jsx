@@ -96,7 +96,7 @@ export default function OnboardingTemplatePage() {
         })
 
         if (error) {
-            console.error('Error adding task:', error)
+
             alert('Gagal menambah tugas: ' + error.message)
         }
 

@@ -30,7 +30,7 @@ export function WhatsAppSupportButton() {
                     setCompanyName(company.name)
                 }
             } catch (e) {
-                console.error('Failed to fetch WA support state:', e)
+
             }
         }
 

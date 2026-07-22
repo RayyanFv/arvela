@@ -68,7 +68,7 @@ export default function NewJobPage() {
         try {
             await createJob(fd)
         } catch (err) {
-            console.error(err)
+
         }
     }
 

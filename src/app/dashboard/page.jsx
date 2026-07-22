@@ -17,7 +17,6 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { DashboardSkeleton } from './components/DashboardSkeleton'
 
-import { getEffectiveUserId } from '@/lib/impersonate-client'
 
 // ── Solusi 2: Dynamic imports — setiap dashboard hanya di-download
 // ketika role user cocok, bukan semua sekaligus ──────────────────
@@ -66,11 +65,11 @@ export default function DashboardRouter() {
                     setProfile(res.profile)
                     setRole(res.profile.role)
                 } else {
-                    console.error('Could not determine role from effective profile')
+
                     setError(true)
                 }
             } catch (err) {
-                console.error('Dashboard Auth Error:', err)
+
                 setError(true)
             } finally {
                 setLoading(false)

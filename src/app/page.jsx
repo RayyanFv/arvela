@@ -558,14 +558,10 @@ export default function LandingPage() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <a href="mailto:hey.aicareer[at]gmail.com" className="bg-primary hover:bg-primary/90 text-foreground font-black text-lg px-10 py-5 transition-all flex items-center gap-3 justify-center border-2 border-primary shadow-[6px_6px_0px_0px_rgba(250,247,241,1)]">
+                        <a href="https://wa.me/6285727627146?text=halo%20kak%20mau%20coba%2015%20hari%20pilot%20project%20bareng%20Arvela" target="_blank" rel="noopener noreferrer" className="bg-primary hover:bg-primary/90 text-foreground font-black text-lg px-10 py-5 transition-all flex items-center gap-3 justify-center border-2 border-primary shadow-[6px_6px_0px_0px_rgba(250,247,241,1)]">
                             Claim Akses Pilot <ArrowRight className="w-5 h-5" />
                         </a>
-                        <a href="https://wa.me/6285727627146?text=halo%20kak%20mau%20coba%2015%20hari%20pilot%20project%20bareng%20Arvela" target="_blank" rel="noopener noreferrer" className="border-2 border-background text-background hover:bg-background hover:text-foreground font-black text-lg px-10 py-5 transition-all">
-                            WhatsApp Us
-                        </a>
                     </div>
-                    <p className="text-background/50 text-sm font-bold mt-12 font-serif italic">hey.aicareer [at] gmail.com</p>
                 </div>
             </section>
 

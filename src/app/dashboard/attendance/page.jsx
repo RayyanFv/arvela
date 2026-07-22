@@ -93,7 +93,6 @@ export default function HRAttendancePage() {
                 .select('id, profile_id, job_title, profiles!employees_profile_id_fkey(full_name, email)')
                 .eq('company_id', prof.company_id)
 
-            if (empErr) console.error('Emp query error:', empErr)
             setEmployees(empData || [])
 
             // Fetch Current Schedules (only for this company's employees)

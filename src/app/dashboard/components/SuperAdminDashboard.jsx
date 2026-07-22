@@ -53,7 +53,7 @@ export function SuperAdminDashboard({ profile, user }) {
             )
 
             if (error || !stats) {
-                console.error('SuperAdmin Dashboard RPC error:', error)
+
                 setLoading(false)
                 return
             }

@@ -86,7 +86,6 @@ export default function HRRequestsPage() {
             `)
             .eq('company_id', prof.company_id)
             .order('created_at', { ascending: false })
-        if (reqsError) console.error('❌ Requests fetch error:', reqsError?.message || reqsError?.code || reqsError?.hint || JSON.stringify(reqsError))
         setRequests(reqs || [])
 
         // Fetch Employees for balances
@@ -173,7 +172,7 @@ export default function HRRequestsPage() {
             setCorrectionTimes({ time_in: '', time_out: '' })
             fetchData()
         } catch (err) {
-            console.error('Approve Error', err)
+
             alert('Gagal menyetujui: ' + err.message)
         }
         setSubmittingId(null)

@@ -15,7 +15,7 @@ export function ShareButton() {
                     url: url
                 })
             } catch (err) {
-                console.error('Share failed:', err)
+
             }
         } else {
             // Fallback copy to clipboard

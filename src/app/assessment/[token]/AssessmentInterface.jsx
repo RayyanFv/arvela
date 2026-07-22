@@ -359,7 +359,7 @@ export default function AssessmentInterface({ assignment, test, questions, candi
             // Biarkan kotak 'Mengirim Jawaban' loading menyala secara mulus sampai reload Server komponen selesai
             router.refresh()
         } catch (err) {
-            console.error(err)
+
             setError('Gagal mengirim jawaban. Cek koneksi internet dan coba lagi.')
             setSubmitting(false)
         }

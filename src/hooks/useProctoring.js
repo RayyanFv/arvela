@@ -63,7 +63,7 @@ export function useProctoring({
                 const base64 = canvas.toDataURL('image/jpeg', 0.5)
                 screenshotUrl = await uploadProctoringSnapshot(assignmentId, base64)
             } catch (err) {
-                console.warn('Screenshot capture failed:', err)
+
             }
         }
 
@@ -190,7 +190,7 @@ export function useProctoring({
             await document.documentElement.requestFullscreen()
             setIsFullscreen(true)
         } catch (err) {
-            console.warn('Fullscreen request rejected:', err)
+
         }
     }, [])
 
@@ -209,7 +209,7 @@ export function useProctoring({
                     setupAudio(stream)
                 }
             } catch (err) {
-                console.warn('Media access denied')
+
                 logProctoringEvent({
                     assignment_id: assignmentId,
                     event_type: 'media_unavailable',
@@ -283,7 +283,7 @@ export function useProctoring({
                 }
 
                 processAudio()
-            } catch (err) { console.warn(err) }
+            } catch () {}
         }
 
         enableMedia()
@@ -313,7 +313,7 @@ export function useProctoring({
                 await faceapi.tf.ready()
                 await faceapi.nets.tinyFaceDetector.loadFromUri('/models')
                 if (isMounted) setFaceApiLoaded(true)
-            } catch (e) { console.error('[Proctoring] Model load failed:', e) }
+            } catch () {}
         }
         initModel()
         return () => { isMounted = false }
@@ -362,7 +362,7 @@ export function useProctoring({
                     anomalyCounters.current.no_face = 0
                 }
             } catch (e) {
-                console.error('[Proctoring] Deteksi wajah gagal:', e)
+
             }
         }, 2500)
 
@@ -391,7 +391,7 @@ export function useProctoring({
                     details: 'Snapshot periodik kehadiran kandidat.',
                     screenshot_url: url
                 })
-            } catch (err) { console.warn('Heartbeat snapshot failed:', err) }
+            } catch () {}
         }, 180_000) // 3 menit
 
         return () => clearInterval(heartbeatInterval)

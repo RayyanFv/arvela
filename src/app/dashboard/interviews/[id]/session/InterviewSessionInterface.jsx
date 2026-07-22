@@ -61,7 +61,7 @@ export default function InterviewSessionInterface({ interview: initialInterview,
                 setQuestions(updated.session_questions || [])
                 setScorecard(updated.session_scorecard || { scores: {}, recommendation: '', criteria: [] })
             } catch (err) {
-                console.error(err)
+
             } finally {
                 setLoading(false)
             }
