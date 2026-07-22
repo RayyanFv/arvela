@@ -283,7 +283,7 @@ export function useProctoring({
                 }
 
                 processAudio()
-            } catch () {}
+            } catch (_) {}
         }
 
         enableMedia()
@@ -313,7 +313,7 @@ export function useProctoring({
                 await faceapi.tf.ready()
                 await faceapi.nets.tinyFaceDetector.loadFromUri('/models')
                 if (isMounted) setFaceApiLoaded(true)
-            } catch () {}
+            } catch (_) {}
         }
         initModel()
         return () => { isMounted = false }
@@ -391,7 +391,7 @@ export function useProctoring({
                     details: 'Snapshot periodik kehadiran kandidat.',
                     screenshot_url: url
                 })
-            } catch () {}
+            } catch (_) {}
         }, 180_000) // 3 menit
 
         return () => clearInterval(heartbeatInterval)
