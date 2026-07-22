@@ -66,14 +66,20 @@ const PRICING = [
     {
         name: 'Pilot Promo', price: 'Rp 0', originalPrice: 'Rp 84K', period: 'Gratis*', sub: 'Untuk 20 Perusahaan Pertama', popular: false,
         features: ['3 Slot Job Portal & Asesmen (Gratis)', 'Akses & Download CV Tanpa Batas', 'Data Langsung Tersambung ke HRIS', 'HRIS Core: Hanya Rp 3.000/user/bulan', 'Setup Dibantu Tim Arvela'],
+        waLink: 'https://wa.me/6289503888107?text=Halo%20Tim%20Arvela%2C%20saya%20tertarik%20mencoba%20Pilot%20Gratis%2015%20Hari.%20Mohon%20informasi%20proses%20aktivasinya.%20Terima%20kasih.',
+        ctaLabel: 'Klaim Pilot Gratis',
     },
     {
         name: 'Arvela Pro', price: 'Rp 99K', originalPrice: 'Rp 140K', period: '/bulan', sub: 'Bundle 5 Slot Aktif', popular: true,
         features: ['Lebih hemat dari harga eceran', '5 Slot Loker & Modul Asesmen Aktif', 'Akses CV Kandidat Sepuasnya', 'Data Terintegrasi Penuh ke HRIS', 'Prioritas Support via WhatsApp'],
+        waLink: 'https://wa.me/6289503888107?text=Halo%20Tim%20Arvela%2C%20saya%20tertarik%20dengan%20paket%20Arvela%20Pro%20(Rp99K%2Fbulan).%20Mohon%20informasi%20cara%20klaim%20promo%20pilot%20dan%20proses%20aktivasinya.%20Terima%20kasih.',
+        ctaLabel: 'Klaim Paket Pro',
     },
     {
         name: 'Arvela Max', price: 'Rp 249K', originalPrice: 'Rp 420K', period: '/bulan', sub: 'Bundle 15 Slot Aktif', popular: false,
         features: ['Skala masif harga termurah', '15 Slot Loker & Modul Asesmen Aktif', 'Talent Pool & Rekap CV Tanpa Batas', 'Semua Data Tersambung ke HRIS', 'Dedicated Account Manager'],
+        waLink: 'https://wa.me/6289503888107?text=Halo%20Tim%20Arvela%2C%20saya%20tertarik%20dengan%20paket%20Arvela%20Max%20(Rp249K%2Fbulan).%20Mohon%20informasi%20cara%20klaim%20promo%20pilot%20dan%20proses%20aktivasinya.%20Terima%20kasih.',
+        ctaLabel: 'Klaim Paket Max',
     },
 ]
 
@@ -536,8 +542,13 @@ export default function LandingPage() {
                                         </li>
                                     ))}
                                 </ul>
-                                <a href="#pilot" className={`block w-full py-4 font-black text-sm text-center transition-all border-2 border-foreground ${p.popular ? 'bg-primary text-foreground hover:bg-primary/90 shadow-[4px_4px_0px_0px_rgba(14,13,10,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(14,13,10,1)]' : 'bg-background text-foreground hover:bg-foreground hover:text-background'}`}>
-                                    Klaim Promo Pilot
+                                <a 
+                                    href={p.waLink || '#pilot'} 
+                                    target={p.waLink ? '_blank' : undefined}
+                                    rel={p.waLink ? 'noopener noreferrer' : undefined}
+                                    className={`block w-full py-4 font-black text-sm text-center transition-all border-2 border-foreground ${p.popular ? 'bg-primary text-foreground hover:bg-primary/90 shadow-[4px_4px_0px_0px_rgba(14,13,10,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(14,13,10,1)]' : 'bg-background text-foreground hover:bg-foreground hover:text-background'}`}
+                                >
+                                    {p.ctaLabel || 'Klaim Promo Pilot'}
                                 </a>
                             </div>
                         ))}

@@ -1,8 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Users, ArrowRight, Mail } from 'lucide-react'
+import { Users, Menu, X } from 'lucide-react'
 
 export const CatalystMark = ({ className }) => (
     <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
@@ -14,6 +15,7 @@ export const CatalystMark = ({ className }) => (
 
 export function PublicNavbar() {
     const pathname = usePathname()
+    const [menuOpen, setMenuOpen] = useState(false)
 
     const navLinks = [
         { href: '/#modul', label: 'Solusi' },
@@ -25,16 +27,16 @@ export function PublicNavbar() {
     ]
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
             <div className="max-w-7xl mx-auto px-6 h-16 md:h-20 flex items-center justify-between">
                 <Link href="/" className="flex items-center gap-2 md:gap-3">
                     <CatalystMark className="w-8 h-8 md:w-10 md:h-10" />
                     <span className="text-foreground font-black text-lg md:text-xl tracking-tighter">Arvela<span className="font-serif italic text-primary">.</span></span>
                 </Link>
+
+                {/* Desktop Nav */}
                 <div className="hidden md:flex items-center gap-10 text-[13px] font-bold">
                     {navLinks.map((link) => {
-                        // Check if active. For hash links like /#modul, they match '/' in pathname, so we don't highlight them strictly based on pathname to avoid bugs, unless it's an exact path match.
-                        // For /about and /articles, exact match or startsWith works better.
                         const isActive = pathname === link.href || (link.href !== '/' && !link.href.includes('#') && pathname.startsWith(link.href))
                         return (
                             <Link 
@@ -53,6 +55,7 @@ export function PublicNavbar() {
                         <Users className="w-3.5 h-3.5" /> Portal Pelamar
                     </Link>
                 </div>
+
                 <div className="flex items-center gap-3 md:gap-4">
                     <Link 
                         href="/login" 
@@ -60,8 +63,53 @@ export function PublicNavbar() {
                     >
                         Login
                     </Link>
-                    <Link href="/#pilot" className="bg-foreground hover:bg-foreground/90 text-background font-bold text-xs md:text-sm px-4 md:px-6 py-2 md:py-3 rounded-none border-2 border-foreground transition-all shadow-[4px_4px_0px_0px_rgba(238,117,34,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(238,117,34,1)]">
+                    <Link href="/#pilot" className="hidden md:block bg-foreground hover:bg-foreground/90 text-background font-bold text-xs md:text-sm px-4 md:px-6 py-2 md:py-3 rounded-none border-2 border-foreground transition-all shadow-[4px_4px_0px_0px_rgba(238,117,34,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(238,117,34,1)]">
                         Mulai Pilot
+                    </Link>
+                    {/* Burger button — mobile only */}
+                    <button
+                        onClick={() => setMenuOpen(v => !v)}
+                        className="md:hidden flex items-center justify-center w-10 h-10 border-2 border-foreground hover:bg-foreground hover:text-background transition-colors"
+                        aria-label={menuOpen ? 'Tutup menu' : 'Buka menu'}
+                    >
+                        {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                    </button>
+                </div>
+            </div>
+
+            {/* Mobile Drawer */}
+            <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out border-b border-border bg-background ${
+                menuOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+            }`}>
+                <div className="px-6 py-6 flex flex-col gap-1">
+                    {navLinks.map((link) => {
+                        const isActive = pathname === link.href || (link.href !== '/' && !link.href.includes('#') && pathname.startsWith(link.href))
+                        return (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                onClick={() => setMenuOpen(false)}
+                                className={`py-3 text-base font-bold border-b border-border/50 transition-colors ${
+                                    isActive ? 'text-primary' : 'text-foreground/80 hover:text-primary'
+                                }`}
+                            >
+                                {link.label}
+                            </Link>
+                        )
+                    })}
+                    <Link
+                        href="/careers"
+                        onClick={() => setMenuOpen(false)}
+                        className="py-3 text-base font-bold border-b border-border/50 text-foreground/80 hover:text-primary transition-colors flex items-center gap-2"
+                    >
+                        <Users className="w-4 h-4" /> Portal Pelamar
+                    </Link>
+                    <Link
+                        href="/#pilot"
+                        onClick={() => setMenuOpen(false)}
+                        className="mt-4 w-full bg-foreground text-background font-black text-sm px-6 py-4 border-2 border-foreground text-center shadow-[4px_4px_0px_0px_rgba(238,117,34,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(238,117,34,1)] transition-all block"
+                    >
+                        Mulai Pilot Gratis 15 Hari
                     </Link>
                 </div>
             </div>
