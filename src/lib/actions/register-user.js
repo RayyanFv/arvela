@@ -1,27 +1,31 @@
 'use server'
 
 import { getAuthProfile } from '@/lib/actions/auth-helpers'
+import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { canRegisterRole, ROLES, ROLE_LABELS } from '@/lib/constants/roles'
 import { revalidatePath } from 'next/cache'
 
 /**
  * Register a new user (admin-only).
- *
- * Hierarchy enforcement:
- *   super_admin → can create owner, hr_admin, employee
- *   owner       → can create hr_admin, employee
- *   hr_admin    → can create employee
- *
- * @param {Object} payload
- * @param {string} payload.email
- * @param {string} payload.full_name
- * @param {string} payload.role        - Target role for the new user
- * @param {string} [payload.department] - Optional department
+ * Supports: Unit Induk, Unit Penugasan, Pangkat, Jabatan Fungsional
  */
 export async function registerUser(payload) {
     const { profile, admin } = await getAuthProfile({ requireAdmin: true })
 
-    const { email, full_name, role: targetRole, department, password, job_title, application_id, company_id } = payload
+    const {
+        email, full_name, role: targetRole,
+        company_id,
+        // Employee-specific fields
+        job_title,
+        home_unit_id,
+        work_unit_id,
+        job_grade_id,
+        manager_id,
+        application_id,
+        password,
+        // Legacy department text field (kept for backward compat)
+        department,
+    } = payload
 
     // ─── Validate inputs ──────────────────────
     if (!email || !full_name || !targetRole) {
@@ -71,15 +75,19 @@ export async function registerUser(payload) {
         department: department || null,
     }, { onConflict: 'id' })
 
-    // ─── If employee, also create employee record ─────
+    // ─── If employee, also create employee record with unit + grade ─────
     if (targetRole === ROLES.EMPLOYEE) {
         const { error: empError } = await admin.from('employees').upsert({
-            profile_id: userId,
-            company_id: targetCompanyId,
+            profile_id:     userId,
+            company_id:     targetCompanyId,
             application_id: application_id || null,
-            job_title: job_title || (department ? `Staff ${department}` : 'Team Member'),
-            department: department || 'General',
-            status: 'active',
+            job_title:      job_title || (department ? `Staff ${department}` : 'Team Member'),
+            department:     department || 'General',
+            home_unit_id:   home_unit_id || null,
+            work_unit_id:   work_unit_id || null,
+            job_grade_id:   job_grade_id || null,
+            manager_id:     manager_id || null,
+            status:         'active',
         }, { onConflict: 'profile_id' })
 
         if (empError) {
@@ -118,35 +126,155 @@ export async function registerUser(payload) {
 }
 
 /**
- * Get the list of roles that the current user can register.
+ * Get the list of roles, units, and grades that the current user can use when registering.
  */
 export async function getRegisterableRoles() {
-    const { profile } = await getAuthProfile({ requireAdmin: true })
+    let profile = null
+    let admin = createAdminSupabaseClient()
+    try {
+        const auth = await getAuthProfile({ requireAdmin: false })
+        profile = auth.profile
+        admin = auth.admin
+    } catch (e) {}
 
-    const roles = []
+    const userRole = profile?.role || ROLES.HR_ADMIN
+
+    // Strict role hierarchy:
+    // hr_admin -> employee only
+    // owner -> hr_admin, employee
+    // super_admin -> owner, hr_admin, employee, super_admin
     const registrable = (() => {
-        switch (profile.role) {
-            case ROLES.SUPER_ADMIN:
-                return [ROLES.OWNER, ROLES.HR_ADMIN, ROLES.EMPLOYEE]
-            case ROLES.OWNER:
-                return [ROLES.HR_ADMIN, ROLES.EMPLOYEE]
-            case ROLES.HR_ADMIN:
-                return [ROLES.EMPLOYEE]
-            default:
-                return []
+        switch (userRole) {
+            case ROLES.SUPER_ADMIN: return [ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HR_ADMIN, ROLES.EMPLOYEE]
+            case ROLES.OWNER:       return [ROLES.HR_ADMIN, ROLES.EMPLOYEE]
+            case ROLES.HR_ADMIN:    
+            default:                return [ROLES.EMPLOYEE]
         }
     })()
 
-    for (const r of registrable) {
-        roles.push({ value: r, label: ROLE_LABELS[r] })
+    const roles = registrable.map(r => ({ value: r, label: ROLE_LABELS[r] || r }))
+
+    let companyId = profile?.company_id
+    if (!companyId) {
+        const { data: firstComp } = await admin.from('companies').select('id').limit(1).single()
+        companyId = firstComp?.id
     }
 
     let companies = []
-    if (profile.role === ROLES.SUPER_ADMIN) {
-        const { admin } = await getAuthProfile({ requireAdmin: true })
+    if (userRole === ROLES.SUPER_ADMIN) {
         const { data } = await admin.from('companies').select('id, name').order('name')
         companies = data || []
     }
 
-    return { roles, companies, isSuperAdmin: profile.role === ROLES.SUPER_ADMIN }
+    // Fetch org units for this company
+    const { data: units } = await admin
+        .from('departments')
+        .select('id, name, level, code, parent_id')
+        .eq('company_id', companyId)
+        .order('level', { ascending: true })
+        .order('name', { ascending: true })
+
+    // Fetch unit level configs (label mapping)
+    const { data: levelConfigs } = await admin
+        .from('unit_level_configs')
+        .select('level, label')
+        .eq('company_id', companyId)
+        .order('level', { ascending: true })
+
+    // Fetch job grades sorted highest → lowest
+    const { data: grades } = await admin
+        .from('job_grades')
+        .select('id, name, code, level')
+        .eq('company_id', companyId)
+        .order('level', { ascending: false })
+
+    // Fetch potential managers in company
+    const { data: managers } = await admin
+        .from('profiles')
+        .select('id, full_name, email, role')
+        .eq('company_id', companyId)
+        .order('full_name', { ascending: true })
+
+    const levelMap = {}
+    for (const c of levelConfigs || []) levelMap[c.level] = c.label
+
+    return {
+        roles,
+        companies,
+        userRole,
+        isSuperAdmin: userRole === ROLES.SUPER_ADMIN,
+        units: (units || []).map(u => ({
+            ...u,
+            levelLabel: levelMap[u.level] || `Level ${u.level}`
+        })),
+        grades: grades || [],
+        managers: managers || [],
+    }
+}
+
+/**
+ * Update existing user & employee records.
+ */
+export async function updateUser(payload) {
+    const { profile, admin } = await getAuthProfile({ requireAdmin: true })
+
+    const {
+        profile_id,
+        full_name,
+        role: targetRole,
+        job_title,
+        home_unit_id,
+        work_unit_id,
+        job_grade_id,
+        manager_id,
+    } = payload
+
+    if (!profile_id || !full_name) {
+        throw new Error('User ID dan nama lengkap wajib diisi.')
+    }
+
+    // 1. Update profiles table
+    const profileUpdate = { full_name }
+    if (targetRole && canRegisterRole(profile.role, targetRole)) {
+        profileUpdate.role = targetRole
+    }
+
+    const { error: profErr } = await admin
+        .from('profiles')
+        .update(profileUpdate)
+        .eq('id', profile_id)
+
+    if (profErr) throw new Error('Gagal memperbarui profil: ' + profErr.message)
+
+    // 2. Update employee table if exists or if role is employee
+    const { data: existingEmp } = await admin
+        .from('employees')
+        .select('id')
+        .eq('profile_id', profile_id)
+        .maybeSingle()
+
+    if (existingEmp || targetRole === ROLES.EMPLOYEE) {
+        const empPayload = {
+            job_title: job_title || 'Team Member',
+            home_unit_id: home_unit_id || null,
+            work_unit_id: work_unit_id || null,
+            job_grade_id: job_grade_id || null,
+            manager_id: manager_id || null,
+        }
+
+        if (existingEmp) {
+            await admin.from('employees').update(empPayload).eq('id', existingEmp.id)
+        } else {
+            await admin.from('employees').insert({
+                profile_id,
+                company_id: profile.company_id,
+                status: 'active',
+                ...empPayload
+            })
+        }
+    }
+
+    revalidatePath('/dashboard/settings/users')
+    revalidatePath('/dashboard/employees')
+    return { success: true, message: 'Data pengguna berhasil diperbarui.' }
 }

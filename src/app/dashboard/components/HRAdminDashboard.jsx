@@ -101,14 +101,32 @@ export function HRAdminDashboard({ profile, user }) {
                 { p_company_id: cid }
             )
 
-            if (error || !stats) {
-                console.error('Dashboard RPC error:', error)
-                setLoading(false)
-                return
+            let statsData = stats
+            if (error || !statsData) {
+                // Graceful fallback to direct queries if RPC is not available
+                const [empCountRes, jobsRes, appsRes] = await Promise.all([
+                    supabase.from('employees').select('id', { count: 'exact', head: true }).eq('company_id', cid),
+                    supabase.from('jobs').select('id, title, work_type, location').eq('company_id', cid).eq('status', 'published').order('created_at', { ascending: false }),
+                    supabase.from('applications').select('id, stage, created_at, full_name, job_id').eq('company_id', cid).order('created_at', { ascending: false }).limit(6)
+                ])
+
+                statsData = {
+                    total_employees: empCountRes.count || 0,
+                    active_jobs: jobsRes.data || [],
+                    recent_apps: appsRes.data || [],
+                    total_applicants: (appsRes.data || []).length,
+                    weekly_apps: [],
+                    attendance_today: {},
+                    stage_counts: {},
+                    job_applicant_counts: {},
+                    okr_stats: { total: 0, avg_progress: 0 },
+                    lms_stats: { courses: 0, published: 0 },
+                    overtime_stats: { pending: 0, approved: 0, total_hours: 0 }
+                }
             }
 
             // Parse attendance (RPC returns object keyed by status)
-            const att = stats.attendance_today || {}
+            const att = statsData.attendance_today || {}
             const attendanceStats = {
                 present:         att.present         || 0,
                 early_leave:     att.early_leave     || 0,
@@ -119,34 +137,34 @@ export function HRAdminDashboard({ profile, user }) {
             }
 
             // Parse weekly apps (DB returns [{date, count}], map to chart format)
-            const weeklyApps = (stats.weekly_apps || []).map(w => ({
+            const weeklyApps = (statsData.weekly_apps || []).map(w => ({
                 label: ID_WEEKDAY[new Date(w.date).getDay()],
                 value: w.count || 0,
             }))
 
             // ── Solusi 6: Single setState — 1 re-render, bukan 10+ ───────────
             setData({
-                activeJobs:         (stats.active_jobs || []).slice(0, 5),
-                recentApps:         stats.recent_apps  || [],
-                stageCounts:        stats.stage_counts || {},
+                activeJobs:         (statsData.active_jobs || []).slice(0, 5),
+                recentApps:         statsData.recent_apps  || [],
+                stageCounts:        statsData.stage_counts || {},
                 weeklyApps,
-                jobApplicantCounts: stats.job_applicant_counts || {},
-                totalApplicants:    stats.total_applicants  || 0,
-                totalHired:         stats.total_hired        || 0,
-                totalEmployees:     stats.total_employees    || 0,
+                jobApplicantCounts: statsData.job_applicant_counts || {},
+                totalApplicants:    statsData.total_applicants  || 0,
+                totalHired:         statsData.total_hired        || 0,
+                totalEmployees:     statsData.total_employees    || 0,
                 okrStats: {
-                    total:       stats.okr_stats?.total       || 0,
-                    avgProgress: stats.okr_stats?.avg_progress || 0,
+                    total:       statsData.okr_stats?.total       || 0,
+                    avgProgress: statsData.okr_stats?.avg_progress || 0,
                 },
                 lmsStats: {
-                    courses:   stats.lms_stats?.courses   || 0,
-                    published: stats.lms_stats?.published  || 0,
+                    courses:   statsData.lms_stats?.courses   || 0,
+                    published: statsData.lms_stats?.published  || 0,
                 },
                 attendanceStats,
                 overtimeStats: {
-                    pending:    stats.overtime_stats?.pending     || 0,
-                    approved:   stats.overtime_stats?.approved    || 0,
-                    totalHours: stats.overtime_stats?.total_hours || 0,
+                    pending:    statsData.overtime_stats?.pending     || 0,
+                    approved:   statsData.overtime_stats?.approved    || 0,
+                    totalHours: statsData.overtime_stats?.total_hours || 0,
                 },
             })
 

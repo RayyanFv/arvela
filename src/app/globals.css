@@ -131,10 +131,5 @@
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* Global Cursor Override for Custom Cursor */
-@media (pointer: fine) {
-  body, a, button, input, select, textarea, [role="button"] {
-    cursor: none !important;
-  }
-}
+
 

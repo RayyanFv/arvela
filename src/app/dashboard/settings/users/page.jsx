@@ -4,10 +4,13 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Shield, Mail, MoreHorizontal, UserCheck, ShieldAlert } from 'lucide-react'
+import { Shield, Mail, UserCheck, ShieldAlert, Upload, UserPlus, Users, ShieldCheck } from 'lucide-react'
 import { ROLES, ROLE_LABELS } from '@/lib/constants/roles'
 import { RegisterUserDialog } from '@/components/admin/RegisterUserDialog'
+import { EditUserDialog } from '@/components/admin/EditUserDialog'
+import { LoginAsButton } from '@/components/admin/LoginAsButton'
 import { Suspense } from 'react'
+import { getUserPermissions } from '@/lib/permissions'
 
 import { SearchInput } from '@/components/ui/SearchInput'
 import Link from 'next/link'
@@ -37,11 +40,23 @@ export default async function UsersSettingsPage({ searchParams }) {
 
     if (!profile) redirect('/dashboard')
 
+    // Determine role hierarchy — user can only see roles strictly below their level
+    const perms = await getUserPermissions(user.id)
+    const manageableRoles = perms.manageableRoles // e.g. hr_admin → ['employee','candidate','user']
+
     // Fetch profiles with pagination and search
     let query = supabase.from('profiles').select('*, companies(name)', { count: 'exact' }).order('created_at', { ascending: false })
     
+    // super_admin sees all; others filtered by company AND by hierarchical level
     if (profile.role !== ROLES.SUPER_ADMIN) {
         query = query.eq('company_id', profile.company_id)
+        // Only show users whose role is manageable by this user (strictly lower level)
+        if (manageableRoles.length > 0) {
+            query = query.in('role', manageableRoles)
+        } else {
+            // Edge case: if no manageable roles, show nothing
+            query = query.eq('id', '00000000-0000-0000-0000-000000000000')
+        }
     }
 
     if (q) {
@@ -75,10 +90,51 @@ export default async function UsersSettingsPage({ searchParams }) {
                     description="Kelola hak akses dan akun administrator di perusahaan Anda."
                 />
                 <div className="flex items-center gap-3 pt-2">
+                    <Link href="/dashboard/employees/import">
+                        <Button variant="outline" className="h-11 rounded-xl border-emerald-200 text-emerald-700 font-bold gap-2 hover:bg-emerald-50">
+                            <Upload className="w-4 h-4" /> Import Massal
+                        </Button>
+                    </Link>
                     <Suspense fallback={<Button disabled>Memuat...</Button>}>
                         <RegisterUserDialog />
                     </Suspense>
                 </div>
+            </div>
+
+            {/* Hierarchy Notice */}
+            <div className="flex items-center gap-3 px-5 py-3.5 bg-amber-50 border border-amber-100 rounded-2xl">
+                <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0" />
+                <p className="text-xs font-bold text-amber-800">
+                    Anda login sebagai <span className="uppercase tracking-wide">{perms.role}</span> (Level {perms.level}).
+                    {' '}Anda hanya dapat melihat dan mengelola pengguna dengan level di bawah Anda:
+                    {' '}<span className="text-amber-900">{manageableRoles.length > 0 ? manageableRoles.join(', ') : '—'}</span>.
+                </p>
+            </div>
+
+            {/* Info Banner */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="p-5 rounded-2xl border-none bg-blue-50 flex items-start gap-4">
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+                        <UserPlus className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-black text-blue-900">Tambah Satu per Satu</p>
+                        <p className="text-xs text-blue-700/80 font-medium mt-0.5 leading-relaxed">
+                            Gunakan tombol <strong>"Daftarkan Pengguna"</strong> untuk menambah karyawan satu per satu. Akun dan data karyawan dibuat sekaligus, email undangan terkirim otomatis.
+                        </p>
+                    </div>
+                </Card>
+                <Card className="p-5 rounded-2xl border-none bg-emerald-50 flex items-start gap-4">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0">
+                        <Users className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-black text-emerald-900">Import Massal via Excel</p>
+                        <p className="text-xs text-emerald-700/80 font-medium mt-0.5 leading-relaxed">
+                            Gunakan <strong>"Import Massal"</strong> untuk upload puluhan karyawan sekaligus. Akun user dibuat dan email undangan terkirim untuk setiap baris data yang valid.
+                        </p>
+                    </div>
+                </Card>
             </div>
 
             {/* Filters & Search */}
@@ -137,10 +193,12 @@ export default async function UsersSettingsPage({ searchParams }) {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-4 sm:pt-0">
+                            <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-4 sm:pt-0">
                                 <Badge className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${getRoleBadgeStyle(u.role)}`}>
                                     {ROLE_LABELS[u.role] || u.role}
                                 </Badge>
+                                {u.id !== user.id && <LoginAsButton targetUser={u} />}
+                                <EditUserDialog targetUser={u} />
                             </div>
                         </div>
                     </Card>

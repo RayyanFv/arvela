@@ -1,19 +1,22 @@
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { getUserPermissions } from '@/lib/permissions'
 import Link from 'next/link'
 import {
     Users,
-    Search,
-    Filter,
     Plus,
+    Upload,
     MoreHorizontal,
     Briefcase,
-    ArrowUpRight
+    ArrowUpRight,
+    Building2,
+    Medal
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/SearchInput'
+import { Pagination } from '@/components/ui/Pagination'
 
 export const metadata = { title: 'Data Karyawan — Arvela HR' }
 
@@ -32,10 +35,27 @@ export default async function EmployeesPage({ searchParams }) {
 
     if (!profile) redirect('/login')
 
+    const perms = await getUserPermissions(user.id)
+
     const params = await searchParams
     const search = params?.q || ''
+    const page = parseInt(params?.page || '1', 10)
+    const limit = 12
+    const offset = (page - 1) * limit
 
-    // Fetch employees
+    // Count stats query
+    const { count: totalEmployees } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', profile.company_id)
+
+    const { count: activeEmployees } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', profile.company_id)
+        .eq('status', 'active')
+
+    // Fetch employees with pagination and joins
     let query = supabase
         .from('employees')
         .select(`
@@ -44,134 +64,141 @@ export default async function EmployeesPage({ searchParams }) {
             job_title,
             department,
             joined_at,
-            profiles!employees_profile_id_fkey (full_name, email, avatar_url)
-        `)
+            profiles!employees_profile_id_fkey (full_name, email, avatar_url, phone),
+            home_unit:home_unit_id (name, code),
+            work_unit:work_unit_id (name, code),
+            job_grade:job_grade_id (name, code, level)
+        `, { count: 'exact' })
         .eq('company_id', profile.company_id)
         .order('created_at', { ascending: false })
 
     if (search) {
-        // Need to filter effectively. Since we join, post-filtering via JS is safer for this prototype
-        // but let's fetch all and filter in JS if search exists, because Supabase ilike on joined tables can be tricky.
+        query = query.or(`job_title.ilike.%${search}%,department.ilike.%${search}%`)
     }
 
-    const { data: rawEmployees } = await query
+    const { data: rawEmployees, count } = await query.range(offset, offset + limit - 1)
+    const totalPages = Math.ceil((count || 0) / limit)
 
     let employees = rawEmployees || []
-    if (search) {
-        employees = employees.filter(e =>
-            e.profiles?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-            e.profiles?.email?.toLowerCase().includes(search.toLowerCase()) ||
-            e.job_title?.toLowerCase().includes(search.toLowerCase())
-        )
-    }
 
     return (
         <div className="space-y-8 pb-20">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <PageHeader
                     title="Data Karyawan"
-                    description="Kelola seluruh tim, onboarding, dan performa mereka."
+                    description="Kelola seluruh tim, unit kerja, pangkat, dan informasi karyawan Anda."
                 />
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
-                    <SearchInput 
-                        placeholder="Cari nama atau email..." 
+                    <SearchInput
+                        placeholder="Cari jabatan atau divisi..."
                         defaultValue={search}
-                        className="w-full sm:w-56"
+                        className="w-full sm:w-64"
                     />
                     <div className="flex items-center gap-3">
-                        <Button variant="outline" className="h-11 rounded-xl border-slate-200 text-slate-600 font-bold gap-2">
-                            <Filter className="w-4 h-4" /> Filter
-                        </Button>
-                        <Link href="/dashboard/settings/users">
-                            <Button
-                                className="h-11 rounded-xl bg-primary text-white font-black hover:bg-brand-600 gap-2 shadow-lg shadow-primary/20"
-                            >
-                                <Plus className="w-4 h-4" /> Tambah Karyawan
-                            </Button>
-                        </Link>
+                        {perms.has('employee.manage') && (
+                            <>
+                                <Link href="/dashboard/employees/import">
+                                    <Button variant="outline" className="h-11 rounded-xl border-emerald-200 text-emerald-700 font-bold gap-2 hover:bg-emerald-50">
+                                        <Upload className="w-4 h-4" /> Import Massal
+                                    </Button>
+                                </Link>
+                                <Link href="/dashboard/settings/users">
+                                    <Button
+                                        className="h-11 rounded-xl bg-primary text-white font-black hover:bg-brand-600 gap-2 shadow-lg shadow-primary/20"
+                                    >
+                                        <Plus className="w-4 h-4" /> Tambah Karyawan
+                                    </Button>
+                                </Link>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Stats Dashboard */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                    { label: 'Total Karyawan', value: employees.length, color: 'bg-blue-50 text-blue-600' },
-                    { label: 'Active', value: employees.filter(e => e.status === 'active').length, color: 'bg-emerald-50 text-emerald-600' },
-                    { label: 'Onboarding', value: employees.filter(e => e.status === 'onboarding').length, color: 'bg-amber-50 text-amber-600' },
-                    { label: 'Baru (Bulan ini)', value: employees.filter(e => new Date(e.joined_at).getMonth() === new Date().getMonth()).length, color: 'bg-purple-50 text-purple-600' }
-                ].map((stat, i) => (
-                    <Card key={i} className="p-5 border-none shadow-sm rounded-3xl group transition-all hover:bg-slate-50 flex flex-col justify-center">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">{stat.label}</p>
-                        <p className={`text-2xl font-black ${stat.color.split(' ')[1]}`}>{stat.value}</p>
-                    </Card>
-                ))}
+            {/* Stats Summary */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card className="p-5 border-none shadow-sm rounded-3xl flex flex-col justify-center">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Total Karyawan</p>
+                    <p className="text-2xl font-black text-blue-600">{totalEmployees || 0}</p>
+                </Card>
+                <Card className="p-5 border-none shadow-sm rounded-3xl flex flex-col justify-center">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Karyawan Aktif</p>
+                    <p className="text-2xl font-black text-emerald-600">{activeEmployees || 0}</p>
+                </Card>
+                <Card className="p-5 border-none shadow-sm rounded-3xl flex flex-col justify-center col-span-2 lg:col-span-1">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Karyawan per Halaman</p>
+                    <p className="text-2xl font-black text-violet-600">{limit} <span className="text-xs font-bold text-slate-400">/ hal</span></p>
+                </Card>
             </div>
 
-            {/* List */}
+            {/* Employee Cards Grid */}
             {employees.length === 0 ? (
-                <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-slate-100 shadow-sm mt-8">
+                <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-slate-100 shadow-sm mt-4">
                     <Users className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-slate-400">Belum Ada Karyawan</h3>
-                    <p className="text-sm text-slate-300 font-medium max-w-xs mx-auto mt-2">Karyawan yang berstatus Hired akan dikelola di sini.</p>
+                    <h3 className="text-xl font-bold text-slate-400">Belum Ada Data Karyawan</h3>
+                    <p className="text-sm text-slate-300 font-medium max-w-xs mx-auto mt-2">
+                        {search ? 'Tidak ada karyawan yang cocok dengan kata kunci pencarian.' : 'Karyawan yang terdaftar akan dikelola di sini.'}
+                    </p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {employees.map(emp => (
-                        <Card key={emp.id} className="relative overflow-hidden group select-none rounded-[32px] border-none shadow-xl shadow-slate-100/50 p-6 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/5">
-                            <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button variant="ghost" size="icon" className="rounded-xl text-slate-400 hover:text-primary">
-                                    <MoreHorizontal className="w-5 h-5" />
-                                </Button>
+                        <Card key={emp.id} className="relative overflow-hidden group select-none rounded-[32px] border-none shadow-sm hover:shadow-md transition-all p-6 bg-white flex flex-col justify-between">
+                            <div className="space-y-4">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center font-black text-slate-400 text-lg">
+                                            {emp.profiles?.avatar_url ? (
+                                                <img src={emp.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                emp.profiles?.full_name?.charAt(0) || '?'
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h4 className="font-extrabold text-slate-900 leading-snug line-clamp-1">{emp.profiles?.full_name || 'Tanpa Nama'}</h4>
+                                            <p className="text-xs text-slate-500 font-bold flex items-center gap-1 mt-0.5">
+                                                <Briefcase className="w-3 h-3 text-primary shrink-0" />
+                                                <span className="truncate">{emp.job_title || 'Staf'}</span>
+                                            </p>
+                                            <p className="text-[11px] text-slate-400 font-medium truncate">{emp.profiles?.email}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Organizational details (Unit & Grade) */}
+                                <div className="bg-slate-50 p-3 rounded-2xl space-y-2 border border-slate-100 text-xs">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                            <Building2 className="w-3 h-3" /> Unit Kerja
+                                        </span>
+                                        <span className="font-bold text-slate-700 truncate max-w-[140px]">
+                                            {emp.work_unit?.name || emp.home_unit?.name || emp.department || '—'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                            <Medal className="w-3 h-3" /> Pangkat
+                                        </span>
+                                        <span className="font-bold text-slate-700">
+                                            {emp.job_grade ? `Lv.${emp.job_grade.level} · ${emp.job_grade.name}` : '—'}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="flex flex-col items-center text-center space-y-4 pt-2">
-                                <div className="relative">
-                                    <div className="w-20 h-20 rounded-3xl border-2 border-slate-100 overflow-hidden ring-4 ring-slate-50">
-                                        {emp.profiles?.avatar_url ? (
-                                            <img src={emp.profiles.avatar_url} alt="" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full bg-primary/5 flex items-center justify-center text-2xl font-black text-primary uppercase">
-                                                {emp.profiles?.full_name?.charAt(0) || '?'}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-lg border-2 border-white flex items-center justify-center ${emp.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'
-                                        }`}>
-                                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <h4 className="font-black text-slate-900 tracking-tight">{emp.profiles?.full_name || 'Tidak ada nama'}</h4>
-                                    <div className="flex items-center justify-center gap-1.5 text-xs text-primary font-bold">
-                                        <Briefcase className="w-3 h-3" />
-                                        {emp.job_title}
-                                    </div>
-                                    <p className="text-[10px] text-slate-500 font-bold">{emp.profiles?.email}</p>
-                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{emp.department}</p>
-                                </div>
-
-                                <div className="w-full grid grid-cols-2 gap-2 pt-4 border-t border-slate-50 mt-2">
-                                    <div className="text-center">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bergabung</p>
-                                        <p className="text-xs font-bold text-slate-700">{new Date(emp.joined_at).getFullYear()}</p>
-                                    </div>
-                                    <div className="text-center">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</p>
-                                        <p className={`text-[10px] font-black uppercase text-center ${emp.status === 'active' ? 'text-emerald-500' : 'text-amber-500'
-                                            }`}>
-                                            {emp.status}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <Link href={`/dashboard/employees/${emp.id}`} className="w-full">
+                            <div className="pt-4 border-t border-slate-100 mt-4 flex items-center justify-between">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                    emp.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                                }`}>
+                                    {emp.status}
+                                </span>
+                                <Link href={`/dashboard/employees/${emp.id}`}>
                                     <Button
-                                        variant="ghost"
-                                        className="w-full h-11 rounded-2xl bg-slate-50 hover:bg-primary/10 hover:text-primary mt-2 font-black text-xs gap-2"
+                                        size="sm"
+                                        variant="outline"
+                                        className="rounded-xl font-bold text-xs gap-1.5 border-slate-200 text-slate-700 hover:bg-slate-50"
                                     >
-                                        DETAIL PROFIL <ArrowUpRight className="w-4 h-4" />
+                                        Detail <ArrowUpRight className="w-3.5 h-3.5" />
                                     </Button>
                                 </Link>
                             </div>
@@ -179,6 +206,16 @@ export default async function EmployeesPage({ searchParams }) {
                     ))}
                 </div>
             )}
+
+            {/* Pagination Controls */}
+            <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalCount={count || 0}
+                limit={limit}
+                baseUrl="/dashboard/employees"
+                searchParams={{ q: search }}
+            />
         </div>
     )
 }

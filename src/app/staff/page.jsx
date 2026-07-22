@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { OnboardingList } from '@/components/staff/OnboardingList'
 import { OKRSection } from '@/components/staff/OKRSection'
+import { getEffectiveUserId } from '@/lib/impersonate-client'
 
 export default function StaffDashboard() {
     const [employee, setEmployee] = useState(null)
@@ -35,14 +36,22 @@ export default function StaffDashboard() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
+        const userId = getEffectiveUserId(user)
+
         // 1. Employee data and Role verification
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', userId).single()
         if (profile) setUserRole(profile.role)
 
         const { data: emp, error: empError } = await supabase
             .from('employees')
-            .select('*, profiles!employees_profile_id_fkey(full_name, avatar_url, department)')
-            .eq('profile_id', user.id)
+            .select(`
+                *,
+                profiles!employees_profile_id_fkey(full_name, avatar_url, email),
+                home_unit:home_unit_id(name, code),
+                work_unit:work_unit_id(name, code),
+                job_grade:job_grade_id(name, code, level)
+            `)
+            .eq('profile_id', userId)
             .single()
 
         if (empError || !emp) {
@@ -173,15 +182,24 @@ export default function StaffDashboard() {
                             </p>
                         </div>
 
-                        <div className="hidden xl:grid grid-cols-1 gap-5 ml-auto min-w-[260px]">
-                            <div className="bg-white/5 border border-white/10 rounded-[36px] p-7 backdrop-blur-xl hover:bg-white/10 transition-all hover:translate-x-1 duration-300">
-                                <p className="text-[10px] font-black uppercase text-primary tracking-widest mb-2 opacity-80">Jabatan & Divisi</p>
-                                <p className="text-2xl font-black text-white truncate">{employee.job_title}</p>
-                                <p className="text-xs font-bold text-slate-400 mt-1.5 uppercase tracking-tight">{employee.department}</p>
+                        <div className="hidden xl:grid grid-cols-1 gap-4 ml-auto min-w-[280px]">
+                            <div className="bg-white/5 border border-white/10 rounded-[32px] p-6 backdrop-blur-xl hover:bg-white/10 transition-all hover:translate-x-1 duration-300">
+                                <p className="text-[10px] font-black uppercase text-primary tracking-widest mb-1.5 opacity-90">Jabatan & Unit</p>
+                                <p className="text-xl font-black text-white truncate">{employee.job_title}</p>
+                                <p className="text-xs font-bold text-slate-300 mt-1 truncate">
+                                    {employee.work_unit?.name || employee.home_unit?.name || employee.department || '—'}
+                                </p>
+                                {employee.job_grade && (
+                                    <p className="text-[10px] font-bold text-amber-400 mt-1 uppercase tracking-wider">
+                                        Pangkat: Lv.{employee.job_grade.level} · {employee.job_grade.name}
+                                    </p>
+                                )}
                             </div>
-                            <div className="bg-white/5 border border-white/10 rounded-[36px] p-7 backdrop-blur-xl hover:bg-white/10 transition-all hover:translate-x-1 duration-300">
-                                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Join Date</p>
-                                <p className="text-xl font-bold text-white">{new Date(employee.joined_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                            <div className="bg-white/5 border border-white/10 rounded-[32px] p-5 backdrop-blur-xl flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Join Date</p>
+                                    <p className="text-sm font-bold text-white mt-0.5">{new Date(employee.joined_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                </div>
                             </div>
                         </div>
                     </div>

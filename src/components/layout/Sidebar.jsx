@@ -18,6 +18,10 @@ import {
     ChevronLeft,
     Settings,
     FileText,
+    ShieldCheck,
+    Building2,
+    Medal,
+    UserX,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -30,15 +34,13 @@ export function Sidebar({ isOpen, setIsOpen }) {
     const supabase = createClient()
     const [collapsed, setCollapsed] = useState(false)
     const [userRole, setUserRole] = useState(null)
+    const [userPerms, setUserPerms] = useState(new Set())
 
     useEffect(() => {
         async function getRole() {
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
-                // Check metadata first
                 let role = user.user_metadata?.role
-                
-                // Fallback to profile
                 if (!role) {
                     const { data: prof } = await supabase
                         .from('profiles')
@@ -48,6 +50,19 @@ export function Sidebar({ isOpen, setIsOpen }) {
                     role = prof?.role
                 }
                 setUserRole(role)
+
+                // Fetch dynamic permissions from RBAC tables
+                const { data: pr } = await supabase
+                    .from('profile_roles')
+                    .select('roles(role_permissions(permissions(code)))')
+                    .eq('profile_id', user.id)
+                    .single()
+
+                const codes = new Set()
+                for (const rp of pr?.roles?.role_permissions || []) {
+                    if (rp.permissions?.code) codes.add(rp.permissions.code)
+                }
+                setUserPerms(codes)
             }
         }
         getRole()
@@ -60,6 +75,9 @@ export function Sidebar({ isOpen, setIsOpen }) {
     }
 
     // Dynamic Navigation based on Role
+    const isGlobalAdmin = [ROLES.SUPER_ADMIN, ROLES.OWNER].includes(userRole)
+    const hasPermission = (code) => isGlobalAdmin || userPerms.has(code)
+
     const navSections = [
         {
             label: 'Menu Utama',
@@ -71,27 +89,28 @@ export function Sidebar({ isOpen, setIsOpen }) {
             label: 'Rekrutmen',
             roles: [ROLES.HR_ADMIN, ROLES.OWNER],
             items: [
-                { icon: Briefcase, label: 'Lowongan', href: '/dashboard/jobs' },
-                { icon: Users, label: 'Kandidat', href: '/dashboard/candidates' },
-                { icon: ClipboardCheck, label: 'Assessment', href: '/dashboard/assessments' },
-                { icon: CalendarDays, label: 'Interview', href: '/dashboard/interviews' },
+                { icon: Briefcase, label: 'Lowongan', href: '/dashboard/jobs', permission: 'jobs.view' },
+                { icon: Users, label: 'Kandidat', href: '/dashboard/candidates', permission: 'jobs.manage' },
+                { icon: ClipboardCheck, label: 'Assessment', href: '/dashboard/assessments', permission: 'jobs.manage' },
+                { icon: CalendarDays, label: 'Interview', href: '/dashboard/interviews', permission: 'jobs.manage' },
             ]
         },
         {
             label: 'Karyawan',
             roles: [ROLES.HR_ADMIN, ROLES.OWNER],
             items: [
-                { icon: UserSquare, label: 'Data Karyawan', href: '/dashboard/employees' },
-                { icon: ClipboardCheck, label: 'Kehadiran', href: '/dashboard/attendance' },
-                { icon: CalendarDays, label: 'Izin & Eksepsi', href: '/dashboard/attendance/requests' },
-                { icon: Clock, label: 'Pengajuan Lembur', href: '/dashboard/overtime' },
+                { icon: UserSquare, label: 'Data Karyawan', href: '/dashboard/employees', permission: 'employee.view' },
+                { icon: ClipboardCheck, label: 'Kehadiran', href: '/dashboard/attendance', permission: 'attendance.view' },
+                { icon: CalendarDays, label: 'Izin & Eksepsi', href: '/dashboard/attendance/requests', permission: 'leave.approve' },
+                { icon: Clock, label: 'Pengajuan Lembur', href: '/dashboard/overtime', permission: 'attendance.approve' },
+                { icon: UserX, label: 'Manajemen Resign', href: '/dashboard/employees/offboarding', permission: 'employee.manage' },
             ]
         },
         {
             label: 'Pengembangan',
             roles: [ROLES.HR_ADMIN, ROLES.OWNER],
             items: [
-                { icon: LineChart, label: 'Performa', href: '/dashboard/performance' },
+                { icon: LineChart, label: 'Performa', href: '/dashboard/performance', permission: 'okr.manage' },
                 { icon: GraduationCap, label: 'LMS', href: '/dashboard/lms' },
                 { icon: BookOpen, label: 'Onboarding', href: '/dashboard/onboarding' },
             ]
@@ -107,7 +126,10 @@ export function Sidebar({ isOpen, setIsOpen }) {
             label: 'Konfigurasi',
             roles: [ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HR_ADMIN],
             items: [
-                { icon: Settings, label: 'Manajemen User', href: '/dashboard/settings/users' },
+                { icon: Settings,    label: 'Manajemen User',   href: '/dashboard/settings/users' },
+                { icon: ShieldCheck, label: 'Manajemen Role',   href: '/dashboard/settings/roles',  permission: 'employee.manage' },
+                { icon: Building2,   label: 'Manajemen Unit',   href: '/dashboard/settings/units',  permission: 'employee.manage' },
+                { icon: Medal,       label: 'Manajemen Pangkat', href: '/dashboard/settings/grades', permission: 'employee.manage' },
             ]
         },
         {
@@ -119,9 +141,13 @@ export function Sidebar({ isOpen, setIsOpen }) {
         }
     ]
 
-    const filteredSections = navSections.filter(section => 
-        !section.roles || (userRole && section.roles.includes(userRole))
-    )
+    const filteredSections = navSections
+        .filter(section => !section.roles || (userRole && section.roles.includes(userRole)))
+        .map(section => ({
+            ...section,
+            items: section.items.filter(item => !item.permission || hasPermission(item.permission))
+        }))
+        .filter(section => section.items.length > 0)
 
     return (
         <aside className={cn(

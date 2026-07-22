@@ -42,3 +42,22 @@ next-env.d.ts
 
 /skills/*
 .agents/skills/*
+
+# graphifyy & Knowledge Graph artifacts
+/graphifyy/
+graphifyy/
+graphify-out/
+/public/trace.html
+
+# python virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# OS metadata & temporary lock files
+.DS_Store
+Thumbs.db
+~$*.xlsx
+~$*.xls
+

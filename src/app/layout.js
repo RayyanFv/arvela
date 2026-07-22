@@ -1,6 +1,5 @@
 import { Plus_Jakarta_Sans, Instrument_Serif } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { CustomCursor } from "@/components/CustomCursor";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -28,7 +27,6 @@ export default function RootLayout({ children }) {
   return (
     <html lang="id">
       <body className={`${plusJakartaSans.variable} ${instrumentSerif.variable} font-sans antialiased bg-background text-foreground tracking-[-0.04em]`}>
-        <CustomCursor />
         <TooltipProvider>
             {children}
         </TooltipProvider>

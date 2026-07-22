@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
     CalendarDays, Clock, FileText, CheckCircle2,
-    XCircle, Loader2, Plus, ArrowLeft, Settings2
+    XCircle, Loader2, Plus, ArrowLeft, Settings2, ShieldAlert
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,11 +21,12 @@ export default function HRRequestsPage() {
     const [employees, setEmployees] = useState([])
     const [balances, setBalances] = useState([])
     const [activeTab, setActiveTab] = useState('requests') // requests | types | balances
+    const [canApprove, setCanApprove] = useState(false)
 
     const [submittingId, setSubmittingId] = useState(null)
     const [rejectionReason, setRejectionReason] = useState('')
     const [rejectingId, setRejectingId] = useState(null)
-    const [approvingCorrectionId, setApprovingCorrectionId] = useState(null) // req.id that is in time-entry mode
+    const [approvingCorrectionId, setApprovingCorrectionId] = useState(null)
     const [correctionTimes, setCorrectionTimes] = useState({ time_in: '', time_out: '' })
 
     const [newLeaveType, setNewLeaveType] = useState({ name: '', code: '', is_paid: true, deducts_annual_leave: false })
@@ -34,7 +35,23 @@ export default function HRRequestsPage() {
 
     useEffect(() => {
         fetchData()
+        fetchPermissions()
     }, [])
+
+    async function fetchPermissions() {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: pr } = await supabase
+            .from('profile_roles')
+            .select('roles(name, role_permissions(permissions(code)))')
+            .eq('profile_id', user.id)
+            .single()
+        const role = pr?.roles?.name
+        const codes = new Set((pr?.roles?.role_permissions || []).map(rp => rp.permissions?.code).filter(Boolean))
+        // Global admins always can approve
+        const isAdmin = ['super_admin', 'owner'].includes(role)
+        setCanApprove(isAdmin || codes.has('leave.approve') || codes.has('attendance.approve'))
+    }
 
     async function fetchData() {
         setLoading(true)
@@ -307,9 +324,10 @@ export default function HRRequestsPage() {
                                                 <h3 className="font-extrabold text-slate-900 text-lg">
                                                     {req.type === 'LEAVE' && req.leave_types ? req.leave_types.name : typeLabels[req.type]}
                                                 </h3>
-                                                {req.status === 'PENDING' && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">Menunggu</Badge>}
-                                                {req.status === 'APPROVED' && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Disetujui</Badge>}
-                                                {req.status === 'REJECTED' && <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100">Ditolak</Badge>}
+                                                {(req.status === 'PENDING' || req.status === 'pending_manager') && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">Step 1: Menunggu Atasan</Badge>}
+                                                {req.status === 'pending_hr' && <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Step 2: Menunggu HR Final</Badge>}
+                                                {(req.status === 'APPROVED' || req.status === 'approved') && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Disetujui Final</Badge>}
+                                                {(req.status === 'REJECTED' || req.status === 'rejected') && <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100">Ditolak</Badge>}
                                             </div>
                                             <p className="text-slate-600 font-bold mb-3">{req.employee?.profiles?.full_name} <span className="text-slate-400 font-medium">({req.employee?.job_title})</span></p>
 
@@ -347,7 +365,7 @@ export default function HRRequestsPage() {
                                     </div>
 
                                     {/* Actions */}
-                                    {req.status === 'PENDING' && (
+                                    {req.status === 'PENDING' && canApprove && (
                                         <div className="flex flex-col gap-2 min-w-[140px]">
                                             {rejectingId === req.id ? (
                                                 <div className="flex flex-col gap-2">
