@@ -6,6 +6,7 @@ import { ArrowLeft, UserCircle, Calendar, Building } from 'lucide-react'
 import { ShareButton } from '@/components/ui/ShareButton'
 import { LikeDislikeButtons } from '@/components/ui/LikeDislikeButtons'
 import { PublicNavbar, PublicFooter } from '@/components/PublicLayout'
+import { markdownToHtml } from '@/lib/markdown'
 
 export async function generateMetadata({ params }) {
     const { slug } = await params
@@ -53,7 +54,6 @@ export default async function ArticleDetailPage({ params }) {
     const { slug } = await params
     const supabase = createAdminSupabaseClient()
 
-    // Ambil artikel, lalu update views secara asinkron (RPC jika ada, atau update langsung)
     const { data: article, error } = await supabase
         .from('articles')
         .select('*, profiles(full_name)')
@@ -64,6 +64,9 @@ export default async function ArticleDetailPage({ params }) {
     if (error || !article) {
         notFound()
     }
+
+    // Convert markdown content → styled HTML (server-side)
+    const contentHtml = markdownToHtml(article.content || '')
 
     // Fire and forget update views (in background)
     supabase.rpc('increment_article_views', { article_id: article.id }).then(({ error: rpcErr }) => {
@@ -147,15 +150,9 @@ export default async function ArticleDetailPage({ params }) {
                     </div>
                 </header>
 
-                <div className="prose prose-slate md:prose-lg max-w-[720px] mx-auto 
-                    prose-headings:font-black prose-headings:tracking-tight prose-headings:text-foreground prose-headings:mb-4 prose-headings:mt-10
-                    prose-h2:text-3xl prose-h3:text-2xl
-                    prose-a:text-primary prose-a:font-bold prose-a:underline hover:prose-a:text-foreground
-                    prose-p:text-foreground/80 prose-p:leading-[1.8] prose-p:font-medium prose-p:mb-6
-                    prose-strong:text-foreground prose-strong:font-black
-                    prose-li:text-foreground/80 prose-li:leading-[1.8] prose-ul:mb-6
-                    text-lg"
-                    dangerouslySetInnerHTML={{ __html: article.content }}
+                <div
+                    className="max-w-[720px] mx-auto"
+                    dangerouslySetInnerHTML={{ __html: contentHtml }}
                 />
 
                 <div className="mt-24">

@@ -17,6 +17,8 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { DashboardSkeleton } from './components/DashboardSkeleton'
 
+import { getEffectiveUserId } from '@/lib/impersonate-client'
+
 // ── Solusi 2: Dynamic imports — setiap dashboard hanya di-download
 // ketika role user cocok, bukan semua sekaligus ──────────────────
 const HRAdminDashboard = dynamic(
@@ -32,6 +34,8 @@ const SuperAdminDashboard = dynamic(
     { loading: () => <DashboardSkeleton />, ssr: false }
 )
 
+import { getEffectiveProfileServer } from '@/lib/actions/impersonate'
+
 export default function DashboardRouter() {
     const supabase = createClient()
     const router = useRouter()
@@ -39,50 +43,31 @@ export default function DashboardRouter() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(false)
 
-    // ── Solusi 1: Fetch profile lengkap SEKALI di sini (companies join),
-    // lalu pass ke dashboard component — tidak perlu fetch ulang ────
     const [profile, setProfile] = useState(null)
     const [user, setUser] = useState(null)
 
     useEffect(() => {
         async function fetchRole() {
             try {
-                const { data: { user: authUser } } = await supabase.auth.getUser()
+                const res = await getEffectiveProfileServer()
 
-                if (!authUser) {
+                if (!res?.user) {
                     router.push('/login')
                     return
                 }
 
-                setUser(authUser)
+                setUser(res.user)
 
-                // Fetch profile + companies sekali, hasilnya diteruskan ke dashboard
-                const { data: profile, error: profError } = await supabase
-                    .from('profiles')
-                    .select('*, companies(name)')
-                    .eq('id', authUser.id)
-                    .single()
-
-                if (profile?.role) {
-                    setProfile(profile)
-                    setRole(profile.role)
-                } else {
-                    // Fallback ke metadata jika profile belum ada
-                    const metaRole = authUser.user_metadata?.role
-                    if (metaRole) {
-                        // Buat objek profile minimal dari metadata
-                        setProfile({
-                            id: authUser.id,
-                            full_name: authUser.user_metadata?.full_name || null,
-                            role: metaRole,
-                            company_id: authUser.user_metadata?.company_id || null,
-                            companies: { name: authUser.user_metadata?.company_name || null },
-                        })
-                        setRole(metaRole)
-                    } else {
-                        console.error('Could not determine role from profile or metadata')
-                        setError(true)
+                if (res.profile?.role) {
+                    if (res.profile.role === ROLES.EMPLOYEE) {
+                        router.push('/staff')
+                        return
                     }
+                    setProfile(res.profile)
+                    setRole(res.profile.role)
+                } else {
+                    console.error('Could not determine role from effective profile')
+                    setError(true)
                 }
             } catch (err) {
                 console.error('Dashboard Auth Error:', err)

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getAuthProfile } from '@/lib/actions/auth-helpers'
+import { checkJobQuota } from '@/lib/quota-enforcement'
 
 async function getHRProfile() {
     const { profile, admin } = await getAuthProfile({ requireAdmin: true })
@@ -20,6 +21,10 @@ export async function createJob(formData) {
     const employmentType = formData.get('employment_type')
     const deadline = formData.get('deadline') || null
     const shouldPublish = formData.get('publish') === '1'
+
+    if (shouldPublish) {
+        await checkJobQuota(profile.company_id, supabase)
+    }
 
     // Salary fields
     const salaryMin = formData.get('salary_min') ? parseFloat(formData.get('salary_min')) : null
@@ -125,6 +130,10 @@ export async function updateJob(jobId, formData) {
         salary_max: salaryMax,
         salary_currency: salaryCurrency,
         show_salary: showSalary,
+    }
+
+    if (newStatus === 'published' && existing.status !== 'published') {
+        await checkJobQuota(profile.company_id, supabase)
     }
 
     if (newStatus === 'published' && !existing.published_at) {

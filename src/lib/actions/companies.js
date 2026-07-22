@@ -23,6 +23,15 @@ export async function createCompany(formData) {
     const website = formData.get('website')
     const logo_url = formData.get('logo_url')
 
+    const subscription_plan = formData.get('subscription_plan') || 'Pilot Promo'
+    const subscription_status = formData.get('subscription_status') || 'active'
+    const job_slots_quota = parseInt(formData.get('job_slots_quota')) || 15
+    const assessment_slots_quota = parseInt(formData.get('assessment_slots_quota')) || 15
+    const employee_quota = parseInt(formData.get('employee_quota')) || 50
+    const whatsapp_support_enabled = formData.get('whatsapp_support_enabled') === 'true'
+    const dedicated_account_manager = formData.get('dedicated_account_manager') === 'true'
+    const subscription_expires_at = formData.get('subscription_expires_at') || null
+
     if (!slug) {
         slug = generateSlug(name)
     }
@@ -33,7 +42,15 @@ export async function createCompany(formData) {
         industry,
         size,
         website,
-        logo_url
+        logo_url,
+        subscription_plan,
+        subscription_status,
+        job_slots_quota,
+        assessment_slots_quota,
+        employee_quota,
+        whatsapp_support_enabled,
+        dedicated_account_manager,
+        subscription_expires_at: subscription_expires_at ? new Date(subscription_expires_at).toISOString() : null
     }
 
     const { data: company, error } = await supabase
@@ -60,13 +77,30 @@ export async function updateCompany(companyId, formData) {
     const website = formData.get('website')
     const logo_url = formData.get('logo_url')
 
+    const subscription_plan = formData.get('subscription_plan') || 'Pilot Promo'
+    const subscription_status = formData.get('subscription_status') || 'active'
+    const job_slots_quota = parseInt(formData.get('job_slots_quota')) || 15
+    const assessment_slots_quota = parseInt(formData.get('assessment_slots_quota')) || 15
+    const employee_quota = parseInt(formData.get('employee_quota')) || 50
+    const whatsapp_support_enabled = formData.get('whatsapp_support_enabled') === 'true'
+    const dedicated_account_manager = formData.get('dedicated_account_manager') === 'true'
+    const subscription_expires_at = formData.get('subscription_expires_at') || null
+
     const payload = {
         name,
         slug,
         industry,
         size,
         website,
-        logo_url
+        logo_url,
+        subscription_plan,
+        subscription_status,
+        job_slots_quota,
+        assessment_slots_quota,
+        employee_quota,
+        whatsapp_support_enabled,
+        dedicated_account_manager,
+        subscription_expires_at: subscription_expires_at ? new Date(subscription_expires_at).toISOString() : null
     }
 
     const { error } = await supabase

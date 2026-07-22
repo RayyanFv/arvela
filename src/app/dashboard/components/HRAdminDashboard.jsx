@@ -35,6 +35,7 @@ import {
     ChartTooltip,
     ChartTooltipContent,
 } from '@/components/ui/chart'
+import { CompanyQuotaWidget } from '@/components/layout/CompanyQuotaWidget'
 import {
     BarChart, Bar, XAxis, YAxis, ResponsiveContainer,
     Cell, PieChart, Pie, Tooltip as RechartsTooltip
@@ -224,6 +225,9 @@ export function HRAdminDashboard({ profile, user }) {
                     </Button>
                 </Link>
             </div>
+
+            {/* ── Quota & Subscription Widget ── */}
+            <CompanyQuotaWidget companyId={profile?.company_id} />
 
             {/* ── Quick Actions ── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">

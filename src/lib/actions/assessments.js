@@ -5,6 +5,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import crypto from 'crypto'
 import { sendEmail } from '@/lib/email/resend'
+import { checkAssessmentQuota } from '@/lib/quota-enforcement'
 
 /**
  * Log a proctoring event (candidate-facing)
@@ -162,6 +163,8 @@ export async function saveAssessment(payload) {
             .eq('company_id', profile.company_id)
         if (error) throw new Error(error.message)
     } else {
+        await checkAssessmentQuota(profile.company_id, admin)
+
         const { data, error } = await admin
             .from('assessments')
             .insert(assessmentData)

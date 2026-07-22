@@ -4,6 +4,7 @@ import { getAuthProfile } from '@/lib/actions/auth-helpers'
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { canRegisterRole, ROLES, ROLE_LABELS } from '@/lib/constants/roles'
 import { revalidatePath } from 'next/cache'
+import { checkEmployeeQuota } from '@/lib/quota-enforcement'
 
 /**
  * Register a new user (admin-only).
@@ -37,6 +38,12 @@ export async function registerUser(payload) {
         throw new Error(
             `Role ${ROLE_LABELS[profile.role] || profile.role} tidak bisa mendaftarkan ${ROLE_LABELS[targetRole] || targetRole}.`
         )
+    }
+
+    // ─── Quota check ──────────────────────────
+    const companyIdForQuota = profile.role === ROLES.SUPER_ADMIN && company_id ? company_id : (profile?.company_id || company_id)
+    if (companyIdForQuota) {
+        await checkEmployeeQuota(companyIdForQuota, admin, 1)
     }
 
     // ─── Create auth user ─────────────────────

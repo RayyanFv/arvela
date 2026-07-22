@@ -16,6 +16,10 @@ export default async function GradesPage() {
 
     if (!profile) redirect('/login')
 
+    if (profile.role === 'super_admin' || !profile.company_id) {
+        redirect('/dashboard/companies')
+    }
+
     const perms = await getUserPermissions(user.id)
     if (!perms.isAdmin) redirect('/dashboard')
 

@@ -28,6 +28,8 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { ROLES } from '@/lib/constants/roles'
 
+import { getEffectiveProfileServer } from '@/lib/actions/impersonate'
+
 export function Sidebar({ isOpen, setIsOpen }) {
     const pathname = usePathname()
     const router = useRouter()
@@ -38,31 +40,10 @@ export function Sidebar({ isOpen, setIsOpen }) {
 
     useEffect(() => {
         async function getRole() {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-                let role = user.user_metadata?.role
-                if (!role) {
-                    const { data: prof } = await supabase
-                        .from('profiles')
-                        .select('role')
-                        .eq('id', user.id)
-                        .single()
-                    role = prof?.role
-                }
-                setUserRole(role)
-
-                // Fetch dynamic permissions from RBAC tables
-                const { data: pr } = await supabase
-                    .from('profile_roles')
-                    .select('roles(role_permissions(permissions(code)))')
-                    .eq('profile_id', user.id)
-                    .single()
-
-                const codes = new Set()
-                for (const rp of pr?.roles?.role_permissions || []) {
-                    if (rp.permissions?.code) codes.add(rp.permissions.code)
-                }
-                setUserPerms(codes)
+            const res = await getEffectiveProfileServer()
+            if (res?.profile) {
+                setUserRole(res.profile.role)
+                setUserPerms(new Set(res.permissions || []))
             }
         }
         getRole()
@@ -74,9 +55,9 @@ export function Sidebar({ isOpen, setIsOpen }) {
         router.refresh()
     }
 
-    // Dynamic Navigation based on Role
-    const isGlobalAdmin = [ROLES.SUPER_ADMIN, ROLES.OWNER].includes(userRole)
-    const hasPermission = (code) => isGlobalAdmin || userPerms.has(code)
+    // Dynamic Navigation based on Role — HR Admin & Owner have full company admin permissions
+    const isAdminRole = [ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HR_ADMIN].includes(userRole)
+    const hasPermission = (code) => isAdminRole || userPerms.has(code)
 
     const navSections = [
         {
@@ -127,13 +108,13 @@ export function Sidebar({ isOpen, setIsOpen }) {
             roles: [ROLES.SUPER_ADMIN, ROLES.OWNER, ROLES.HR_ADMIN],
             items: [
                 { icon: Settings,    label: 'Manajemen User',   href: '/dashboard/settings/users' },
-                { icon: ShieldCheck, label: 'Manajemen Role',   href: '/dashboard/settings/roles',  permission: 'employee.manage' },
-                { icon: Building2,   label: 'Manajemen Unit',   href: '/dashboard/settings/units',  permission: 'employee.manage' },
-                { icon: Medal,       label: 'Manajemen Pangkat', href: '/dashboard/settings/grades', permission: 'employee.manage' },
+                { icon: ShieldCheck, label: 'Manajemen Role',   href: '/dashboard/settings/roles',  roles: [ROLES.OWNER, ROLES.HR_ADMIN] },
+                { icon: Building2,   label: 'Manajemen Unit',   href: '/dashboard/settings/units',  roles: [ROLES.OWNER, ROLES.HR_ADMIN] },
+                { icon: Medal,       label: 'Manajemen Pangkat', href: '/dashboard/settings/grades', roles: [ROLES.OWNER, ROLES.HR_ADMIN] },
             ]
         },
         {
-            label: 'Master Data',
+            label: 'Master Data Platform',
             roles: [ROLES.SUPER_ADMIN],
             items: [
                 { icon: Briefcase, label: 'Perusahaan (Company)', href: '/dashboard/companies' },
@@ -145,7 +126,11 @@ export function Sidebar({ isOpen, setIsOpen }) {
         .filter(section => !section.roles || (userRole && section.roles.includes(userRole)))
         .map(section => ({
             ...section,
-            items: section.items.filter(item => !item.permission || hasPermission(item.permission))
+            items: section.items.filter(item => {
+                const roleMatch = !item.roles || (userRole && item.roles.includes(userRole))
+                const permMatch = !item.permission || hasPermission(item.permission)
+                return roleMatch && permMatch
+            })
         }))
         .filter(section => section.items.length > 0)
 

@@ -1,6 +1,7 @@
 'use server'
 
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
+import { checkEmployeeQuota } from '@/lib/quota-enforcement'
 
 /**
  * Bulk upsert employees from parsed import data with strict reference validation.
@@ -12,6 +13,11 @@ export async function bulkImportEmployees(rows, companyId) {
     const supabase = createAdminSupabaseClient()
     const succeeded = []
     const failed = []
+
+    // ── Enforce batch employee quota check ──
+    if (rows && rows.length > 0) {
+        await checkEmployeeQuota(companyId, supabase, rows.length)
+    }
 
     let rowIdx = 1
     for (const row of rows) {

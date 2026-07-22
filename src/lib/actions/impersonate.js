@@ -104,3 +104,56 @@ export async function getImpersonationState() {
         realUser: realProfile
     }
 }
+
+/**
+ * Server action to get the active effective profile (target profile if impersonating, else real profile).
+ * Bypasses RLS client blocks for impersonation preview.
+ */
+export async function getEffectiveProfileServer() {
+    const supabase = await createServerSupabaseClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error || !user) return { user: null, profile: null }
+
+    const cookieStore = await cookies()
+    const targetId = cookieStore.get(IMPERSONATE_COOKIE)?.value
+
+    const admin = createAdminSupabaseClient()
+
+    let activeUserId = user.id
+
+    if (targetId) {
+        const { data: realProfile } = await admin
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle()
+
+        if (realProfile && ADMIN_ROLES.includes(realProfile.role)) {
+            activeUserId = targetId
+        }
+    }
+
+    const { data: profile } = await admin
+        .from('profiles')
+        .select('*, companies(name, slug, logo_url)')
+        .eq('id', activeUserId)
+        .maybeSingle()
+
+    const { data: pr } = await admin
+        .from('profile_roles')
+        .select('roles(role_permissions(permissions(code)))')
+        .eq('profile_id', activeUserId)
+        .maybeSingle()
+
+    const permissionCodes = []
+    for (const rp of pr?.roles?.role_permissions || []) {
+        if (rp.permissions?.code) permissionCodes.push(rp.permissions.code)
+    }
+
+    return {
+        user: { ...user, id: activeUserId },
+        profile: profile || null,
+        permissions: permissionCodes,
+        isImpersonating: activeUserId !== user.id
+    }
+}

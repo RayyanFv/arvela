@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { ImpersonationBanner } from './ImpersonationBanner'
+import { WhatsAppSupportButton } from './WhatsAppSupportButton'
 import { usePathname } from 'next/navigation'
 
 export function DashboardLayoutWrapper({ children }) {
@@ -18,6 +19,7 @@ export function DashboardLayoutWrapper({ children }) {
     return (
         <div className="flex flex-col h-screen bg-background relative overflow-hidden">
             <ImpersonationBanner />
+            <WhatsAppSupportButton />
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Mobile Overlay */}
                 {isSidebarOpen && (

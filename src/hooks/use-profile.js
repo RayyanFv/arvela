@@ -4,7 +4,7 @@
 // tidak trigger duplicate getUser() + profiles.select() calls.
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { getEffectiveProfileServer } from '@/lib/actions/impersonate'
 
 // ── Module-level cache — shared across all useProfile() calls in same session ──
 let _cachedProfile = null
@@ -19,28 +19,13 @@ async function fetchProfileOnce() {
 
     _inflightPromise = (async () => {
         try {
-            const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return null
-
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('id, role, company_id, full_name, avatar_url, companies(name, slug, logo_url)')
-                .eq('id', user.id)
-                .single()
-
-            const profile = (data && !error) ? data : {
-                id: user.id,
-                full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-                email: user.email,
-                role: user.user_metadata?.role || 'user',
-                company_id: user.user_metadata?.company_id || null,
-                avatar_url: user.user_metadata?.avatar_url || null,
-                companies: null,
-            }
-
+            const res = await getEffectiveProfileServer()
+            const profile = res?.profile || null
             _cachedProfile = profile
             return profile
+        } catch (e) {
+            console.error('Failed to fetch effective profile:', e)
+            return null
         } finally {
             _inflightPromise = null
         }
