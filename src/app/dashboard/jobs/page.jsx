@@ -1,13 +1,15 @@
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/server'
+import { getEffectiveProfileServer } from '@/lib/actions/impersonate'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { FilterTabs } from '@/components/ui/FilterTabs'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Plus, Briefcase, MapPin, Clock, AlertCircle, ExternalLink } from 'lucide-react'
+import { Plus, Briefcase, MapPin, Clock, AlertCircle, ExternalLink, Users, ChevronRight } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
+import { Pagination } from '@/components/ui/Pagination'
 
 export const metadata = { title: 'Lowongan — Arvela HR' }
 
@@ -24,19 +26,14 @@ const EMPLOYMENT_TYPE_LABEL = {
 }
 
 export default async function JobsPage({ searchParams }) {
-    const authClient = await createServerSupabaseClient()
-    const { data: { user } } = await authClient.auth.getUser()
+    const res = await getEffectiveProfileServer()
+    const user = res?.user
 
     // Guard: tidak ada sesi aktif
     if (!user) redirect('/login')
 
     const supabase = createAdminSupabaseClient()
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('company_id, role')
-        .eq('id', user.id)
-        .single()
+    const profile = res.profile
 
     // Guard: profile belum ada di DB (trigger belum running atau akun lama)
     if (!profile) {
@@ -66,10 +63,13 @@ export default async function JobsPage({ searchParams }) {
 
     const params = await searchParams
     const filterStatus = params?.status || 'all'
+    const page = parseInt(params?.page || '1', 10)
+    const limit = 20
+    const offset = (page - 1) * limit
 
     let query = supabase
         .from('jobs')
-        .select('id, title, slug, status, work_type, employment_type, location, deadline, created_at, published_at')
+        .select('id, title, slug, status, work_type, employment_type, location, deadline, created_at, published_at', { count: 'exact' })
         .eq('company_id', profile.company_id)
         .order('created_at', { ascending: false })
 
@@ -77,24 +77,53 @@ export default async function JobsPage({ searchParams }) {
         query = query.eq('status', filterStatus)
     }
 
-    const [{ data: jobs }, { data: company }] = await Promise.all([
-        query,
-        supabase.from('companies').select('slug').eq('id', profile.company_id).single()
+    const countQuery = (status) => {
+        let q = supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('company_id', profile.company_id)
+        if (status) q = q.eq('status', status)
+        return q
+    }
+
+    const [
+        { data: jobs, count },
+        { data: company },
+        { count: allCount },
+        { count: publishedCount },
+        { count: draftCount },
+        { count: closedCount },
+    ] = await Promise.all([
+        query.range(offset, offset + limit - 1),
+        supabase.from('companies').select('slug').eq('id', profile.company_id).single(),
+        countQuery(),
+        countQuery('published'),
+        countQuery('draft'),
+        countQuery('closed'),
     ])
 
     const companySlug = company?.slug ?? null
 
-
     const counts = {
-        all: jobs?.length ?? 0,
-        published: jobs?.filter(j => j.status === 'published').length ?? 0,
-        draft: jobs?.filter(j => j.status === 'draft').length ?? 0,
-        closed: jobs?.filter(j => j.status === 'closed').length ?? 0,
+        all: allCount ?? 0,
+        published: publishedCount ?? 0,
+        draft: draftCount ?? 0,
+        closed: closedCount ?? 0,
     }
 
-    const displayJobs = filterStatus === 'all'
-        ? (jobs ?? [])
-        : (jobs ?? []).filter(j => j.status === filterStatus)
+    const displayJobs = jobs ?? []
+    const totalPages = Math.ceil((count || 0) / limit)
+
+    // Jumlah pelamar per lowongan pada halaman ini saja — hindari fetch seluruh tabel applications
+    const jobIds = displayJobs.map(j => j.id)
+    let applicantCounts = {}
+    if (jobIds.length > 0) {
+        const { data: apps } = await supabase
+            .from('applications')
+            .select('job_id')
+            .in('job_id', jobIds)
+        applicantCounts = (apps || []).reduce((acc, a) => {
+            acc[a.job_id] = (acc[a.job_id] || 0) + 1
+            return acc
+        }, {})
+    }
 
     return (
         <div>
@@ -147,72 +176,90 @@ export default async function JobsPage({ searchParams }) {
                 <div className="grid gap-3">
                     {displayJobs.map(job => {
                         const cfg = STATUS_CONFIG[job.status]
+                        const applicantCount = applicantCounts[job.id] ?? 0
 
                         return (
                             <div
                                 key={job.id}
-                                className="group relative bg-card rounded-xl border border-border flex flex-col sm:flex-row items-stretch hover:border-primary/40 hover:shadow-sm transition-all overflow-hidden"
+                                className="group relative bg-card rounded-xl border border-border hover:border-primary/40 hover:shadow-sm transition-all overflow-hidden"
                             >
                                 <Link
                                     href={`/dashboard/jobs/${job.id}`}
-                                    className="flex-1 p-5 flex flex-col sm:flex-row items-start justify-between outline-none"
+                                    className="flex items-center gap-4 p-5 outline-none"
                                 >
-                                    <div className="flex items-start gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-brand-100 transition-colors">
-                                            <Briefcase className="w-5 h-5 text-primary" />
+                                    <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center shrink-0 group-hover:bg-brand-100 transition-colors">
+                                        <Briefcase className="w-5 h-5 text-primary" />
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                                            <span className="font-semibold text-foreground truncate">{job.title}</span>
+                                            <Badge className={`text-[10px] h-5 px-2 border shrink-0 ${cfg.className}`}>
+                                                {cfg.label}
+                                            </Badge>
                                         </div>
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-semibold text-foreground">{job.title}</span>
-                                                <Badge className={`text-[10px] h-5 px-2 border ${cfg.className}`}>
-                                                    {cfg.label}
-                                                </Badge>
-                                            </div>
-                                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                                {job.location && (
-                                                    <span className="flex items-center gap-1">
-                                                        <MapPin className="w-3 h-3" /> {job.location}
-                                                    </span>
-                                                )}
-                                                {job.work_type && (
-                                                    <span>{WORK_TYPE_LABEL[job.work_type]}</span>
-                                                )}
-                                                {job.employment_type && (
-                                                    <span>{EMPLOYMENT_TYPE_LABEL[job.employment_type]}</span>
-                                                )}
-                                            </div>
+                                        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                                            {job.location && (
+                                                <span className="flex items-center gap-1">
+                                                    <MapPin className="w-3 h-3" /> {job.location}
+                                                </span>
+                                            )}
+                                            {job.work_type && <span>{WORK_TYPE_LABEL[job.work_type]}</span>}
+                                            {job.employment_type && <span>{EMPLOYMENT_TYPE_LABEL[job.employment_type]}</span>}
+                                            <span className="flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                {formatDistanceToNow(new Date(job.created_at), { addSuffix: true, locale: localeID })}
+                                            </span>
+                                            {job.deadline && (
+                                                <span>Deadline: {new Date(job.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="text-right text-xs text-muted-foreground shrink-0">
-                                        <div className="flex items-center gap-1 justify-end mb-1">
-                                            <Clock className="w-3 h-3" />
-                                            {formatDistanceToNow(new Date(job.created_at), { addSuffix: true, locale: localeID })}
+
+                                    <div className="flex items-center gap-4 shrink-0">
+                                        <div className="hidden sm:flex flex-col items-center px-4 py-1.5 rounded-lg bg-muted/50">
+                                            <span className="flex items-center gap-1 text-sm font-bold text-foreground">
+                                                <Users className="w-3.5 h-3.5 text-primary" /> {applicantCount}
+                                            </span>
+                                            <span className="text-[10px] text-muted-foreground font-medium">Pelamar</span>
                                         </div>
-                                        {job.deadline && (
-                                            <div>Deadline: {new Date(job.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                                        )}
+                                        <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
                                     </div>
                                 </Link>
 
-                                {job.status === 'published' && companySlug && (
-                                    <div className="absolute top-4 right-4 sm:relative sm:top-auto sm:right-auto sm:border-l border-border flex items-center justify-center px-4 bg-muted/20">
+                                <div className="flex items-center justify-between gap-3 px-5 py-2.5 border-t border-border bg-muted/20">
+                                    <span className="sm:hidden flex items-center gap-1 text-xs font-semibold text-foreground">
+                                        <Users className="w-3.5 h-3.5 text-primary" /> {applicantCount} Pelamar
+                                    </span>
+                                    {job.status === 'published' && companySlug ? (
                                         <a
                                             href={`/${companySlug}/${job.slug}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                                            title="Lihat halaman eksternal"
+                                            className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                                         >
-                                            <ExternalLink className="w-4 h-4 hidden sm:block" />
-                                            <span className="sm:hidden">Lihat Halaman Publik</span>
+                                            <ExternalLink className="w-3.5 h-3.5" /> Lihat Halaman Publik
                                         </a>
-                                    </div>
-                                )}
+                                    ) : (
+                                        <span className="ml-auto text-xs text-muted-foreground/60">Belum dipublikasikan ke halaman karier</span>
+                                    )}
+                                </div>
                             </div>
                         )
                     })}
                 </div>
             )}
+
+            <div className="mt-6">
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalCount={count || 0}
+                    limit={limit}
+                    baseUrl="/dashboard/jobs"
+                    searchParams={{ status: filterStatus !== 'all' ? filterStatus : undefined }}
+                />
+            </div>
         </div>
     )
 }

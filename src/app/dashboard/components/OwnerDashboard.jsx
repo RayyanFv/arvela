@@ -109,19 +109,19 @@ export function OwnerDashboard({ profile, user }) {
             </div>
 
             {/* ── Main Stats Row ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {statCards.map((s, i) => (
-                    <Card key={i} className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md transition-all flex flex-col justify-between">
+                    <Card key={i} className="p-5 rounded-md hover:border-slate-300 transition-colors flex flex-col justify-between">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className={`w-10 h-10 ${s.bg} rounded-xl flex items-center justify-center shrink-0`}>
+                            <div className={`w-10 h-10 ${s.bg} rounded-md flex items-center justify-center shrink-0`}>
                                 <s.icon className={`w-5 h-5 ${s.color}`} />
                             </div>
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-tight">{s.label}</p>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest leading-tight">{s.label}</p>
                         </div>
-                        {loading ? <Skeleton className="h-8 w-16" /> : (
+                        {loading ? <Skeleton className="h-7 w-14" /> : (
                             <div className="flex items-end gap-2">
-                                <p className="text-3xl font-black text-foreground leading-none">{s.value}</p>
-                                {s.sub && <p className="text-xs font-bold text-muted-foreground mb-1">{s.sub}</p>}
+                                <p className="text-2xl font-bold text-foreground leading-none">{s.value}</p>
+                                {s.sub && <p className="text-xs font-medium text-muted-foreground mb-0.5">{s.sub}</p>}
                             </div>
                         )}
                     </Card>
@@ -129,10 +129,10 @@ export function OwnerDashboard({ profile, user }) {
             </div>
 
             {/* ── Charts Row ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* Distribusi Departemen (Pie Chart) */}
-                <Card className="p-8 border-none shadow-sm rounded-3xl flex flex-col justify-between">
+                <Card className="p-8 rounded-md flex flex-col justify-between">
                     <div>
                         <h2 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-2">
                             <Users className="w-3.5 h-3.5" /> Distribusi Departemen
@@ -172,7 +172,7 @@ export function OwnerDashboard({ profile, user }) {
                 </Card>
 
                 {/* Top Performers */}
-                <Card className="p-8 border-none shadow-sm rounded-3xl">
+                <Card className="p-8 rounded-md">
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h2 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-2">

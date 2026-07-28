@@ -98,7 +98,7 @@ export default function EditJobForm({ job, companySlug }) {
                 <div className="flex items-start sm:items-center justify-between flex-col sm:flex-row gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-foreground">{job.title}</h1>
-                        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${STATUS_LABEL[job.status].class}`}>
+                        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium mt-1 ${STATUS_LABEL[job.status].class}`}>
                             {STATUS_LABEL[job.status].label}
                         </div>
                     </div>
@@ -117,35 +117,35 @@ export default function EditJobForm({ job, companySlug }) {
 
             <div className="max-w-6xl mx-auto">
                 <Form {...form}>
-                    <div className="flex flex-col lg:flex-row gap-8 items-start">
+                    <div className="flex flex-col lg:flex-row gap-6 items-start">
                         {/* Kolom Kiri — Form Utama */}
-                        <div className="flex-1 space-y-8 min-w-0 order-2 lg:order-1">
+                        <div className="flex-1 space-y-6 min-w-0 order-2 lg:order-1">
                             {/* Informasi Dasar */}
-                            <div className="bg-white border border-slate-200 rounded-[40px] p-10 shadow-sm space-y-8">
-                                <div className="space-y-1">
-                                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Informasi Dasar</h2>
-                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Posisi & Lokasi</p>
+                            <div className="bg-white border border-slate-200 rounded-md p-6 space-y-6">
+                                <div className="space-y-0.5">
+                                    <h2 className="text-base font-bold text-slate-900">Informasi Dasar</h2>
+                                    <p className="text-xs text-slate-400 font-medium">Posisi & lokasi</p>
                                 </div>
 
                                 <FormField control={form.control} name="title" render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-xs font-bold text-slate-600 uppercase tracking-widest pl-1">Judul Posisi <span className="text-destructive">*</span></FormLabel>
+                                        <FormLabel className="text-xs font-semibold text-slate-600">Judul Posisi <span className="text-destructive">*</span></FormLabel>
                                         <FormControl>
-                                            <Input className="h-12 rounded-2xl bg-slate-50/50 border-slate-100 focus:bg-white text-lg font-bold transition-all px-5" placeholder="mis. Frontend Engineer" {...field} />
+                                            <Input className="h-10 rounded-md" placeholder="mis. Frontend Engineer" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )} />
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <FormField control={form.control} name="employment_type" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-xs font-bold text-slate-600 uppercase tracking-widest pl-1">Tipe Pekerjaan <span className="text-destructive">*</span></FormLabel>
+                                            <FormLabel className="text-xs font-semibold text-slate-600">Tipe Pekerjaan <span className="text-destructive">*</span></FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                                 <FormControl>
-                                                    <SelectTrigger className="h-12 rounded-2xl bg-slate-50/50 border-slate-100 font-bold transition-all px-5"><SelectValue /></SelectTrigger>
+                                                    <SelectTrigger className="h-10 rounded-md"><SelectValue /></SelectTrigger>
                                                 </FormControl>
-                                                <SelectContent className="rounded-2xl">
+                                                <SelectContent>
                                                     <SelectItem value="fulltime">Full-time</SelectItem>
                                                     <SelectItem value="parttime">Part-time</SelectItem>
                                                     <SelectItem value="contract">Kontrak</SelectItem>
@@ -158,12 +158,12 @@ export default function EditJobForm({ job, companySlug }) {
 
                                     <FormField control={form.control} name="work_type" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-xs font-bold text-slate-600 uppercase tracking-widest pl-1">Metode Kerja</FormLabel>
+                                            <FormLabel className="text-xs font-semibold text-slate-600">Metode Kerja</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                                 <FormControl>
-                                                    <SelectTrigger className="h-12 rounded-2xl bg-slate-50/50 border-slate-100 font-bold transition-all px-5"><SelectValue /></SelectTrigger>
+                                                    <SelectTrigger className="h-10 rounded-md"><SelectValue /></SelectTrigger>
                                                 </FormControl>
-                                                <SelectContent className="rounded-2xl">
+                                                <SelectContent>
                                                     <SelectItem value="onsite">On-site</SelectItem>
                                                     <SelectItem value="hybrid">Hybrid</SelectItem>
                                                     <SelectItem value="remote">Remote</SelectItem>
@@ -174,12 +174,12 @@ export default function EditJobForm({ job, companySlug }) {
                                     )} />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <FormField control={form.control} name="location" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-xs font-bold text-slate-600 uppercase tracking-widest pl-1">Lokasi</FormLabel>
+                                            <FormLabel className="text-xs font-semibold text-slate-600">Lokasi</FormLabel>
                                             <FormControl>
-                                                <Input className="h-12 rounded-2xl bg-slate-50/50 border-slate-100 font-bold transition-all px-5" placeholder="mis. Jakarta / Remote" {...field} />
+                                                <Input className="h-10 rounded-md" placeholder="mis. Jakarta / Remote" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -187,34 +187,34 @@ export default function EditJobForm({ job, companySlug }) {
 
                                     <FormField control={form.control} name="deadline" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-xs font-bold text-slate-600 uppercase tracking-widest pl-1">Batas Pendaftaran</FormLabel>
+                                            <FormLabel className="text-xs font-semibold text-slate-600">Batas Pendaftaran</FormLabel>
                                             <FormControl>
-                                                <Input type="date" className="h-12 rounded-2xl bg-slate-50/50 border-slate-100 font-bold transition-all px-5" {...field} />
+                                                <Input type="date" className="h-10 rounded-md" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                 </div>
 
-                                <div className="pt-6 border-t border-slate-100 space-y-6">
+                                <div className="pt-5 border-t border-slate-100 space-y-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10">
-                                            <Banknote className="w-5 h-5" />
+                                        <div className="w-9 h-9 rounded-md bg-slate-50 flex items-center justify-center text-slate-600 border border-slate-200">
+                                            <Banknote className="w-4 h-4" />
                                         </div>
                                         <div className="space-y-0.5">
-                                            <h2 className="text-lg font-black text-slate-900 tracking-tight leading-none">Standard Gaji</h2>
-                                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Kompensasi</p>
+                                            <h2 className="text-sm font-bold text-slate-900 leading-none">Standard Gaji</h2>
+                                            <p className="text-xs text-slate-400 font-medium">Kompensasi</p>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="salary_min" render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-xs font-bold text-slate-600 uppercase tracking-widest pl-1">Gaji Minimal</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-600">Gaji Minimal</FormLabel>
                                                 <FormControl>
-                                                    <Input 
-                                                        type="text" 
-                                                        placeholder="mis. 5.000.000" 
-                                                        className="h-12 rounded-2xl bg-slate-50/50 border-slate-100 font-bold px-5" 
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="mis. 5.000.000"
+                                                        className="h-10 rounded-md"
                                                         {...field}
                                                         value={formatNumber(field.value)}
                                                         onChange={(e) => field.onChange(parseNumber(e.target.value))}
@@ -225,12 +225,12 @@ export default function EditJobForm({ job, companySlug }) {
                                         )} />
                                         <FormField control={form.control} name="salary_max" render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-xs font-bold text-slate-600 uppercase tracking-widest pl-1">Gaji Maksimal</FormLabel>
+                                                <FormLabel className="text-xs font-semibold text-slate-600">Gaji Maksimal</FormLabel>
                                                 <FormControl>
-                                                    <Input 
-                                                        type="text" 
-                                                        placeholder="mis. 8.000.000" 
-                                                        className="h-12 rounded-2xl bg-slate-50/50 border-slate-100 font-bold px-5" 
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="mis. 8.000.000"
+                                                        className="h-10 rounded-md"
                                                         {...field}
                                                         value={formatNumber(field.value)}
                                                         onChange={(e) => field.onChange(parseNumber(e.target.value))}
@@ -240,15 +240,15 @@ export default function EditJobForm({ job, companySlug }) {
                                             </FormItem>
                                         )} />
                                     </div>
-                                    <div className="flex flex-col sm:flex-row items-center gap-6 p-6 bg-slate-50 rounded-[32px] border border-slate-100 border-dashed">
+                                    <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-slate-50 rounded-md border border-dashed border-slate-200">
                                         <FormField control={form.control} name="salary_currency" render={({ field }) => (
-                                            <FormItem className="w-full sm:w-48">
-                                                <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mata Uang</FormLabel>
+                                            <FormItem className="w-full sm:w-40">
+                                                <FormLabel className="text-xs font-semibold text-slate-500">Mata Uang</FormLabel>
                                                 <Select onValueChange={field.onChange} value={field.value ?? 'IDR'}>
                                                     <FormControl>
-                                                        <SelectTrigger className="h-11 rounded-xl bg-white border-slate-200 font-bold transition-all"><SelectValue /></SelectTrigger>
+                                                        <SelectTrigger className="h-9 rounded-md bg-white"><SelectValue /></SelectTrigger>
                                                     </FormControl>
-                                                    <SelectContent className="rounded-xl">
+                                                    <SelectContent>
                                                         <SelectItem value="IDR">IDR (Rp)</SelectItem>
                                                         <SelectItem value="USD">USD ($)</SelectItem>
                                                         <SelectItem value="SGD">SGD (S$)</SelectItem>
@@ -258,13 +258,13 @@ export default function EditJobForm({ job, companySlug }) {
                                             </FormItem>
                                         )} />
                                         <FormField control={form.control} name="show_salary" render={({ field }) => (
-                                            <FormItem className="flex items-center space-x-3 space-y-0 pt-4 sm:pt-6">
+                                            <FormItem className="flex items-center space-x-3 space-y-0 pt-4 sm:pt-5">
                                                 <FormControl>
-                                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} className="w-6 h-6 rounded-lg data-[state=checked]:bg-primary transition-all" />
+                                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                                 </FormControl>
-                                                <div className="grid gap-1.5 leading-none">
-                                                    <FormLabel className="text-sm font-black text-slate-900 cursor-pointer">Tampilkan Gaji ke Publik</FormLabel>
-                                                    <p className="text-[10px] text-slate-400 font-medium">Ini akan mambantu menarik kandidat yang sesuai budget.</p>
+                                                <div className="grid gap-1 leading-none">
+                                                    <FormLabel className="text-sm font-semibold text-slate-900 cursor-pointer">Tampilkan Gaji ke Publik</FormLabel>
+                                                    <p className="text-xs text-slate-400 font-medium">Ini akan membantu menarik kandidat yang sesuai budget.</p>
                                                 </div>
                                             </FormItem>
                                         )} />
@@ -273,17 +273,17 @@ export default function EditJobForm({ job, companySlug }) {
                             </div>
 
                             {/* Detail Lowongan & Screening */}
-                            <div className="bg-white border border-slate-200 rounded-[40px] p-10 shadow-sm space-y-10">
-                                <div className="space-y-8">
-                                    <div className="space-y-1">
-                                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Detail Posisi</h2>
-                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Deskripsi Pekerjaan</p>
+                            <div className="bg-white border border-slate-200 rounded-md p-6 space-y-6">
+                                <div className="space-y-6">
+                                    <div className="space-y-0.5">
+                                        <h2 className="text-base font-bold text-slate-900">Detail Posisi</h2>
+                                        <p className="text-xs text-slate-400 font-medium">Deskripsi pekerjaan</p>
                                     </div>
                                     <FormField control={form.control} name="description" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-xs font-bold text-slate-600 uppercase tracking-widest pl-1">Tanggung Jawab & Peran</FormLabel>
+                                            <FormLabel className="text-xs font-semibold text-slate-600">Tanggung Jawab & Peran</FormLabel>
                                             <FormControl>
-                                                <Textarea className="min-h-[220px] rounded-3xl bg-slate-50/50 border-slate-100 focus:bg-white text-sm font-medium leading-relaxed p-6 transition-all" placeholder="Tuliskan tugas harian kandidat..." {...field} />
+                                                <Textarea className="min-h-[180px] rounded-md text-sm leading-relaxed" placeholder="Tuliskan tugas harian kandidat..." {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -291,16 +291,16 @@ export default function EditJobForm({ job, companySlug }) {
 
                                     <FormField control={form.control} name="requirements" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-xs font-bold text-slate-600 uppercase tracking-widest pl-1">Kualifikasi Minimal</FormLabel>
+                                            <FormLabel className="text-xs font-semibold text-slate-600">Kualifikasi Minimal</FormLabel>
                                             <FormControl>
-                                                <Textarea className="min-h-[160px] rounded-3xl bg-slate-50/50 border-slate-100 focus:bg-white text-sm font-medium leading-relaxed p-6 transition-all" placeholder="mis. Minimal 2 tahun pengalaman, Menguasai React dsb..." {...field} />
+                                                <Textarea className="min-h-[140px] rounded-md text-sm leading-relaxed" placeholder="mis. Minimal 2 tahun pengalaman, Menguasai React dsb..." {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                 </div>
 
-                                <div className="pt-10 border-t border-slate-100">
+                                <div className="pt-6 border-t border-slate-100">
                                     <FormField control={form.control} name="screening_questions" render={({ field }) => (
                                         <FormItem>
                                             <FormControl>
@@ -314,41 +314,41 @@ export default function EditJobForm({ job, companySlug }) {
                         </div>
 
                         {/* Kolom Kanan — Sidebar Aksi & Status */}
-                        <div className="w-full lg:w-80 space-y-6 order-1 lg:order-2 sticky lg:top-10">
+                        <div className="w-full lg:w-80 space-y-4 order-1 lg:order-2 sticky lg:top-6">
                             {/* Aksi & Save */}
-                            <div className="bg-slate-950 text-white rounded-[40px] p-8 space-y-8 shadow-2xl shadow-slate-300">
-                                <div className="space-y-4">
-                                    <h3 className="text-lg font-black tracking-tight leading-tight text-white mb-2">Kelola Lowongan</h3>
-                                    <div className="flex flex-col gap-2">
+                            <div className="bg-white border border-slate-200 rounded-md p-6 space-y-5">
+                                <div className="space-y-3">
+                                    <h3 className="text-sm font-bold text-slate-900">Kelola Lowongan</h3>
+                                    <div className="flex flex-col gap-1.5">
                                         <div className="flex items-center gap-2">
-                                            <div className={cn("w-2 h-2 rounded-full", job.status === 'draft' ? "bg-amber-400" : "bg-slate-700")} />
-                                            <span className={cn("text-[10px] font-black uppercase tracking-widest", job.status === 'draft' ? "text-amber-400" : "text-slate-500")}>Draft</span>
+                                            <div className={cn("w-1.5 h-1.5 rounded-full", job.status === 'draft' ? "bg-amber-500" : "bg-slate-200")} />
+                                            <span className={cn("text-xs font-medium", job.status === 'draft' ? "text-amber-600" : "text-slate-400")}>Draft</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <div className={cn("w-2 h-2 rounded-full", job.status === 'published' ? "bg-emerald-400" : "bg-slate-700")} />
-                                            <span className={cn("text-[10px] font-black uppercase tracking-widest", job.status === 'published' ? "text-emerald-400" : "text-slate-500")}>Aktif</span>
+                                            <div className={cn("w-1.5 h-1.5 rounded-full", job.status === 'published' ? "bg-emerald-500" : "bg-slate-200")} />
+                                            <span className={cn("text-xs font-medium", job.status === 'published' ? "text-emerald-600" : "text-slate-400")}>Aktif</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <div className={cn("w-2 h-2 rounded-full", job.status === 'closed' ? "bg-rose-400" : "bg-slate-700")} />
-                                            <span className={cn("text-[10px] font-black uppercase tracking-widest", job.status === 'closed' ? "text-rose-400" : "text-slate-500")}>Tutup</span>
+                                            <div className={cn("w-1.5 h-1.5 rounded-full", job.status === 'closed' ? "bg-rose-500" : "bg-slate-200")} />
+                                            <span className={cn("text-xs font-medium", job.status === 'closed' ? "text-rose-600" : "text-slate-400")}>Tutup</span>
                                         </div>
                                     </div>
-                                    <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase mt-4">Current Status: {job.status}</p>
                                 </div>
-                                <div className="grid gap-3 pt-2">
+                                <div className="grid gap-2 pt-1">
                                     {job.status !== 'published' && (
                                         <Button
                                             type="button"
-                                            className="w-full h-12 rounded-2xl bg-primary hover:bg-brand-500 text-white font-black group transition-all"
+                                            className="w-full h-10 rounded-md bg-primary hover:bg-brand-600 text-white font-semibold"
                                             onClick={() => form.handleSubmit(() => handleSubmit('published'))()}
                                         >
-                                            <Send className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" /> Publish Sekarang
+                                            <Send className="w-4 h-4 mr-2" /> Publish Sekarang
                                         </Button>
                                     )}
                                     {job.status === 'published' && (
-                                        <Button 
-                                            type="button" 
-                                            className="w-full h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black"
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="w-full h-10 rounded-md font-semibold"
                                             onClick={() => form.handleSubmit(() => handleSubmit('closed'))()}
                                         >
                                             <XCircle className="w-4 h-4 mr-2" /> Tutup Lowongan
@@ -359,7 +359,7 @@ export default function EditJobForm({ job, companySlug }) {
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            className="w-full h-12 rounded-2xl border-slate-700 bg-transparent text-slate-400 hover:text-white hover:bg-slate-900 font-bold"
+                                            className="w-full h-10 rounded-md font-semibold"
                                             onClick={() => form.handleSubmit(() => handleSubmit('draft'))()}
                                         >
                                             <RotateCcw className="w-4 h-4 mr-2" /> Kembalikan ke Draft
@@ -368,7 +368,7 @@ export default function EditJobForm({ job, companySlug }) {
 
                                     <Button
                                         type="button"
-                                        className="w-full h-12 rounded-2xl bg-white text-slate-900 hover:bg-slate-100 font-black shadow-lg"
+                                        className="w-full h-10 rounded-md bg-slate-900 hover:bg-slate-800 text-white font-semibold"
                                         onClick={form.handleSubmit(() => handleSubmit(job.status))}
                                         disabled={form.formState.isSubmitting}
                                     >
@@ -378,24 +378,24 @@ export default function EditJobForm({ job, companySlug }) {
                             </div>
 
                             {/* Delete Option */}
-                            <div className="bg-rose-50 border border-rose-100 rounded-[32px] p-6">
-                                <p className="text-[10px] text-rose-400 font-black uppercase tracking-widest mb-4 pl-1">Bahaya (Danger Zone)</p>
+                            <div className="bg-rose-50 border border-rose-200 rounded-md p-5">
+                                <p className="text-xs font-semibold text-rose-500 uppercase tracking-wide mb-3">Zona Berbahaya</p>
                                 <AlertDialog>
                                     <AlertDialogTrigger
-                                        render={<Button type="button" variant="ghost" className="w-full h-11 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-100 font-bold border-rose-100 border text-xs" />}
+                                        render={<Button type="button" variant="outline" className="w-full h-9 rounded-md text-rose-600 hover:text-rose-700 hover:bg-rose-100 font-semibold border-rose-200 text-xs" />}
                                     >
                                         <Trash2 className="w-3.5 h-3.5 mr-2" /> Hapus Lowongan Permanen
                                     </AlertDialogTrigger>
-                                    <AlertDialogContent className="rounded-[40px] p-8 border-none shadow-2xl">
+                                    <AlertDialogContent className="rounded-md p-6">
                                         <AlertDialogHeader>
-                                            <AlertDialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Hapus Lowongan?</AlertDialogTitle>
+                                            <AlertDialogTitle className="text-lg font-bold text-slate-900">Hapus Lowongan?</AlertDialogTitle>
                                             <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed">
                                                 Lowongan &quot;{job.title}&quot; akan dihapus permanen. Semua data lamaran di dalamnya tidak dapat dikembalikan.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
-                                        <AlertDialogFooter className="pt-6 gap-3">
-                                            <AlertDialogCancel className="h-12 rounded-2xl border-slate-200 font-bold px-6">Batal</AlertDialogCancel>
-                                            <AlertDialogAction className="h-12 rounded-2xl bg-rose-600 hover:bg-rose-700 font-bold px-6" onClick={handleDelete}>
+                                        <AlertDialogFooter className="pt-4 gap-2">
+                                            <AlertDialogCancel className="h-10 rounded-md font-semibold px-5">Batal</AlertDialogCancel>
+                                            <AlertDialogAction className="h-10 rounded-md bg-rose-600 hover:bg-rose-700 font-semibold px-5" onClick={handleDelete}>
                                                 Ya, Hapus Sekarang
                                             </AlertDialogAction>
                                         </AlertDialogFooter>

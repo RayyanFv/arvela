@@ -22,35 +22,24 @@ import {
     Building2,
     Medal,
     UserX,
+    Globe,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ROLES } from '@/lib/constants/roles'
 
-import { getEffectiveProfileServer } from '@/lib/actions/impersonate'
+import { CatalystMark } from '@/components/PublicLayout'
+import { logoutAndClearImpersonation } from '@/lib/actions/impersonate'
 
-export function Sidebar({ isOpen, setIsOpen }) {
+export function Sidebar({ isOpen, setIsOpen, profile, permissions }) {
     const pathname = usePathname()
     const router = useRouter()
-    const supabase = createClient()
     const [collapsed, setCollapsed] = useState(false)
-    const [userRole, setUserRole] = useState(null)
-    const [userPerms, setUserPerms] = useState(new Set())
-
-    useEffect(() => {
-        async function getRole() {
-            const res = await getEffectiveProfileServer()
-            if (res?.profile) {
-                setUserRole(res.profile.role)
-                setUserPerms(new Set(res.permissions || []))
-            }
-        }
-        getRole()
-    }, [])
+    const userRole = profile?.role || null
+    const userPerms = new Set(permissions || [])
 
     async function handleLogout() {
-        await supabase.auth.signOut()
+        await logoutAndClearImpersonation()
         router.push('/login')
         router.refresh()
     }
@@ -111,6 +100,7 @@ export function Sidebar({ isOpen, setIsOpen }) {
                 { icon: ShieldCheck, label: 'Manajemen Role',   href: '/dashboard/settings/roles',  roles: [ROLES.OWNER, ROLES.HR_ADMIN] },
                 { icon: Building2,   label: 'Manajemen Unit',   href: '/dashboard/settings/units',  roles: [ROLES.OWNER, ROLES.HR_ADMIN] },
                 { icon: Medal,       label: 'Manajemen Pangkat', href: '/dashboard/settings/grades', roles: [ROLES.OWNER, ROLES.HR_ADMIN] },
+                { icon: Globe,       label: 'Halaman Karir',    href: '/dashboard/settings/career-page', roles: [ROLES.OWNER, ROLES.HR_ADMIN] },
             ]
         },
         {
@@ -137,20 +127,20 @@ export function Sidebar({ isOpen, setIsOpen }) {
     return (
         <aside className={cn(
             "fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out",
-            "bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950",
-            "border-r border-white/5",
+            "bg-slate-900",
+            "border-r border-slate-800",
             "lg:relative lg:translate-x-0",
             collapsed ? "w-[72px]" : "w-[260px]",
             isOpen ? 'translate-x-0' : '-translate-x-full',
         )}>
             {/* Brand Header */}
             <div className={cn(
-                "h-[72px] flex items-center border-b border-white/5 shrink-0 relative",
+                "h-[72px] flex items-center border-b border-slate-800 shrink-0 relative",
                 collapsed ? "px-4 justify-center" : "px-5"
             )}>
                 <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
-                        <img src="/arvela-logo.png" alt="Arvela" className="w-full h-full object-contain" />
+                    <div className="w-9 h-9 flex items-center justify-center shrink-0">
+                        <CatalystMark className="w-9 h-9" accent="fill-white" />
                     </div>
                     {!collapsed && (
                         <div className="overflow-hidden">
@@ -166,9 +156,8 @@ export function Sidebar({ isOpen, setIsOpen }) {
                     onClick={() => setCollapsed(!collapsed)}
                     className={cn(
                         "hidden lg:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full",
-                        "bg-slate-800 border border-white/10 items-center justify-center",
-                        "text-slate-400 hover:text-white hover:bg-slate-700 transition-all",
-                        "shadow-lg"
+                        "bg-slate-800 border border-slate-700 items-center justify-center",
+                        "text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
                     )}
                 >
                     <ChevronLeft className={cn("w-3.5 h-3.5 transition-transform", collapsed && "rotate-180")} />
@@ -184,7 +173,7 @@ export function Sidebar({ isOpen, setIsOpen }) {
                                 {section.label}
                             </p>
                         )}
-                        {collapsed && <div className="w-6 h-px bg-white/10 mx-auto mb-2" />}
+                        {collapsed && <div className="w-6 h-px bg-slate-800 mx-auto mb-2" />}
                         <div className="space-y-0.5">
                             {section.items.map((item) => {
                                 // Smart active state logic:
@@ -209,11 +198,11 @@ export function Sidebar({ isOpen, setIsOpen }) {
                                         href={item.href}
                                         title={collapsed ? item.label : undefined}
                                         className={cn(
-                                            "group flex items-center gap-3 rounded-xl text-[13px] font-semibold transition-all duration-200 relative",
+                                            "group flex items-center gap-3 rounded-md text-[13px] font-semibold transition-colors relative",
                                             collapsed ? "px-0 py-2.5 justify-center" : "px-3 py-2.5",
                                             isActive
-                                                ? "bg-white/10 text-white shadow-sm"
-                                                : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                                                ? "bg-slate-800 text-white"
+                                                : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
                                         )}
                                     >
                                         {/* Active indicator */}
@@ -236,12 +225,12 @@ export function Sidebar({ isOpen, setIsOpen }) {
             </nav>
 
             {/* Logout Footer */}
-            <div className="p-3 border-t border-white/5 shrink-0">
+            <div className="p-3 border-t border-slate-800 shrink-0">
                 <button
                     onClick={handleLogout}
                     title={collapsed ? "Keluar" : undefined}
                     className={cn(
-                        "flex items-center gap-3 w-full rounded-xl text-sm font-semibold transition-all duration-200 group",
+                        "flex items-center gap-3 w-full rounded-md text-sm font-semibold transition-colors group",
                         "text-slate-500 hover:text-rose-400 hover:bg-rose-500/10",
                         collapsed ? "px-0 py-2.5 justify-center" : "px-3 py-2.5"
                     )}

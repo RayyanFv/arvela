@@ -1,25 +1,22 @@
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getUserPermissions } from '@/lib/permissions'
+import { getEffectiveProfileServer } from '@/lib/actions/impersonate'
 import RolesClient from './RolesClient'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata = { title: 'Manajemen Role — Arvela HR' }
 
 export default async function RolesPage() {
-    const authClient = await createServerSupabaseClient()
-    const { data: { user } } = await authClient.auth.getUser()
-    if (!user) redirect('/login')
-
-    const supabase = createAdminSupabaseClient()
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('company_id, role')
-        .eq('id', user.id)
-        .single()
-
+    const res = await getEffectiveProfileServer()
+    if (!res?.user) redirect('/login')
+    const profile = res.profile
     if (!profile) redirect('/login')
 
-    const perms = await getUserPermissions(user.id)
+    const supabase = createAdminSupabaseClient()
+
+    const perms = await getUserPermissions(res.user.id)
     if (!perms.has('employee.manage')) redirect('/dashboard')
 
     // Fetch all permissions grouped by module

@@ -14,9 +14,9 @@ import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
     Users, Briefcase, Trophy, TrendingUp,
-    ArrowUpRight, GraduationCap, Target,
-    CheckCircle2, MapPin, BarChart2, Clock,
-    Timer, CalendarDays, Zap, ArrowRight, Info
+    ArrowUpRight, Target,
+    CheckCircle2, MapPin, Clock,
+    Timer, Zap, Info
 } from 'lucide-react'
 import {
     Tooltip,
@@ -36,6 +36,7 @@ import {
     ChartTooltipContent,
 } from '@/components/ui/chart'
 import { CompanyQuotaWidget } from '@/components/layout/CompanyQuotaWidget'
+import { getPendingApprovals } from '@/lib/actions/notifications'
 import {
     BarChart, Bar, XAxis, YAxis, ResponsiveContainer,
     Cell, PieChart, Pie, Tooltip as RechartsTooltip
@@ -89,6 +90,11 @@ export function HRAdminDashboard({ profile, user }) {
 
     // ── Solusi 6: Satu state object, bukan 12 ────────────────────────────────
     const [data, setData] = useState(INITIAL_STATE)
+    const [pendingApprovals, setPendingApprovals] = useState({ items: [], totalCount: 0 })
+
+    useEffect(() => {
+        getPendingApprovals({ limit: 4 }).then(setPendingApprovals).catch(() => {})
+    }, [])
 
     useEffect(() => {
         async function load() {
@@ -205,7 +211,7 @@ export function HRAdminDashboard({ profile, user }) {
     )
 
     return (
-        <div className="space-y-8 pb-24">
+        <div className="space-y-6 pb-24">
 
             <Breadcrumbs />
 
@@ -219,56 +225,81 @@ export function HRAdminDashboard({ profile, user }) {
                     </h1>
                     <p className="text-muted-foreground text-sm mt-1">{profile?.companies?.name ?? ''} · Panel HR</p>
                 </div>
-                <Link href="/dashboard/jobs/new">
-                    <Button className="h-10 px-5 rounded-xl bg-primary text-primary-foreground font-bold text-sm gap-2 shadow-sm shrink-0">
-                        + Buat Lowongan
-                    </Button>
-                </Link>
+                <div className="flex items-center gap-3">
+                    <Link href="/dashboard/overtime">
+                        <Button variant="outline" className="h-10 rounded-md font-semibold gap-2">
+                            <Timer className="w-4 h-4" /> Lembur
+                        </Button>
+                    </Link>
+                    <Link href="/dashboard/attendance">
+                        <Button variant="outline" className="h-10 rounded-md font-semibold gap-2">
+                            <Clock className="w-4 h-4" /> Kehadiran
+                        </Button>
+                    </Link>
+                    <Link href="/dashboard/jobs/new">
+                        <Button className="h-10 px-5 rounded-md bg-primary text-primary-foreground font-bold text-sm gap-2 shrink-0">
+                            + Buat Lowongan
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             {/* ── Quota & Subscription Widget ── */}
             <CompanyQuotaWidget companyId={profile?.company_id} />
 
-            {/* ── Quick Actions ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                {[
-                    { label: 'Buat Lowongan',      href: '/dashboard/jobs/new',    icon: Briefcase, gradient: 'from-blue-500 to-indigo-600' },
-                    { label: 'Lihat Kandidat',      href: '/dashboard/candidates',  icon: Users,     gradient: 'from-primary to-orange-500' },
-                    { label: 'Kelola Lembur',       href: '/dashboard/overtime',    icon: Timer,     gradient: 'from-violet-500 to-purple-600' },
-                    { label: 'Monitor Kehadiran',   href: '/dashboard/attendance',  icon: Clock,     gradient: 'from-emerald-500 to-teal-600' },
-                ].map(action => (
-                    <Link key={action.href} href={action.href}>
-                        <div className="group relative overflow-hidden rounded-2xl p-4 bg-white border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer">
-                            <div className={`absolute -top-6 -right-6 w-16 h-16 bg-gradient-to-br ${action.gradient} rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-125 transition-all`} />
-                            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center mb-3`}>
-                                <action.icon className="w-4 h-4 text-white" />
-                            </div>
-                            <p className="text-xs font-bold text-slate-700 group-hover:text-slate-900 transition-colors">{action.label}</p>
-                            <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 absolute top-4 right-4 group-hover:translate-x-0.5 transition-all" />
+            {/* ── Perlu Persetujuan (actionable, prioritas tertinggi) ── */}
+            {pendingApprovals.totalCount > 0 && (
+                <Card className="p-6 rounded-md border-amber-200 bg-amber-50/40">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 className="font-black text-foreground flex items-center gap-2">
+                                <Zap className="w-4 h-4 text-amber-500" /> Perlu Persetujuan
+                            </h2>
+                            <p className="text-xs font-medium text-muted-foreground mt-0.5">{pendingApprovals.totalCount} pengajuan karyawan menunggu tindakan Anda</p>
                         </div>
-                    </Link>
-                ))}
-            </div>
+                        <Link href="/dashboard/attendance/requests">
+                            <Button variant="ghost" size="sm" className="text-primary font-bold rounded-md gap-1 hover:bg-white">
+                                Lihat Semua <ArrowUpRight className="w-3.5 h-3.5" />
+                            </Button>
+                        </Link>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                        {pendingApprovals.items.map(item => (
+                            <Link
+                                key={item.id}
+                                href={item.href}
+                                className="flex items-center gap-3 p-3 bg-white border border-amber-100 rounded-md hover:border-amber-300 transition-colors"
+                            >
+                                <div className="w-9 h-9 rounded-md bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
+                                    <Clock className="w-4 h-4 text-amber-600" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-bold text-foreground truncate">{item.label}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{item.employeeName}</p>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </Card>
+            )}
 
-            {/* ── Stat Cards ── */}
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+            {/* ── Stat Cards (doubles as quick-nav) ── */}
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
                 {statCards.map((s, i) => (
                     <Tooltip key={i}>
                         <TooltipTrigger asChild>
                             <Link href={s.href} className="block">
-                                <Card className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex items-center gap-5">
-                                    <div className={`w-14 h-14 ${s.bg} rounded-2xl flex items-center justify-center shrink-0`}>
-                                        <s.icon className={`w-6 h-6 ${s.color}`} />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-1.5 mb-1.5">
-                                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none truncate">{s.label}</p>
+                                <Card className="p-5 rounded-md hover:border-slate-300 transition-colors cursor-pointer">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className={`w-10 h-10 ${s.bg} rounded-md flex items-center justify-center shrink-0`}>
+                                            <s.icon className={`w-5 h-5 ${s.color}`} />
                                         </div>
-                                        {loading
-                                            ? <Skeleton className="h-8 w-14" />
-                                            : <p className="text-3xl font-black text-foreground">{s.value}</p>
-                                        }
+                                        <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-widest leading-tight">{s.label}</p>
                                     </div>
+                                    {loading
+                                        ? <Skeleton className="h-7 w-14" />
+                                        : <p className="text-2xl font-bold text-foreground">{s.value}</p>
+                                    }
                                 </Card>
                             </Link>
                         </TooltipTrigger>
@@ -279,283 +310,258 @@ export function HRAdminDashboard({ profile, user }) {
                 ))}
             </div>
 
-            {/* ── Charts Row ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-
-                {/* Weekly Bar */}
-                <Card className="p-8 border-none shadow-sm rounded-3xl lg:col-span-1 !overflow-visible relative">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="absolute top-8 right-8 cursor-help">
-                                <Info className="w-4 h-4 text-slate-300 hover:text-primary transition-colors" />
+            {/* ── Ringkasan Operasional: OKR, Kehadiran, Lembur — sejajar dalam satu baris ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Link href="/dashboard/performance">
+                    <Card className="p-5 rounded-md hover:border-slate-300 transition-colors cursor-pointer relative group h-full">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="absolute top-5 right-5 cursor-help z-10">
+                                    <Info className="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
+                                Rata-rata progres penyelesaian dari seluruh target OKR aktif karyawan saat ini.
+                            </TooltipContent>
+                        </Tooltip>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-amber-50 rounded-md flex items-center justify-center shrink-0">
+                                <Target className="w-5 h-5 text-amber-500" />
                             </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
-                            Grafik jumlah pelamar baru yang mendaftar ke lowongan perusahaan Anda dalam 7 hari terakhir.
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <div className="flex items-start justify-between mb-8">
-                        <div>
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Pelamar 7 Hari Terakhir</p>
-                            {loading
-                                ? <Skeleton className="h-10 w-20" />
-                                : <p className="text-4xl font-black text-foreground">{totalWeekly}</p>
-                            }
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Target & Performa</p>
                         </div>
-                        <div className="w-10 h-10 bg-brand-50 rounded-2xl flex items-center justify-center mr-6">
-                            <BarChart2 className="w-5 h-5 text-primary" />
+                        {loading ? <Skeleton className="h-12 w-full" /> : (
+                            <>
+                                <p className="text-xl font-bold text-foreground mb-3">
+                                    {data.okrStats.total} <span className="text-sm font-medium text-muted-foreground">sasaran aktif</span>
+                                </p>
+                                <div className="flex justify-between text-xs font-semibold text-muted-foreground mb-1.5">
+                                    <span>Progres Rata-rata</span><span>{data.okrStats.avgProgress}%</span>
+                                </div>
+                                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                    <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${data.okrStats.avgProgress}%` }} />
+                                </div>
+                            </>
+                        )}
+                    </Card>
+                </Link>
+
+                <Link href="/dashboard/attendance">
+                    <Card className="p-5 rounded-md hover:border-slate-300 transition-colors cursor-pointer relative group h-full">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="absolute top-5 right-5 cursor-help z-10">
+                                    <Info className="w-4 h-4 text-slate-300 group-hover:text-rose-500 transition-colors" />
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
+                                Rekapitulasi absensi seluruh karyawan aktif pada hari ini.
+                            </TooltipContent>
+                        </Tooltip>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-rose-50 rounded-md flex items-center justify-center shrink-0">
+                                <Clock className="w-5 h-5 text-rose-500" />
+                            </div>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Kehadiran Hari Ini</p>
                         </div>
-                    </div>
-                    {loading
-                        ? <Skeleton className="h-[120px] w-full" />
-                        : (
-                            <ChartContainer config={weeklyChartConfig} className="h-[120px] w-full">
-                                <BarChart data={data.weeklyApps} barSize={22} margin={{ top: 8, right: 0, left: -32, bottom: 0 }}>
-                                    <XAxis
-                                        dataKey="label"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fontSize: 9, fontWeight: 700 }}
-                                    />
-                                    <YAxis hide allowDecimals={false} />
-                                    <ChartTooltip
-                                        cursor={false}
-                                        content={<ChartTooltipContent hideLabel />}
-                                    />
-                                    <Bar dataKey="value" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))">
-                                        {data.weeklyApps.map((_, i) => (
-                                            <Cell
-                                                key={i}
-                                                fillOpacity={data.weeklyApps.length > 1 ? 0.3 + (i / (data.weeklyApps.length - 1)) * 0.7 : 1}
-                                            />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ChartContainer>
-                        )
-                    }
-                </Card>
-
-                {/* Pipeline Donut */}
-                <Card className="p-8 border-none shadow-sm rounded-3xl lg:col-span-1 !overflow-visible relative">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="absolute top-8 right-8 cursor-help">
-                                <Info className="w-4 h-4 text-slate-300 hover:text-primary transition-colors" />
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
-                            Proporsi kandidat di berbagai tahap seleksi rekrutmen saat ini.
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-8">Distribusi Pipeline</p>
-                    {loading
-                        ? <div className="flex gap-6 items-center"><Skeleton className="w-28 h-28 rounded-full" /><Skeleton className="flex-1 h-24" /></div>
-                        : (
-                            <div className="flex items-center gap-4">
-                                <div className="relative shrink-0" style={{ width: 120, height: 120 }}>
-                                    <ResponsiveContainer width={120} height={120}>
-                                        <PieChart>
-                                            <Pie
-                                                data={donutData}
-                                                cx={55} cy={55}
-                                                innerRadius={38}
-                                                outerRadius={52}
-                                                dataKey="value"
-                                                strokeWidth={0}
-                                                paddingAngle={2}
-                                            >
-                                                {donutData.map((entry, i) => (
-                                                    <Cell key={i} fill={entry.color} />
-                                                ))}
-                                            </Pie>
-                                            <RechartsTooltip
-                                                content={({ active, payload }) => {
-                                                    if (!active || !payload?.length) return null
-                                                    const d = payload[0]
-                                                    return (
-                                                        <div className="bg-background border border-border rounded-xl px-3 py-2 shadow-xl text-xs">
-                                                            <p className="font-bold text-foreground">{d.name}</p>
-                                                            <p className="text-muted-foreground">{d.value} orang</p>
-                                                        </div>
-                                                    )
-                                                }}
-                                            />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                        <p className="text-xl font-black text-foreground leading-none">{data.totalApplicants}</p>
-                                        <p className="text-[9px] text-muted-foreground font-bold mt-0.5">total</p>
-                                    </div>
+                        {loading ? <Skeleton className="h-12 w-full" /> : (
+                            <div className="flex items-end gap-5">
+                                <div>
+                                    <p className="text-2xl font-bold text-emerald-500">{data.attendanceStats.present + data.attendanceStats.early_leave + data.attendanceStats.holiday_present}</p>
+                                    <p className="text-xs font-medium text-muted-foreground">Hadir</p>
                                 </div>
-                                <div className="space-y-3 flex-1">
-                                    {donutData.map((row, i) => (
-                                        <div key={i} className="flex items-center gap-2.5">
-                                            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
-                                            <span className="text-sm font-medium text-muted-foreground flex-1 truncate">{row.name}</span>
-                                            <span className="text-sm font-black text-foreground">{row.value}</span>
-                                        </div>
-                                    ))}
+                                <div>
+                                    <p className="text-2xl font-bold text-amber-500">{data.attendanceStats.leave + data.attendanceStats.sick}</p>
+                                    <p className="text-xs font-medium text-muted-foreground">Cuti</p>
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold text-rose-500">{data.attendanceStats.absent}</p>
+                                    <p className="text-xs font-medium text-muted-foreground">Alpa</p>
                                 </div>
                             </div>
-                        )
-                    }
-                </Card>
+                        )}
+                    </Card>
+                </Link>
 
-                {/* Quick Stats Cards */}
-                <div className="space-y-6 lg:col-span-1">
-                    <Link href="/dashboard/performance">
-                        <Card className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md transition-all cursor-pointer relative group">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div className="absolute top-6 right-6 cursor-help z-10">
-                                        <Info className="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition-colors" />
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
-                                    Rata-rata progres penyelesaian dari seluruh target OKR aktif karyawan saat ini.
-                                </TooltipContent>
-                            </Tooltip>
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center shrink-0">
-                                    <Target className="w-5 h-5 text-amber-500" />
+                <Link href="/dashboard/overtime">
+                    <Card className="p-5 rounded-md hover:border-slate-300 transition-colors cursor-pointer relative group h-full">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="absolute top-5 right-5 cursor-help z-10">
+                                    <Info className="w-4 h-4 text-slate-300 group-hover:text-violet-500 transition-colors" />
                                 </div>
-                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Target & Performa</p>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
+                                Data pengajuan lembur karyawan yang disetujui beserta ringkasan jam kerja yang belum dibayar/di-review.
+                            </TooltipContent>
+                        </Tooltip>
+                        <div className="flex items-center gap-3 mb-4 z-10 relative">
+                            <div className="w-10 h-10 bg-violet-50 rounded-md flex items-center justify-center shrink-0">
+                                <Timer className="w-5 h-5 text-violet-500" />
                             </div>
-                            {loading ? <Skeleton className="h-12 w-full" /> : (
-                                <>
-                                    <p className="text-xl font-black text-foreground mb-3">
-                                        {data.okrStats.total} <span className="text-sm font-semibold text-muted-foreground">sasaran aktif</span>
-                                    </p>
-                                    <div className="flex justify-between text-xs font-bold text-muted-foreground mb-1.5">
-                                        <span>Progres Rata-rata</span><span>{data.okrStats.avgProgress}%</span>
-                                    </div>
-                                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                                        <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${data.okrStats.avgProgress}%` }} />
-                                    </div>
-                                </>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Lembur</p>
+                            {data.overtimeStats.pending > 0 && (
+                                <Badge className="ml-1 bg-amber-100 text-amber-700 border-amber-200 border text-[10px] font-bold rounded-md px-2 py-0.5">
+                                    {data.overtimeStats.pending} Pending
+                                </Badge>
                             )}
-                        </Card>
-                    </Link>
-
-                    <Link href="/dashboard/attendance">
-                        <Card className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md transition-all cursor-pointer relative group">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div className="absolute top-6 right-6 cursor-help z-10">
-                                        <Info className="w-4 h-4 text-slate-300 group-hover:text-rose-500 transition-colors" />
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
-                                    Rekapitulasi absensi seluruh karyawan aktif pada hari ini.
-                                </TooltipContent>
-                            </Tooltip>
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center shrink-0">
-                                    <Clock className="w-5 h-5 text-rose-500" />
+                        </div>
+                        {loading ? <Skeleton className="h-12 w-full" /> : (
+                            <div className="flex items-end gap-5">
+                                <div>
+                                    <p className="text-2xl font-bold text-violet-600">{data.overtimeStats.approved}</p>
+                                    <p className="text-xs font-medium text-muted-foreground">Disetujui</p>
                                 </div>
-                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Kehadiran Hari Ini</p>
+                                <div>
+                                    <p className="text-2xl font-bold text-foreground">{Number(data.overtimeStats.totalHours).toFixed(0)}<span className="text-sm text-muted-foreground font-medium">h</span></p>
+                                    <p className="text-xs font-medium text-muted-foreground">Total Jam</p>
+                                </div>
                             </div>
-                            {loading ? <Skeleton className="h-12 w-full" /> : (
-                                <div className="flex items-end gap-6">
-                                    <div>
-                                        <p className="text-2xl font-black text-emerald-500">{data.attendanceStats.present + data.attendanceStats.early_leave + data.attendanceStats.holiday_present}</p>
-                                        <p className="text-xs font-bold text-muted-foreground">Hadir</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-2xl font-black text-amber-500">{data.attendanceStats.leave + data.attendanceStats.sick}</p>
-                                        <p className="text-xs font-bold text-muted-foreground">Cuti</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-2xl font-black text-rose-500">{data.attendanceStats.absent}</p>
-                                        <p className="text-xs font-bold text-muted-foreground">Alpa</p>
-                                    </div>
-                                </div>
-                            )}
-                        </Card>
-                    </Link>
-
-                    <Link href="/dashboard/overtime">
-                        <Card className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md transition-all cursor-pointer relative overflow-hidden group">
-                            <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full opacity-5 group-hover:opacity-10 transition-opacity" />
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div className="absolute top-6 right-6 cursor-help z-10">
-                                        <Info className="w-4 h-4 text-slate-300 group-hover:text-violet-500 transition-colors" />
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-[200px] text-center p-3 bg-slate-800 text-white font-medium text-xs leading-relaxed">
-                                    Data pengajuan lembur karyawan yang disetujui beserta ringkasan jam kerja yang belum dibayar/di-review.
-                                </TooltipContent>
-                            </Tooltip>
-                            <div className="flex items-center gap-3 mb-4 z-10 relative">
-                                <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center shrink-0">
-                                    <Timer className="w-5 h-5 text-violet-500" />
-                                </div>
-                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Lembur</p>
-                                {data.overtimeStats.pending > 0 && (
-                                    <Badge className="ml-2 bg-amber-100 text-amber-700 border-amber-200 border text-[10px] font-black rounded-lg px-2 py-0.5">
-                                        {data.overtimeStats.pending} Pending
-                                    </Badge>
-                                )}
-                            </div>
-                            {loading ? <Skeleton className="h-12 w-full" /> : (
-                                <div className="flex items-end gap-6">
-                                    <div>
-                                        <p className="text-2xl font-black text-violet-600">{data.overtimeStats.approved}</p>
-                                        <p className="text-xs font-bold text-muted-foreground">Disetujui</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-2xl font-black text-foreground">{Number(data.overtimeStats.totalHours).toFixed(0)}<span className="text-sm text-muted-foreground font-semibold">h</span></p>
-                                        <p className="text-xs font-bold text-muted-foreground">Total Jam</p>
-                                    </div>
-                                </div>
-                            )}
-                        </Card>
-                    </Link>
-                </div>
+                        )}
+                    </Card>
+                </Link>
             </div>
 
-            {/* ── Pipeline Funnel ── */}
-            <Card className="p-6 border-none shadow-sm rounded-2xl">
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h2 className="font-black text-foreground">Pipeline Rekrutmen</h2>
-                        <p className="text-xs font-medium text-muted-foreground mt-0.5">Distribusi kandidat per stage saat ini</p>
+            {/* ── Pipeline Rekrutmen + Tren Pelamar ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+                {/* Pipeline Funnel — minimal, thin bars */}
+                <Card className="p-6 rounded-md lg:col-span-2">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="font-bold text-foreground text-sm">Pipeline Rekrutmen</h2>
+                            <p className="text-xs font-medium text-muted-foreground mt-0.5">Distribusi kandidat per stage saat ini</p>
+                        </div>
+                        <Link href="/dashboard/candidates">
+                            <Button variant="ghost" size="sm" className="text-primary font-semibold rounded-md gap-1 hover:bg-brand-50">
+                                Lihat Semua <ArrowUpRight className="w-3.5 h-3.5" />
+                            </Button>
+                        </Link>
                     </div>
-                    <Link href="/dashboard/candidates">
-                        <Button variant="ghost" size="sm" className="text-primary font-bold rounded-xl gap-1 hover:bg-brand-50">
-                            Lihat Semua <ArrowUpRight className="w-3.5 h-3.5" />
-                        </Button>
-                    </Link>
-                </div>
-                {loading ? (
-                    <div className="space-y-3">
-                        {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-7" />)}
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {STAGES.map(stage => {
-                            const count = data.stageCounts[stage.key] ?? 0
-                            const pct = (count / funnelMax) * 100
-                            return (
-                                <div key={stage.key} className="flex items-center gap-4">
-                                    <span className="text-[10px] font-black text-muted-foreground w-20 text-right uppercase tracking-wider shrink-0">{stage.label}</span>
-                                    <div className="flex-1 h-6 bg-muted rounded-lg overflow-hidden">
-                                        <div
-                                            className={`h-full ${stage.colorClass} rounded-lg transition-all duration-700`}
-                                            style={{ width: `${Math.max(pct, count > 0 ? 3 : 0)}%` }}
-                                        />
+                    {loading ? (
+                        <div className="space-y-3">
+                            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-4" />)}
+                        </div>
+                    ) : (
+                        <div className="space-y-2.5">
+                            {STAGES.map(stage => {
+                                const count = data.stageCounts[stage.key] ?? 0
+                                const pct = (count / funnelMax) * 100
+                                return (
+                                    <div key={stage.key} className="flex items-center gap-3">
+                                        <span className="text-[10px] font-semibold text-muted-foreground w-[70px] text-right uppercase tracking-wider shrink-0">{stage.label}</span>
+                                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full ${stage.colorClass} rounded-full transition-all duration-700`}
+                                                style={{ width: `${Math.max(pct, count > 0 ? 3 : 0)}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-xs font-bold text-foreground w-5 text-right shrink-0">{count}</span>
                                     </div>
-                                    <span className="text-sm font-black text-foreground w-8 text-right shrink-0">{count}</span>
+                                )
+                            })}
+                        </div>
+                    )}
+                </Card>
+
+                {/* Tren Pelamar — donut + weekly bar, own card with room to breathe */}
+                <Card className="p-6 rounded-md">
+                    <p className="text-sm font-bold text-foreground mb-1">Tren Pelamar</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-5">7 hari terakhir</p>
+
+                    {loading ? (
+                        <div className="flex items-center gap-4">
+                            <Skeleton className="w-24 h-24 rounded-full shrink-0" />
+                            <Skeleton className="flex-1 h-16" />
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-4 mb-5">
+                            <div className="relative shrink-0" style={{ width: 96, height: 96 }}>
+                                <ResponsiveContainer width={96} height={96}>
+                                    <PieChart>
+                                        <Pie
+                                            data={donutData}
+                                            cx={44} cy={44}
+                                            innerRadius={30}
+                                            outerRadius={42}
+                                            dataKey="value"
+                                            strokeWidth={0}
+                                            paddingAngle={2}
+                                        >
+                                            {donutData.map((entry, i) => (
+                                                <Cell key={i} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <RechartsTooltip
+                                            content={({ active, payload }) => {
+                                                if (!active || !payload?.length) return null
+                                                const d = payload[0]
+                                                return (
+                                                    <div className="bg-background border border-border rounded-md px-3 py-2 shadow-xl text-xs">
+                                                        <p className="font-bold text-foreground">{d.name}</p>
+                                                        <p className="text-muted-foreground">{d.value} orang</p>
+                                                    </div>
+                                                )
+                                            }}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                    <p className="text-lg font-bold text-foreground leading-none">{data.totalApplicants}</p>
+                                    <p className="text-[9px] text-muted-foreground font-medium mt-0.5">total</p>
                                 </div>
+                            </div>
+                            <div className="space-y-1.5 flex-1 min-w-0">
+                                {donutData.map((row, i) => (
+                                    <div key={i} className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
+                                        <span className="text-xs font-medium text-muted-foreground flex-1 truncate">{row.name}</span>
+                                        <span className="text-xs font-bold text-foreground">{row.value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="pt-4 border-t border-border">
+                        <div className="flex items-baseline justify-between mb-2">
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Pelamar Baru</p>
+                            {loading
+                                ? <Skeleton className="h-5 w-8" />
+                                : <p className="text-lg font-bold text-foreground">{totalWeekly}</p>
+                            }
+                        </div>
+                        {loading
+                            ? <Skeleton className="h-[70px] w-full" />
+                            : (
+                                <ChartContainer config={weeklyChartConfig} className="h-[70px] w-full">
+                                    <BarChart data={data.weeklyApps} barSize={20} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+                                        <XAxis
+                                            dataKey="label"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 9, fontWeight: 600 }}
+                                        />
+                                        <YAxis hide allowDecimals={false} />
+                                        <ChartTooltip
+                                            cursor={false}
+                                            content={<ChartTooltipContent hideLabel />}
+                                        />
+                                        <Bar dataKey="value" radius={[3, 3, 0, 0]} fill="hsl(var(--primary))">
+                                            {data.weeklyApps.map((_, i) => (
+                                                <Cell
+                                                    key={i}
+                                                    fillOpacity={data.weeklyApps.length > 1 ? 0.3 + (i / (data.weeklyApps.length - 1)) * 0.7 : 1}
+                                                />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ChartContainer>
                             )
-                        })}
+                        }
                     </div>
-                )}
-            </Card>
+                </Card>
+            </div>
 
             {/* ── Bottom: Pelamar + Lowongan ── */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -572,7 +578,7 @@ export function HRAdminDashboard({ profile, user }) {
                             </Button>
                         </Link>
                     </div>
-                    <Card className="border-none shadow-sm rounded-2xl overflow-hidden">
+                    <Card className="rounded-md overflow-hidden">
                         {loading ? (
                             <div className="p-5 space-y-4">
                                 {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12" />)}
@@ -624,13 +630,13 @@ export function HRAdminDashboard({ profile, user }) {
                         {loading
                             ? [...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl" />)
                             : data.activeJobs.length === 0 ? (
-                                <Card className="py-12 text-center border-dashed border-2 border-border shadow-none rounded-2xl">
+                                <Card className="py-12 text-center border-dashed border-2 border-border shadow-none rounded-md">
                                     <Briefcase className="w-8 h-8 text-muted mx-auto mb-2" />
                                     <p className="text-sm font-bold text-muted-foreground">Tidak ada lowongan aktif</p>
                                 </Card>
                             ) : data.activeJobs.map(job => (
                                 <Link key={job.id} href={`/dashboard/jobs/${job.id}`}>
-                                    <Card className="p-4 border-none shadow-sm rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all group mb-3">
+                                    <Card className="p-4 rounded-md hover:border-slate-300 transition-colors group mb-3">
                                         <div className="flex items-start justify-between gap-2 mb-2">
                                             <h4 className="font-bold text-foreground text-sm line-clamp-1 group-hover:text-primary transition-colors flex-1">{job.title}</h4>
                                             <div className="flex items-center gap-1 bg-brand-50 text-primary rounded-lg px-2 py-1 shrink-0">

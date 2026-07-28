@@ -7,7 +7,7 @@ import { ImpersonationBanner } from './ImpersonationBanner'
 import { WhatsAppSupportButton } from './WhatsAppSupportButton'
 import { usePathname } from 'next/navigation'
 
-export function DashboardLayoutWrapper({ children }) {
+export function DashboardLayoutWrapper({ children, profile, permissions }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const pathname = usePathname()
 
@@ -29,10 +29,10 @@ export function DashboardLayoutWrapper({ children }) {
                     />
                 )}
 
-                <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+                <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} profile={profile} permissions={permissions} />
 
                 <div className="flex-1 flex flex-col overflow-hidden w-full relative">
-                    <Topbar onOpenSidebar={() => setIsSidebarOpen(true)} />
+                    <Topbar onOpenSidebar={() => setIsSidebarOpen(true)} profile={profile} />
                     <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
                 </div>
             </div>

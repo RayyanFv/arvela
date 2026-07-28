@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, Briefcase, CheckCircle2, ArrowRight, Mail } from 'lucide-react'
+import { CatalystMark } from '@/components/PublicLayout'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
@@ -39,9 +40,7 @@ export default function CandidateLoginPage() {
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4">
             <Link href="/careers" className="mb-8 flex items-center gap-2">
-                <div className="w-10 h-10 overflow-hidden flex items-center justify-center">
-                    <img src="/arvela-logo.png" alt="Arvela" className="w-full h-full object-contain" />
-                </div>
+                <CatalystMark className="w-10 h-10" />
                 <div className="flex flex-col">
                     <span className="font-bold text-xl tracking-tight text-slate-900 leading-none">
                         Arvela <span className="text-blue-600">Career</span>

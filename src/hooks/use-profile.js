@@ -6,13 +6,14 @@
 import { useState, useEffect } from 'react'
 import { getEffectiveProfileServer } from '@/lib/actions/impersonate'
 
-// ── Module-level cache — shared across all useProfile() calls in same session ──
+// ── Module-level cache — shared across all useProfile()/usePermissions() calls in same session ──
 let _cachedProfile = null
+let _cachedPermissions = null
 let _inflightPromise = null  // deduplicate concurrent fetches
 
 async function fetchProfileOnce() {
     // Return cached result immediately if available
-    if (_cachedProfile) return _cachedProfile
+    if (_cachedProfile) return { profile: _cachedProfile, permissions: _cachedPermissions }
 
     // Deduplicate: if already fetching, wait for same promise
     if (_inflightPromise) return _inflightPromise
@@ -21,11 +22,12 @@ async function fetchProfileOnce() {
         try {
             const res = await getEffectiveProfileServer()
             const profile = res?.profile || null
+            const permissions = res?.permissions || []
             _cachedProfile = profile
-            return profile
+            _cachedPermissions = permissions
+            return { profile, permissions }
         } catch (e) {
-
-            return null
+            return { profile: null, permissions: [] }
         } finally {
             _inflightPromise = null
         }
@@ -37,20 +39,23 @@ async function fetchProfileOnce() {
 // Call this on logout to clear the cache
 export function clearProfileCache() {
     _cachedProfile = null
+    _cachedPermissions = null
     _inflightPromise = null
 }
 
 export function useProfile() {
     const [profile, setProfile] = useState(_cachedProfile) // sync if already cached
+    const [permissions, setPermissions] = useState(_cachedPermissions || [])
     const [loading, setLoading] = useState(!_cachedProfile)
 
     useEffect(() => {
         if (_cachedProfile) return  // already cached, nothing to do
-        fetchProfileOnce().then(p => {
-            setProfile(p)
+        fetchProfileOnce().then(({ profile, permissions }) => {
+            setProfile(profile)
+            setPermissions(permissions)
             setLoading(false)
         })
     }, [])
 
-    return { profile, loading }
+    return { profile, permissions, loading }
 }

@@ -1,5 +1,6 @@
 'use server'
 
+import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
 import { ADMIN_ROLES } from '@/lib/constants/roles'
@@ -80,6 +81,21 @@ export async function stopImpersonation() {
 }
 
 /**
+ * Full logout: clears impersonation cookie first, then signs out.
+ * Must be called instead of supabase.auth.signOut() directly so
+ * the impersonation cookie never bleeds into the next session.
+ */
+export async function logoutAndClearImpersonation() {
+    const cookieStore = await cookies()
+    // Clear impersonation cookie unconditionally before signout
+    cookieStore.delete(IMPERSONATE_COOKIE)
+    const supabase = await createServerSupabaseClient()
+    await supabase.auth.signOut()
+    revalidatePath('/')
+    return { success: true }
+}
+
+/**
  * Get current impersonation state.
  */
 export async function getImpersonationState() {
@@ -106,10 +122,11 @@ export async function getImpersonationState() {
 }
 
 /**
- * Server action to get the active effective profile (target profile if impersonating, else real profile).
- * Bypasses RLS client blocks for impersonation preview.
+ * Cached per-request — layout.jsx and individual page.jsx files both call
+ * getEffectiveProfileServer() in the same render pass; React's cache() dedupes
+ * these into a single Supabase round trip instead of re-querying per caller.
  */
-export async function getEffectiveProfileServer() {
+const loadEffectiveProfile = cache(async () => {
     const supabase = await createServerSupabaseClient()
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error || !user) return { user: null, profile: null }
@@ -133,17 +150,18 @@ export async function getEffectiveProfileServer() {
         }
     }
 
-    const { data: profile } = await admin
-        .from('profiles')
-        .select('*, companies(name, slug, logo_url)')
-        .eq('id', activeUserId)
-        .maybeSingle()
-
-    const { data: pr } = await admin
-        .from('profile_roles')
-        .select('roles(role_permissions(permissions(code)))')
-        .eq('profile_id', activeUserId)
-        .maybeSingle()
+    const [{ data: profile }, { data: pr }] = await Promise.all([
+        admin
+            .from('profiles')
+            .select('*, companies(name, slug, logo_url)')
+            .eq('id', activeUserId)
+            .maybeSingle(),
+        admin
+            .from('profile_roles')
+            .select('roles(role_permissions(permissions(code)))')
+            .eq('profile_id', activeUserId)
+            .maybeSingle(),
+    ])
 
     const permissionCodes = []
     for (const rp of pr?.roles?.role_permissions || []) {
@@ -156,4 +174,12 @@ export async function getEffectiveProfileServer() {
         permissions: permissionCodes,
         isImpersonating: activeUserId !== user.id
     }
+})
+
+/**
+ * Server action to get the active effective profile (target profile if impersonating, else real profile).
+ * Bypasses RLS client blocks for impersonation preview.
+ */
+export async function getEffectiveProfileServer() {
+    return loadEffectiveProfile()
 }

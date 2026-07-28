@@ -1,29 +1,26 @@
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getUserPermissions } from '@/lib/permissions'
+import { getEffectiveProfileServer } from '@/lib/actions/impersonate'
 import UnitsClient from './UnitsClient'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata = { title: 'Manajemen Unit — Arvela HR' }
 
 export default async function UnitsPage() {
-    const authClient = await createServerSupabaseClient()
-    const { data: { user } } = await authClient.auth.getUser()
-    if (!user) redirect('/login')
+    const res = await getEffectiveProfileServer()
+    if (!res?.user) redirect('/login')
+    const profile = res.profile
+    if (!profile) redirect('/login')
 
     const supabase = createAdminSupabaseClient()
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('company_id, role')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile) redirect('/login')
 
     if (profile.role === 'super_admin' || !profile.company_id) {
         redirect('/dashboard/companies')
     }
 
-    const perms = await getUserPermissions(user.id)
+    const perms = await getUserPermissions(res.user.id)
     if (!perms.isAdmin) redirect('/dashboard')
 
     const companyId = profile.company_id

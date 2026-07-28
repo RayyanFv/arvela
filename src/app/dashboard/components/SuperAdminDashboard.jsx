@@ -105,32 +105,32 @@ export function SuperAdminDashboard({ profile, user }) {
                     </p>
                 </div>
                 <Link href="/dashboard/settings/users">
-                    <Button className="h-10 px-5 rounded-xl bg-foreground hover:bg-slate-800 text-background font-bold gap-2">
+                    <Button className="h-10 px-5 rounded-md bg-foreground hover:bg-slate-800 text-background font-semibold gap-2">
                         <UserPlus className="w-4 h-4" /> Daftarkan Pengguna Baru
                     </Button>
                 </Link>
             </div>
 
             {/* ── System Status Row ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {statCards.map((s, i) => (
-                    <Card key={i} className="p-6 border-none shadow-sm rounded-3xl hover:shadow-md transition-all">
+                    <Card key={i} className="p-5 rounded-md hover:border-slate-300 transition-colors">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className={`w-10 h-10 flex flex-col items-center justify-center rounded-xl shrink-0 ${s.bg}`}>
+                            <div className={`w-10 h-10 flex flex-col items-center justify-center rounded-md shrink-0 ${s.bg}`}>
                                 <s.icon className={`w-5 h-5 ${s.color}`} />
                             </div>
-                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{s.label}</p>
+                            <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-widest">{s.label}</p>
                         </div>
                         {loading
-                            ? <Skeleton className="h-8 w-14" />
-                            : <p className="text-3xl font-black">{s.value ?? 0}</p>
+                            ? <Skeleton className="h-7 w-14" />
+                            : <p className="text-2xl font-bold">{s.value ?? 0}</p>
                         }
                     </Card>
                 ))}
             </div>
 
             {/* ── User Directory ── */}
-            <Card className="p-6 md:p-8 border-none shadow-sm rounded-3xl">
+            <Card className="p-6 md:p-8 rounded-md">
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h2 className="text-sm font-black text-foreground uppercase tracking-widest">Aktivitas Akun Terbaru</h2>
@@ -143,19 +143,19 @@ export function SuperAdminDashboard({ profile, user }) {
 
                 {loading ? (
                     <div className="space-y-4">
-                        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-2xl" />)}
+                        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-md" />)}
                     </div>
                 ) : data.recentUsers.length === 0 ? (
-                    <div className="py-12 text-center border-dashed border-2 border-slate-100 rounded-3xl">
+                    <div className="py-12 text-center border-dashed border-2 border-slate-200 rounded-md">
                         <Users className="w-10 h-10 text-muted mx-auto mb-3" />
                         <p className="text-sm font-bold text-muted-foreground">Tidak ada pengguna terdeteksi.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {data.recentUsers.map(u => (
-                            <div key={u.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:border-slate-200 transition-all gap-4 group">
+                            <div key={u.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-md hover:bg-white hover:border-slate-300 transition-colors gap-4 group">
                                 <div className="flex items-center gap-4 min-w-0">
-                                    <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center font-black text-slate-400 group-hover:text-primary transition-colors shrink-0">
+                                    <div className="w-10 h-10 bg-white border border-slate-200 rounded-md flex items-center justify-center font-semibold text-slate-400 group-hover:text-primary transition-colors shrink-0">
                                         {u.full_name?.charAt(0)}
                                     </div>
                                     <div className="min-w-0">

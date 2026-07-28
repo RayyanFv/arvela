@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Panduan Demo Arvela</title>
+<style>
+  @font-face {
+    font-family: 'Plus Jakarta Sans';
+    src: local('Plus Jakarta Sans');
+  }
+  :root {
+    --bg: #FAF8F5;
+    --ink: #0E0D0A;
+    --primary: #EE7522;
+    --white: #ffffff;
+    --shadow-ink: 4px 4px 0px 0px rgba(14,13,10,1);
+    --shadow-primary: 3px 3px 0px 0px rgba(238,117,34,1);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--primary); color: #fff; }
+
+  .app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header.topbar {
+    position: sticky; top: 0; z-index: 50;
+    padding: 20px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 2px solid var(--ink);
+    background: rgba(250,248,245,0.9);
+    backdrop-filter: blur(6px);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 20px; letter-spacing: -0.03em; text-transform: uppercase; }
+  .brand .dot { color: var(--primary); }
+  .brand svg { width: 28px; height: 28px; }
+  .dots { display: flex; align-items: center; gap: 8px; }
+  .dots button {
+    height: 8px; border: 1px solid var(--ink); background: var(--bg);
+    padding: 0; cursor: pointer; transition: all .25s ease; width: 8px;
+  }
+  .dots button.active { width: 32px; background: var(--primary); }
+  .spacer { width: 60px; }
+
+  main {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    padding: 96px 24px;
+  }
+  @media (min-width: 768px) { main { padding: 96px 48px; } }
+
+  .slide-wrap { width: 100%; max-width: 960px; transition: all .3s ease; }
+  .slide-wrap.animating { opacity: 0; transform: translateY(8px); }
+
+  .slide-head { margin-bottom: 40px; max-width: 720px; }
+  .slide-head h1 {
+    font-size: 28px; font-weight: 900; text-transform: uppercase;
+    letter-spacing: -0.03em; line-height: 1.15; margin: 0 0 8px 0;
+  }
+  @media (min-width: 768px) { .slide-head h1 { font-size: 42px; } }
+  .slide-head p { font-size: 17px; font-weight: 500; color: rgba(14,13,10,0.75); line-height: 1.6; margin: 0; }
+  @media (min-width: 768px) { .slide-head p { font-size: 19px; } }
+
+  .desc { font-size: 16px; font-weight: 500; line-height: 1.7; color: rgba(14,13,10,0.8); max-width: 720px; }
+  @media (min-width: 768px) { .desc { font-size: 18px; } }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink); color: var(--bg);
+    font-weight: 900; font-size: 14px;
+    padding: 14px 24px;
+    border: 2px solid var(--ink);
+    box-shadow: var(--shadow-primary);
+    cursor: pointer; text-decoration: none;
+    transition: all .15s ease;
+  }
+  .btn-primary:hover { transform: translate(1px,1px); box-shadow: 2px 2px 0px 0px rgba(238,117,34,1); }
+
+  .btn-wa {
+    display: inline-flex; align-items: center; gap: 12px;
+    background: #25D366; color: #fff;
+    font-weight: 900; font-size: 14px; text-transform: uppercase; letter-spacing: 0.03em;
+    padding: 14px 28px;
+    border: 2px solid var(--ink);
+    box-shadow: var(--shadow-ink);
+    cursor: pointer; text-decoration: none;
+    transition: all .15s ease;
+  }
+  .btn-wa:hover { transform: translate(1px,1px); box-shadow: 2px 2px 0px 0px rgba(14,13,10,1); }
+
+  .grid-12 { display: grid; grid-template-columns: 1fr; gap: 24px; align-items: start; padding-top: 8px; }
+  @media (min-width: 768px) { .grid-12 { grid-template-columns: repeat(12, 1fr); } }
+  .col-7 { grid-column: span 12; } .col-5 { grid-column: span 12; }
+  @media (min-width: 768px) { .col-7 { grid-column: span 7; } .col-5 { grid-column: span 5; } }
+
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+
+  .stat-card {
+    border: 4px solid var(--ink); background: #fff; padding: 16px;
+    box-shadow: var(--shadow-ink);
+  }
+  .stat-card .val { font-family: Georgia, serif; font-style: italic; font-weight: 900; font-size: 32px; color: var(--primary); margin-bottom: 4px; }
+  @media (min-width: 768px) { .stat-card .val { font-size: 38px; } }
+  .stat-card .lbl { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: rgba(14,13,10,0.75); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr; gap: 24px; margin-top: 24px; }
+  @media (min-width: 768px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+  .grid-2.tight { gap: 16px; margin-top: 0; }
+
+  .card {
+    border: 4px solid var(--ink); background: #fff; padding: 20px;
+    box-shadow: var(--shadow-ink);
+    min-height: 150px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .icon-badge {
+    width: 32px; height: 32px; background: rgba(238,117,34,0.1);
+    border: 2px solid var(--ink); display: flex; align-items: center; justify-content: center;
+    color: var(--primary); margin-bottom: 12px; font-weight: 900;
+  }
+  .card .tag { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(14,13,10,0.5); display: block; margin-bottom: 4px; }
+  .card h3 { font-size: 18px; font-weight: 900; text-transform: uppercase; margin: 0 0 8px 0; }
+  .card p { font-size: 13px; font-weight: 500; color: rgba(14,13,10,0.75); line-height: 1.6; margin: 0; }
+
+  .problem-card { border: 4px solid var(--ink); background: #fff; padding: 20px; box-shadow: var(--shadow-ink); min-height: 150px; display: flex; flex-direction: column; justify-content: space-between; }
+  .problem-card h3 { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.03em; color: var(--primary); margin: 0 0 8px 0; }
+  .problem-card p { font-size: 13px; font-weight: 500; color: rgba(14,13,10,0.75); line-height: 1.6; margin: 0; }
+
+  .bridge-row { display: flex; align-items: stretch; border: 2px solid var(--ink); background: #fff; box-shadow: 3px 3px 0px 0px rgba(14,13,10,1); margin-bottom: 12px; }
+  .bridge-row .half { flex: 1; padding: 14px 16px; display: flex; align-items: center; gap: 10px; }
+  .bridge-row .half.solution { background: rgba(238,117,34,0.06); }
+  .bridge-row .divider { width: 1px; background: rgba(14,13,10,0.15); }
+  .bridge-row .problem-text { font-size: 12.5px; font-weight: 600; color: rgba(14,13,10,0.5); text-decoration: line-through; text-decoration-color: rgba(14,13,10,0.25); }
+  .bridge-row .solution-text { font-size: 12.5px; font-weight: 900; color: var(--ink); }
+  .bridge-row svg.mini { width: 14px; height: 14px; flex-shrink: 0; }
+
+  .pw-banner {
+    border: 4px solid var(--ink); background: rgba(238,117,34,0.1);
+    padding: 16px; display: flex; align-items: center; gap: 12px;
+    box-shadow: var(--shadow-ink); margin: 20px 0; flex-wrap: wrap;
+  }
+  .pw-banner .label { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.03em; }
+  .pw-banner code {
+    font-family: 'SFMono-Regular', Consolas, monospace; font-weight: 900; font-size: 14px;
+    background: #fff; padding: 4px 10px; border: 2px solid var(--ink);
+  }
+
+  .acc-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 20px; }
+  @media (min-width: 768px) { .acc-grid { grid-template-columns: 1fr 1fr; } }
+  .acc-card { border: 2px solid var(--ink); background: #fff; padding: 14px; box-shadow: 3px 3px 0px 0px rgba(14,13,10,1); }
+  .acc-card .row-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .acc-card .role { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: var(--primary); }
+  .acc-card .scope { font-size: 10px; font-weight: 700; color: rgba(14,13,10,0.5); }
+  .acc-card .name { font-weight: 900; font-size: 14px; margin-bottom: 2px; }
+  .acc-card .email { font-family: monospace; font-size: 11px; color: rgba(14,13,10,0.7); }
+  .acc-card .note { font-size: 11px; font-weight: 500; color: rgba(14,13,10,0.7); line-height: 1.6; margin-top: 8px; }
+
+  .pipe-card {
+    border: 2px solid var(--ink); background: #fff; padding: 16px;
+    box-shadow: 3px 3px 0px 0px rgba(14,13,10,1);
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .pipe-card .icn { padding: 6px; background: rgba(238,117,34,0.1); border: 1px solid var(--ink); color: var(--primary); flex-shrink: 0; }
+  .pipe-card .row-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .pipe-card .name { font-weight: 900; font-size: 14px; }
+  .pill { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 8px; border: 1px solid var(--ink); white-space: nowrap; color: #fff; background: #64748b; }
+  .pill.diterima { background: #059669; }
+  .pill.wawancara { background: #d97706; }
+  .pill.baru { background: #0369a1; }
+  .pill.tinjau { background: #7c3aed; }
+  .pill.sudah { background: #059669; }
+  .pill.belum { background: var(--ink); color: var(--bg); }
+  .pill.menunggu { background: var(--primary); }
+  .pipe-card p { font-size: 11px; font-weight: 500; color: rgba(14,13,10,0.7); line-height: 1.6; margin: 0; }
+
+  .att-card {
+    border: 4px solid var(--ink); background: #fff; padding: 20px;
+    box-shadow: var(--shadow-ink); min-height: 150px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .att-card .row-top { display: flex; align-items: center; justify-content: space-between; }
+  .att-card h3 { font-size: 16px; font-weight: 900; text-transform: uppercase; margin: 12px 0 4px 0; }
+  .att-card p { font-size: 12px; font-weight: 500; color: rgba(14,13,10,0.75); line-height: 1.6; margin: 0; }
+
+  .leave-card {
+    border: 4px solid var(--ink); background: #FDF9F1; padding: 20px;
+    box-shadow: var(--shadow-ink); min-height: 200px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .leave-card .row-top {
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(14,13,10,0.3); padding-bottom: 10px;
+  }
+  .leave-card .row-top .lbl { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 900; text-transform: uppercase; color: rgba(14,13,10,0.6); }
+  .leave-card .status-tag { background: var(--primary); color: #fff; font-size: 9px; font-weight: 900; padding: 2px 8px; border: 1px solid var(--ink); text-transform: uppercase; }
+  .leave-card .body { padding: 16px 0; }
+  .leave-card .body .name { font-weight: 900; font-size: 14px; margin-bottom: 4px; }
+  .leave-card .body p { font-size: 12px; font-weight: 500; color: rgba(14,13,10,0.7); line-height: 1.6; margin: 0; }
+  .leave-card .hint {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+    color: rgba(14,13,10,0.5); border-top: 1px solid rgba(14,13,10,0.1); padding-top: 8px;
+  }
+
+  footer.bottombar {
+    position: sticky; bottom: 0; z-index: 50;
+    padding: 16px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 2px solid var(--ink);
+    background: rgba(250,248,245,0.9);
+    backdrop-filter: blur(6px);
+  }
+  .nav-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+    border: 2px solid var(--ink); padding: 8px 16px;
+    background: var(--bg); color: var(--ink);
+    cursor: pointer; transition: all .15s ease;
+  }
+  .nav-btn:hover:not(:disabled) { background: var(--ink); color: var(--bg); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .step-counter { font-size: 11px; font-weight: 700; color: rgba(14,13,10,0.5); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  svg.icon { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .print-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    border: 2px solid var(--ink); padding: 7px 14px;
+    background: var(--primary); color: #fff;
+    cursor: pointer; transition: all .15s ease;
+  }
+  .print-btn:hover { background: var(--ink); }
+
+  /* ─── Print / PDF export ─────────────────────────────────────── */
+  #printStage { display: none; }
+
+  @media print {
+    @page { size: A4 landscape; margin: 0; }
+
+    html, body { background: #fff; }
+    .app, header.topbar, footer.bottombar { display: none !important; }
+
+    #printStage { display: block; }
+
+    #printStage .print-page {
+      width: 297mm;
+      height: 209.9mm;
+      page-break-after: always;
+      break-after: page;
+      box-sizing: border-box;
+      padding: 14mm 16mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    #printStage .print-page:last-child { page-break-after: auto; break-after: auto; }
+
+    #printStage .print-brand {
+      position: absolute; top: 10mm; left: 16mm;
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 900; font-size: 13px; text-transform: uppercase; letter-spacing: -0.02em;
+    }
+    #printStage .print-brand svg { width: 20px; height: 20px; }
+    #printStage .print-brand .dot { color: var(--primary); }
+
+    #printStage .print-page-num {
+      position: absolute; bottom: 8mm; right: 16mm;
+      font-size: 10px; font-weight: 700; color: rgba(14,13,10,0.4);
+    }
+
+    #printStage .slide-head { margin-top: 18mm; margin-bottom: 14mm; max-width: 100%; }
+    #printStage .slide-head h1 { font-size: 26px; }
+    #printStage .slide-head p { font-size: 14px; }
+    #printStage .desc { font-size: 13px; max-width: 100%; }
+    #printStage .stat-card .val { font-size: 26px; }
+    #printStage .btn-primary, #printStage .btn-wa { display: none; }
+
+    /* Shrink dense grids so they never overflow one page */
+    #printStage .grid-2, #printStage .acc-grid, #printStage .grid-2.tight { gap: 10px; margin-top: 12px; }
+    #printStage .card, #printStage .att-card, #printStage .problem-card { min-height: 0; padding: 12px; }
+    #printStage .card p, #printStage .att-card p, #printStage .problem-card p, #printStage .pipe-card p, #printStage .acc-card .note { font-size: 10.5px; }
+    #printStage .acc-card { padding: 10px; }
+    #printStage .pipe-card { padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="36" width="17" height="40" rx="8.5" fill="#EE7522"/>
+        <path d="M40.5 6 L49 24 L49 68 Q49 76 40.5 76 Q32 76 32 68 L32 24 Z" fill="#0E0D0A"/>
+        <rect x="56" y="26" width="17" height="50" rx="8.5" fill="#EE7522"/>
+      </svg>
+      Arvela<span class="dot">.</span>
+    </div>
+    <div class="dots" id="dots"></div>
+    <button class="print-btn" onclick="window.print()">Cetak / Simpan PDF</button>
+  </header>
+
+  <main>
+    <div class="slide-wrap" id="slideWrap">
+      <div class="slide-head">
+        <h1 id="slideTitle"></h1>
+        <p id="slideSubtitle"></p>
+      </div>
+      <div id="slideBody"></div>
+    </div>
+  </main>
+
+  <footer class="bottombar">
+    <button class="nav-btn" id="prevBtn" onclick="prevSlide()">
+      <svg class="icon" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Kembali
+    </button>
+    <span class="step-counter" id="stepCounter"></span>
+    <button class="nav-btn" id="nextBtn" onclick="nextSlide()">
+      Lanjut
+      <svg class="icon" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </button>
+  </footer>
+</div>
+
+<div id="printStage"></div>
+
+<script>
+const ICONS = {
+  building: '<svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M6 22V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v18"/><path d="M6 12H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2"/><path d="M18 9h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-2"/></svg>',
+  key: '<svg class="icon" style="width:20px;height:20px;color:var(--primary)" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>',
+  users: '<svg class="icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  clock: '<svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  calendar: '<svg class="icon" style="width:16px;height:16px;color:var(--primary)" viewBox="0 0 24 24"><path d="m16 2 0 4"/><path d="m8 2 0 4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>',
+  arrow: '<svg class="icon" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+  arrowMini: '<svg class="mini" style="color:var(--primary)" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+  xMini: '<svg class="mini" style="color:rgba(14,13,10,0.35)" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  copy: '<svg class="icon" style="width:12px;height:12px;opacity:.4" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  check: '<svg class="icon" style="width:12px;height:12px;color:#10b981" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+};
+
+const LOGO_MARK = '<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:40px;height:40px"><rect x="8" y="36" width="17" height="40" rx="8.5" fill="#EE7522"/><path d="M40.5 6 L49 24 L49 68 Q49 76 40.5 76 Q32 76 32 68 L32 24 Z" fill="#0E0D0A"/><rect x="56" y="26" width="17" height="50" rx="8.5" fill="#EE7522"/></svg>';
+
+const PILL_CLASS = {
+  'Diterima': 'diterima', 'Wawancara': 'wawancara', 'Lamaran Baru': 'baru', 'Peninjauan Awal': 'tinjau',
+  'Sudah Absen': 'sudah', 'Belum Absen': 'belum', 'Menunggu Persetujuan': 'menunggu'
+};
+
+const SLIDES = [
+  {
+    kind: 'cover',
+    title: 'Satu Sistem untuk Seluruh Proses HR Anda',
+    subtitle: 'Dari rekrutmen sampai absensi harian, tanpa berpindah-pindah aplikasi.',
+    desc: 'Arvela menyatukan rekrutmen, asesmen, absensi, dan pengajuan cuti karyawan dalam satu platform — menggantikan kombinasi WhatsApp, Google Form, dan spreadsheet yang selama ini dipakai untuk mengelola tim.'
+  },
+  {
+    kind: 'problem',
+    title: 'Proses HR yang Masih Tercecer di Banyak Tempat',
+    subtitle: 'Situasi yang umum ditemui di banyak perusahaan saat ini:',
+    desc: 'Setiap proses berjalan di alat yang berbeda-beda, tidak saling terhubung, dan bergantung pada pengecekan manual oleh tim HR.',
+    problems: [
+      { area: 'Absensi Karyawan', detail: 'Karyawan mengirim foto kehadiran lewat WhatsApp beserta titik lokasi (geotag), lalu HR mencocokkannya satu per satu secara manual setiap hari.' },
+      { area: 'Cuti & Izin', detail: 'Pengajuan cuti dan izin dikumpulkan lewat Google Form terpisah, sehingga HR harus membuka form itu sendiri untuk melihat siapa yang mengajukan dan menindaklanjutinya secara manual.' },
+      { area: 'Rekrutmen', detail: 'Lowongan, CV pelamar, dan jadwal wawancara tersebar di email, WhatsApp, dan spreadsheet yang berbeda, sehingga sulit melihat posisi setiap kandidat dalam satu tampilan.' },
+      { area: 'Asesmen Kandidat', detail: 'Tes seleksi dilakukan lewat Google Form biasa, tanpa cara untuk memastikan kandidat mengerjakan sendiri atau menyontek dari sumber lain.' }
+    ]
+  },
+  {
+    kind: 'bridge',
+    title: 'Arvela Menjembatani Semua Proses Itu',
+    subtitle: 'Satu data karyawan, mengalir dari hari pertama melamar hingga bekerja setiap hari.',
+    desc: 'Setiap proses yang sebelumnya berjalan sendiri-sendiri kini terhubung dalam satu alur. Data yang masuk saat rekrutmen otomatis tersedia saat karyawan itu mulai bekerja — tidak perlu diinput ulang.',
+    mapping: [
+      { problem: 'Absensi via WhatsApp', solution: 'Absen digital dengan verifikasi lokasi otomatis' },
+      { problem: 'Cuti via Google Form', solution: 'Pengajuan & persetujuan cuti dalam satu dashboard' },
+      { problem: 'Rekrutmen tersebar', solution: 'Pipeline kandidat dalam satu tampilan, dari lamar sampai diterima' },
+      { problem: 'Asesmen via Google Form', solution: 'Tes online dengan pengawasan otomatis anti-kecurangan' }
+    ]
+  },
+  {
+    kind: 'proof-intro',
+    title: 'Bukan Sekadar Rencana — Sudah Bisa Dicoba Sekarang',
+    subtitle: 'Halaman berikut adalah akses langsung ke sistem yang sedang berjalan.',
+    desc: 'Untuk membuktikan cara kerjanya, kami menyiapkan dua perusahaan contoh lengkap dengan data karyawan, lowongan, dan pengajuan cuti yang tersimpan di sistem. Anda dapat login dan mencobanya langsung.',
+    stats: [
+      { value: '2', label: 'Perusahaan contoh dengan data yang terpisah sepenuhnya satu sama lain.' },
+      { value: '5', label: 'Akun siap pakai untuk mencoba tampilan dari sisi Owner, HR, dan karyawan.' }
+    ]
+  },
+  {
+    kind: 'tenants',
+    title: 'Data Perusahaan Anda Tidak Akan Tercampur dengan Perusahaan Lain',
+    subtitle: 'Setiap perusahaan yang menggunakan Arvela memiliki ruang data sendiri yang terpisah penuh.',
+    desc: 'Untuk membuktikannya, kami siapkan dua perusahaan simulasi. Silakan login ke keduanya secara bergantian — data karyawan dan lowongan milik satu perusahaan tidak akan pernah muncul di perusahaan lain, meski berjalan di sistem yang sama.',
+    tenants: [
+      { name: 'PT Inovasi Nusantara', tag: 'Perusahaan Utama', desc: 'Digunakan untuk mencoba alur lengkap: rekrutmen, absensi harian, dan pengajuan cuti.' },
+      { name: 'Karya Kreatif Agency', tag: 'Perusahaan Pembanding', desc: 'Login ke sini untuk membuktikan bahwa data Perusahaan Utama tidak terlihat di sini.' }
+    ]
+  },
+  {
+    kind: 'credentials',
+    title: 'Akses untuk Mencoba Langsung',
+    subtitle: 'Satu kata sandi untuk seluruh akun — tinggal pilih peran yang ingin dicoba.',
+    desc: 'Buka halaman Login, gunakan salah satu akun berikut. Setiap akun menampilkan dashboard yang berbeda sesuai posisi orang tersebut di perusahaan.',
+    password: 'Password123!',
+    accounts: [
+      { role: 'Super Admin', name: 'Super Admin', email: 'superadmin@arvela.local', scope: 'Akses Global', note: 'Panel kontrol pusat, melihat seluruh perusahaan yang berlangganan.' },
+      { role: 'Pemilik Perusahaan', name: 'Owner A', email: 'owner@comp-a.local', scope: 'Inovasi Nusantara', note: 'Ringkasan eksekutif untuk pemilik perusahaan.' },
+      { role: 'Admin HR', name: 'Indah HR A', email: 'hr@comp-a.local', scope: 'Inovasi Nusantara', note: 'Kendali penuh atas rekrutmen dan operasional harian tim.' },
+      { role: 'Karyawan', name: 'Andi Sukarno', email: 'andi@test.com', scope: 'Inovasi Nusantara', note: 'Sudah melakukan absen hari ini.' },
+      { role: 'Karyawan', name: 'Siti Aminah', email: 'karyawan1@comp-a.local', scope: 'Inovasi Nusantara', note: 'Belum absen — dapat dicoba untuk melakukan absen masuk.' },
+      { role: 'Admin HR Pembanding', name: 'Budi HR B', email: 'hr@comp-b.local', scope: 'Karya Kreatif Agency', note: 'Digunakan untuk membuktikan pemisahan data antar perusahaan.' }
+    ]
+  },
+  {
+    kind: 'recruitment',
+    title: 'Rekrutmen Terpantau dari Lamaran Masuk sampai Diterima',
+    subtitle: 'Login sebagai Indah HR A, lalu buka menu Rekrutmen.',
+    desc: 'Seluruh pelamar tersusun dalam satu tampilan berdasarkan tahapannya, menggantikan pengecekan manual lewat email atau WhatsApp.',
+    pipeline: [
+      { name: 'Andi Sukarno', status: 'Diterima', note: 'Sudah direkrut, hasil penilaian teknikal tersimpan di sistem.' },
+      { name: 'Budi Santoso', status: 'Wawancara', note: 'Terjadwal wawancara hari ini pukul 10:00.' },
+      { name: 'Citra Lestari', status: 'Lamaran Baru', note: 'Lamaran baru masuk, CV dan portofolio siap ditinjau.' },
+      { name: 'Diana Putri', status: 'Peninjauan Awal', note: 'Sedang diperiksa tim rekruter sebelum lanjut ke wawancara.' }
+    ]
+  },
+  {
+    kind: 'attendance',
+    title: 'Kehadiran Tercatat Otomatis, Tanpa Konfirmasi Manual',
+    subtitle: 'Absensi tersimpan begitu karyawan melakukan check-in, tanpa perlu direkap ulang oleh HR.',
+    desc: 'Bandingkan dua karyawan berikut hari ini — satu sudah absen, satu belum. Anda juga dapat login sebagai Siti Aminah untuk mencoba proses absen masuk dari sisi karyawan.',
+    attendance: [
+      { name: 'Andi Sukarno', status: 'Sudah Absen', note: 'Tercatat masuk kerja hari ini.' },
+      { name: 'Siti Aminah', status: 'Belum Absen', note: 'Dapat dicoba untuk melakukan absen masuk sebagai dia.' }
+    ]
+  },
+  {
+    kind: 'leave',
+    title: 'Persetujuan Cuti dalam Satu Klik',
+    subtitle: 'Pengajuan cuti dan izin masuk langsung ke dashboard HR, bukan ke form terpisah.',
+    desc: 'Masih sebagai Indah HR A, buka menu Izin & Eksepsi. Ada satu pengajuan yang menunggu keputusan Anda — coba setujui atau tolak, dan lihat bagaimana keputusan itu langsung tercatat di sistem.',
+    request: { name: 'Andi Sukarno', note: 'Mengajukan lembur untuk menyelesaikan laporan bulanan.', status: 'Menunggu Persetujuan' }
+  },
+  {
+    kind: 'closing',
+    title: 'Mari Diskusikan Kebutuhan Perusahaan Anda',
+    subtitle: 'Kami siap membantu menyesuaikan Arvela dengan alur kerja yang sudah berjalan di tempat Anda.',
+    desc: 'Silakan coba akses demo di atas terlebih dahulu. Jika ada pertanyaan mengenai penyesuaian fitur atau proses migrasi data, tim kami siap membantu langsung.',
+    cta: { label: 'Hubungi Kami via WhatsApp', link: 'https://wa.me/6289503888107?text=Halo%20Tim%20Arvela%2C%20saya%20sudah%20mencoba%20demo%20dan%20ingin%20berdiskusi%20lebih%20lanjut.' }
+  }
+];
+
+let current = 0;
+
+function renderDots() {
+  const dots = document.getElementById('dots');
+  dots.innerHTML = SLIDES.map((_, i) =>
+    `<button class="${i === current ? 'active' : ''}" onclick="goTo(${i})" aria-label="Ke slide ${i+1}"></button>`
+  ).join('');
+}
+
+function copyEmail(el, value) {
+  navigator.clipboard?.writeText(value);
+  const original = el.innerHTML;
+  el.innerHTML = value + ICONS.check;
+  setTimeout(() => { el.innerHTML = original; }, 1200);
+}
+
+function renderBody(slide, target) {
+  const body = target || document.getElementById('slideBody');
+
+  if (slide.kind === 'cover') {
+    body.innerHTML = `
+      <div class="stack" style="gap:28px">
+        <div style="display:flex;align-items:center;gap:10px">
+          ${LOGO_MARK}
+          <span style="font-weight:900;font-size:18px;text-transform:uppercase;letter-spacing:-0.03em">Arvela<span style="color:var(--primary)">.</span></span>
+        </div>
+        <p class="desc">${slide.desc}</p>
+        <div>
+          <button class="btn-primary" onclick="nextSlide()">Lihat Selengkapnya ${ICONS.arrow}</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (slide.kind === 'problem') {
+    body.innerHTML = `
+      <div class="stack" style="gap:16px">
+        <p class="desc">${slide.desc}</p>
+        <div class="grid-2 tight">
+          ${slide.problems.map(p => `
+            <div class="problem-card">
+              <h3>${p.area}</h3>
+              <p>${p.detail}</p>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (slide.kind === 'bridge') {
+    body.innerHTML = `
+      <div class="stack" style="gap:20px">
+        <div>${LOGO_MARK.replace('width:40px;height:40px', 'width:34px;height:34px')}</div>
+        <p class="desc">${slide.desc}</p>
+        <div>
+          ${slide.mapping.map(m => `
+            <div class="bridge-row">
+              <div class="half">${ICONS.xMini}<span class="problem-text">${m.problem}</span></div>
+              <div class="divider"></div>
+              <div class="half solution">${ICONS.arrowMini}<span class="solution-text">${m.solution}</span></div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (slide.kind === 'proof-intro') {
+    body.innerHTML = `
+      <div class="grid-12">
+        <div class="col-7 stack">
+          <p class="desc">${slide.desc}</p>
+          <div>
+            <button class="btn-primary" onclick="nextSlide()">Mulai Jelajahi ${ICONS.arrow}</button>
+          </div>
+        </div>
+        <div class="col-5 stack">
+          ${slide.stats.map(s => `
+            <div class="stat-card">
+              <div class="val">${s.value}</div>
+              <div class="lbl">${s.label}</div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (slide.kind === 'tenants') {
+    body.innerHTML = `
+      <div class="stack" style="gap:24px">
+        <p class="desc">${slide.desc}</p>
+        <div class="grid-2">
+          ${slide.tenants.map(t => `
+            <div class="card">
+              <div>
+                <div class="icon-badge">${ICONS.building}</div>
+                <span class="tag">${t.tag}</span>
+                <h3>${t.name}</h3>
+                <p>${t.desc}</p>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (slide.kind === 'credentials') {
+    body.innerHTML = `
+      <div class="stack" style="gap:20px">
+        <p class="desc">${slide.desc}</p>
+        <div class="pw-banner">
+          ${ICONS.key}
+          <span class="label">Kata sandi untuk semua akun:</span>
+          <code>${slide.password}</code>
+        </div>
+        <div class="acc-grid">
+          ${slide.accounts.map((a, i) => `
+            <div class="acc-card">
+              <div class="row-top">
+                <span class="role">${a.role}</span>
+                <span class="scope">${a.scope}</span>
+              </div>
+              <div class="name">${a.name}</div>
+              <div class="email" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px" onclick="copyEmail(this,'${a.email}')">${a.email}${ICONS.copy}</div>
+              <p class="note">${a.note}</p>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (slide.kind === 'recruitment') {
+    body.innerHTML = `
+      <div class="stack" style="gap:16px">
+        <p class="desc">${slide.desc}</p>
+        <div class="grid-2 tight">
+          ${slide.pipeline.map(p => `
+            <div class="pipe-card">
+              <div class="icn">${ICONS.users}</div>
+              <div style="flex:1">
+                <div class="row-top">
+                  <span class="name">${p.name}</span>
+                  <span class="pill ${PILL_CLASS[p.status] || ''}">${p.status}</span>
+                </div>
+                <p>${p.note}</p>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (slide.kind === 'attendance') {
+    body.innerHTML = `
+      <div class="stack" style="gap:16px">
+        <p class="desc">${slide.desc}</p>
+        <div class="grid-2">
+          ${slide.attendance.map(p => `
+            <div class="att-card">
+              <div class="row-top">
+                <div class="icon-badge" style="margin:0">${ICONS.clock}</div>
+                <span class="pill ${PILL_CLASS[p.status] || ''}" style="padding:4px 10px">${p.status}</span>
+              </div>
+              <div>
+                <h3>${p.name}</h3>
+                <p>${p.note}</p>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (slide.kind === 'leave') {
+    const r = slide.request;
+    body.innerHTML = `
+      <div class="grid-12">
+        <div class="col-7">
+          <p class="desc">${slide.desc}</p>
+        </div>
+        <div class="col-5">
+          <div class="leave-card">
+            <div class="row-top">
+              <span class="lbl">${ICONS.calendar} Pengajuan Masuk</span>
+              <span class="status-tag">${r.status}</span>
+            </div>
+            <div class="body">
+              <div class="name">${r.name}</div>
+              <p>${r.note}</p>
+            </div>
+            <div class="hint">Dapat dicoba: Approve atau Reject di dashboard</div>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (slide.kind === 'closing') {
+    body.innerHTML = `
+      <div class="stack" style="gap:24px">
+        <p class="desc" style="font-size:18px">${slide.desc}</p>
+        <div>
+          <a class="btn-wa" href="${slide.cta.link}" target="_blank" rel="noopener noreferrer">
+            ${slide.cta.label} ${ICONS.arrow}
+          </a>
+        </div>
+      </div>`;
+    return;
+  }
+}
+
+function render() {
+  const slide = SLIDES[current];
+  document.getElementById('slideTitle').textContent = slide.title;
+  document.getElementById('slideSubtitle').textContent = slide.subtitle;
+  renderBody(slide);
+  renderDots();
+  document.getElementById('prevBtn').disabled = current === 0;
+  document.getElementById('nextBtn').disabled = current === SLIDES.length - 1;
+  document.getElementById('stepCounter').textContent = (current + 1) + ' / ' + SLIDES.length;
+}
+
+function animateAndRender(fn) {
+  const wrap = document.getElementById('slideWrap');
+  wrap.classList.add('animating');
+  setTimeout(() => {
+    fn();
+    render();
+    setTimeout(() => wrap.classList.remove('animating'), 20);
+  }, 150);
+}
+
+function nextSlide() { if (current < SLIDES.length - 1) animateAndRender(() => current++); }
+function prevSlide() { if (current > 0) animateAndRender(() => current--); }
+function goTo(i) { if (i !== current) animateAndRender(() => current = i); }
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+  else if (e.key === 'ArrowLeft') prevSlide();
+});
+
+function buildPrintStage() {
+  const stage = document.getElementById('printStage');
+  stage.innerHTML = SLIDES.map((slide, i) => {
+    const page = document.createElement('div');
+    page.className = 'print-page';
+
+    const brand = document.createElement('div');
+    brand.className = 'print-brand';
+    brand.innerHTML = LOGO_MARK.replace('width:40px;height:40px', 'width:20px;height:20px') + 'Arvela<span class="dot">.</span>';
+    page.appendChild(brand);
+
+    const head = document.createElement('div');
+    head.className = 'slide-head';
+    head.innerHTML = `<h1>${slide.title}</h1><p>${slide.subtitle}</p>`;
+    page.appendChild(head);
+
+    const bodyEl = document.createElement('div');
+    renderBody(slide, bodyEl);
+    page.appendChild(bodyEl);
+
+    const pageNum = document.createElement('div');
+    pageNum.className = 'print-page-num';
+    pageNum.textContent = (i + 1) + ' / ' + SLIDES.length;
+    page.appendChild(pageNum);
+
+    return page.outerHTML;
+  }).join('');
+}
+
+window.addEventListener('beforeprint', buildPrintStage);
+buildPrintStage();
+
+render();
+</script>
+</body>
+</html>

@@ -3,16 +3,23 @@ import Link from 'next/link'
 import { Plus, Edit, Trash2, Globe, FileX } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { deleteArticle } from '@/lib/actions/articles'
+import { Pagination } from '@/components/ui/Pagination'
 
-export const dynamic = 'force-dynamic'
-
-export default async function ArticlesListPage() {
+export default async function ArticlesListPage({ searchParams }) {
     const supabase = createAdminSupabaseClient()
 
-    const { data: articles, error } = await supabase
+    const params = await searchParams
+    const page = parseInt(params?.page || '1', 10)
+    const limit = 20
+    const offset = (page - 1) * limit
+
+    const { data: articles, error, count } = await supabase
         .from('articles')
-        .select('id, title, slug, category, author_name, status, published_at, created_at, views, likes, dislikes, profiles(full_name)')
+        .select('id, title, slug, category, author_name, status, published_at, created_at, views, likes, dislikes, profiles(full_name)', { count: 'exact' })
         .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
+
+    const totalPages = Math.ceil((count || 0) / limit)
 
     return (
         <div className="max-w-6xl space-y-8">
@@ -125,6 +132,14 @@ export default async function ArticlesListPage() {
                     </div>
                 </div>
             )}
+
+            <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalCount={count || 0}
+                limit={limit}
+                baseUrl="/dashboard/articles"
+            />
         </div>
     )
 }

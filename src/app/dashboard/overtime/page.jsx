@@ -82,7 +82,8 @@ export default function AdminOvertimePage() {
                 .from('overtime_requests')
                 .select('*, employees(department, job_title, profile_id, profiles!employees_profile_id_fkey(full_name, avatar_url))')
                 .eq('company_id', profile.company_id)
-                .order('created_at', { ascending: false }),
+                .order('created_at', { ascending: false })
+                .limit(300),
             supabase
                 .from('employees')
                 .select('id, department, job_title, profiles!employees_profile_id_fkey(full_name)')

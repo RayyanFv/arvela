@@ -387,6 +387,7 @@ export async function getAllInterviews() {
         `)
         .eq('company_id', profile.company_id)
         .order('scheduled_date', { ascending: false })
+        .limit(100)
 
     if (error) throw new Error(error.message)
     return data

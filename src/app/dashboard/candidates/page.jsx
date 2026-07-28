@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Users, Briefcase, Mail, Phone, Clock, Download } from 'lucide-react'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterTabs } from '@/components/ui/FilterTabs'
+import { Pagination } from '@/components/ui/Pagination'
 import { formatDistanceToNow } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
 
@@ -31,6 +32,9 @@ export default async function CandidatesPage({ searchParams }) {
     const filterStage = params?.stage || 'all'
     const filterJob = params?.job || 'all'
     const search = params?.q || ''
+    const page = parseInt(params?.page || '1', 10)
+    const limit = 20
+    const offset = (page - 1) * limit
 
     // Fetch semua jobs untuk dropdown filter
     const { data: jobs } = await supabase
@@ -42,7 +46,7 @@ export default async function CandidatesPage({ searchParams }) {
     // Fetch applications
     let query = supabase
         .from('applications')
-        .select('id, full_name, email, phone, stage, cv_url, created_at, jobs(id, title)')
+        .select('id, full_name, email, phone, stage, cv_url, created_at, jobs(id, title)', { count: 'exact' })
         .eq('company_id', profile.company_id)
         .order('created_at', { ascending: false })
 
@@ -50,7 +54,8 @@ export default async function CandidatesPage({ searchParams }) {
     if (filterJob !== 'all') query = query.eq('job_id', filterJob)
     if (search) query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`)
 
-    const { data: applications } = await query
+    const { data: applications, count } = await query.range(offset, offset + limit - 1)
+    const totalPages = Math.ceil((count || 0) / limit)
 
     return (
         <div>
@@ -83,7 +88,7 @@ export default async function CandidatesPage({ searchParams }) {
 
             {/* Total */}
             <p className="text-sm text-muted-foreground mb-4">
-                {applications?.length ?? 0} kandidat ditemukan
+                {count ?? 0} kandidat ditemukan
             </p>
 
             {/* List */}
@@ -141,6 +146,17 @@ export default async function CandidatesPage({ searchParams }) {
                     ))}
                 </div>
             )}
+
+            <div className="mt-6">
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalCount={count || 0}
+                    limit={limit}
+                    baseUrl="/dashboard/candidates"
+                    searchParams={{ q: search, stage: filterStage !== 'all' ? filterStage : undefined, job: filterJob !== 'all' ? filterJob : undefined }}
+                />
+            </div>
         </div>
     )
 }

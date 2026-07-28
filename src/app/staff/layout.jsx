@@ -19,6 +19,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ImpersonationBanner } from '@/components/layout/ImpersonationBanner'
+import { CatalystMark } from '@/components/PublicLayout'
+import { logoutAndClearImpersonation } from '@/lib/actions/impersonate'
 
 const NAV_ITEMS = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/staff' },
@@ -37,7 +39,7 @@ export default function StaffLayout({ children }) {
     const supabase = createClient()
 
     async function handleLogout() {
-        await supabase.auth.signOut()
+        await logoutAndClearImpersonation()
         router.push('/login')
         router.refresh()
     }
@@ -46,15 +48,13 @@ export default function StaffLayout({ children }) {
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
             <ImpersonationBanner />
             {/* Top Navbar */}
-            <header className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 h-16 flex items-center justify-between">
+            <header className="sticky top-0 z-40 w-full bg-white border-b border-slate-200 px-6 h-16 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <div className="w-9 h-9 overflow-hidden flex items-center justify-center shrink-0">
-                        <img src="/arvela-logo.png" alt="Arvela" className="w-full h-full object-contain" />
-                    </div>
+                    <CatalystMark className="w-9 h-9 shrink-0" />
                     <span className="text-lg font-black text-slate-900 tracking-tighter">Team<span className="text-primary">Arvela</span></span>
                 </div>
 
-                <div className="hidden md:flex items-center gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 shadow-inner">
+                <div className="hidden md:flex items-center gap-1 border-b border-transparent">
                     {NAV_ITEMS.map(item => {
                         const isActive = item.path === '/staff'
                             ? pathname === '/staff'
@@ -63,9 +63,9 @@ export default function StaffLayout({ children }) {
                             <Link
                                 key={item.path}
                                 href={item.path}
-                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-300 ${isActive
-                                    ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200/50'
-                                    : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'
+                                className={`flex items-center gap-2 px-3 py-2 rounded-md text-[13px] font-semibold transition-colors ${isActive
+                                    ? 'bg-slate-100 text-primary'
+                                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                                     }`}
                             >
                                 <item.icon className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-slate-400'}`} />
@@ -80,7 +80,7 @@ export default function StaffLayout({ children }) {
                         variant="ghost"
                         size="icon"
                         onClick={handleLogout}
-                        className="rounded-xl text-slate-400 hover:text-destructive transition-colors"
+                        className="rounded-md text-slate-400 hover:text-destructive transition-colors"
                         title="Keluar"
                     >
                         <LogOut className="w-5 h-5" />
@@ -88,7 +88,7 @@ export default function StaffLayout({ children }) {
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="md:hidden rounded-xl"
+                        className="md:hidden rounded-md"
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     >
                         {mobileMenuOpen ? <X /> : <Menu />}
@@ -101,9 +101,7 @@ export default function StaffLayout({ children }) {
                 <div className="fixed inset-0 z-50 md:hidden bg-white p-6 animate-in slide-in-from-top-10 duration-300">
                     <div className="flex justify-between items-center mb-10">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 overflow-hidden flex items-center justify-center shrink-0">
-                                <img src="/arvela-logo.png" alt="Arvela" className="w-full h-full object-contain" />
-                            </div>
+                            <CatalystMark className="w-10 h-10 shrink-0" />
                             <span className="text-xl font-black text-slate-900 tracking-tighter">Team<span className="text-primary">Arvela</span></span>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>
@@ -116,8 +114,8 @@ export default function StaffLayout({ children }) {
                                 key={item.path}
                                 href={item.path}
                                 onClick={() => setMobileMenuOpen(false)}
-                                className={`flex items-center gap-4 p-4 rounded-2xl text-base font-black transition-all ${pathname === item.path || (item.path !== '/staff' && pathname.startsWith(item.path))
-                                    ? 'bg-primary text-white shadow-xl shadow-primary/20'
+                                className={`flex items-center gap-4 p-4 rounded-md text-base font-semibold transition-colors ${pathname === item.path || (item.path !== '/staff' && pathname.startsWith(item.path))
+                                    ? 'bg-primary text-white'
                                     : 'text-slate-700 active:bg-slate-50'
                                     }`}
                             >
@@ -129,7 +127,7 @@ export default function StaffLayout({ children }) {
                     <div className="absolute bottom-10 left-6 right-6 pt-10 border-t border-slate-100">
                         <Button
                             variant="destructive"
-                            className="w-full h-14 rounded-2xl font-black gap-3"
+                            className="w-full h-14 rounded-md font-semibold gap-3"
                             onClick={handleLogout}
                         >
                             <LogOut /> Keluar

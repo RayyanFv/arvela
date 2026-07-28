@@ -5,10 +5,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Users, Menu, X } from 'lucide-react'
 
-export const CatalystMark = ({ className }) => (
+export const CatalystMark = ({ className, accent = 'fill-foreground' }) => (
     <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
       <rect x="8" y="36" width="17" height="40" rx="8.5" className="fill-primary"/>
-      <path d="M40.5 6 L49 24 L49 68 Q49 76 40.5 76 Q32 76 32 68 L32 24 Z" className="fill-foreground"/>
+      <path d="M40.5 6 L49 24 L49 68 Q49 76 40.5 76 Q32 76 32 68 L32 24 Z" className={accent}/>
       <rect x="56" y="26" width="17" height="50" rx="8.5" className="fill-primary"/>
     </svg>
 )
