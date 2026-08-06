@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { StageBadge } from '@/components/candidates/StageBadge'
 import { STAGE_CONFIG, STAGE_ORDER } from '@/lib/constants/stages'
 import Link from 'next/link'
-import { Users, Mail, Phone, Clock, Download, ArrowLeft, ChevronRight, Link as LinkIcon } from 'lucide-react'
+import { Users, Mail, Phone, Clock, Download, ArrowLeft, ChevronRight, ArrowUpRight, Link as LinkIcon } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { id as localeID } from 'date-fns/locale'
 
@@ -112,8 +112,13 @@ export default async function JobCandidatesPage({ params }) {
                                                     {/* Full card clickable overlay */}
                                                     <Link href={`/dashboard/candidates/${app.id}`} className="absolute inset-0 z-0" />
 
+                                                    {/* Detail affordance */}
+                                                    <div className="absolute top-3 right-3 w-6 h-6 rounded-md bg-slate-50 flex items-center justify-center text-muted-foreground group-hover:bg-primary group-hover:text-white transition-colors pointer-events-none">
+                                                        <ArrowUpRight className="w-3.5 h-3.5" />
+                                                    </div>
+
                                                     {/* Avatar + nama */}
-                                                    <div className="flex items-center gap-2.5 mb-2.5">
+                                                    <div className="flex items-center gap-2.5 mb-2.5 pr-7">
                                                         <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-primary font-bold text-xs shrink-0">
                                                             {app.full_name.charAt(0).toUpperCase()}
                                                         </div>

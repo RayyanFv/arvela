@@ -28,7 +28,10 @@ export default async function EditJobPage({ params }) {
     if (!job || job.company_id !== profile.company_id) notFound()
 
     const db = createAdminSupabaseClient()
-    const { data: company } = await db.from('companies').select('slug').eq('id', profile.company_id).single()
+    const [{ data: company }, { data: invites }] = await Promise.all([
+        db.from('companies').select('slug').eq('id', profile.company_id).single(),
+        db.from('job_invites').select('id, email, token, opened_at, created_at').eq('job_id', id).order('created_at', { ascending: false }),
+    ])
 
-    return <EditJobForm job={job} companySlug={company?.slug ?? null} />
+    return <EditJobForm job={job} companySlug={company?.slug ?? null} initialInvites={invites || []} />
 }

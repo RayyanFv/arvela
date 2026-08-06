@@ -14,6 +14,7 @@ export function EditUserDialog({ targetUser, onSaved }) {
     const [roles, setRoles] = useState([])
     const [units, setUnits] = useState([])
     const [grades, setGrades] = useState([])
+    const [contractTypes, setContractTypes] = useState([])
     const [managers, setManagers] = useState([])
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState(null)
@@ -26,6 +27,7 @@ export function EditUserDialog({ targetUser, onSaved }) {
     const [homeUnitId, setHomeUnitId] = useState('')
     const [workUnitId, setWorkUnitId] = useState('')
     const [jobGradeId, setJobGradeId] = useState('')
+    const [contractTypeId, setContractTypeId] = useState('')
     const [managerId, setManagerId] = useState('')
 
     const supabase = createClient()
@@ -36,13 +38,14 @@ export function EditUserDialog({ targetUser, onSaved }) {
                 setRoles(data.roles || [])
                 setUnits(data.units || [])
                 setGrades(data.grades || [])
+                setContractTypes(data.contractTypes || [])
                 setManagers(data.managers || [])
             }).catch(() => {})
 
             // Fetch existing employee details for targetUser
             supabase
                 .from('employees')
-                .select('job_title, home_unit_id, work_unit_id, job_grade_id, manager_id')
+                .select('job_title, home_unit_id, work_unit_id, job_grade_id, contract_type_id, manager_id')
                 .eq('profile_id', targetUser.id)
                 .maybeSingle()
                 .then(({ data: emp }) => {
@@ -51,6 +54,7 @@ export function EditUserDialog({ targetUser, onSaved }) {
                         setHomeUnitId(emp.home_unit_id || '')
                         setWorkUnitId(emp.work_unit_id || '')
                         setJobGradeId(emp.job_grade_id || '')
+                        setContractTypeId(emp.contract_type_id || '')
                         setManagerId(emp.manager_id || '')
                     }
                 })
@@ -74,6 +78,7 @@ export function EditUserDialog({ targetUser, onSaved }) {
                     home_unit_id: homeUnitId || null,
                     work_unit_id: workUnitId || homeUnitId || null,
                     job_grade_id: jobGradeId || null,
+                    contract_type_id: contractTypeId || null,
                     manager_id: managerId || null,
                 })
                 setSuccess(true)
@@ -157,6 +162,26 @@ export function EditUserDialog({ targetUser, onSaved }) {
                                     {grades.map(g => (
                                         <option key={g.id} value={g.id}>
                                             Lv.{g.level} - {g.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 block">
+                                    Tipe Kontrak
+                                </label>
+                                <select
+                                    value={contractTypeId}
+                                    onChange={e => setContractTypeId(e.target.value)}
+                                    className="w-full h-11 rounded-xl border border-slate-200 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+                                >
+                                    <option value="">— Pilih Tipe Kontrak —</option>
+                                    {contractTypes.map(ct => (
+                                        <option key={ct.id} value={ct.id}>
+                                            {ct.code ? `${ct.code} - ` : ''}{ct.name}
                                         </option>
                                     ))}
                                 </select>

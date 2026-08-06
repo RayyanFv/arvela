@@ -1,6 +1,7 @@
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getUserPermissions } from '@/lib/permissions'
+import { isAdminRole } from '@/lib/constants/roles'
+import { ROLE_LEVELS } from '@/lib/permissions'
 import { getEffectiveProfileServer } from '@/lib/actions/impersonate'
 import RolesClient from './RolesClient'
 
@@ -16,8 +17,8 @@ export default async function RolesPage() {
 
     const supabase = createAdminSupabaseClient()
 
-    const perms = await getUserPermissions(res.user.id)
-    if (!perms.has('employee.manage')) redirect('/dashboard')
+    if (!isAdminRole(profile.role)) redirect('/dashboard')
+    const myLevel = ROLE_LEVELS[profile.role] ?? 99
 
     // Fetch all permissions grouped by module
     const { data: permissions } = await supabase
@@ -49,10 +50,10 @@ export default async function RolesPage() {
     // - owner user sees owner role (Level 2) and below (strictly hides super_admin Level 1)
     // - hr_admin user sees roles strictly below hr_admin (level > 3)
     const roles = deduplicated.filter(r => {
-        if (perms.role === 'super_admin') return true
+        if (profile.role === 'super_admin') return true
         if (r.name === 'super_admin' || (r.level && r.level === 1)) return false
-        if (perms.role === 'owner') return true
-        return (r.level || 99) > perms.level
+        if (profile.role === 'owner') return true
+        return (r.level || 99) > myLevel
     })
 
     return (
@@ -60,7 +61,7 @@ export default async function RolesPage() {
             companyId={profile.company_id}
             initialRoles={roles}
             allPermissions={permissions || []}
-            myLevel={perms.level}
+            myLevel={myLevel}
         />
     )
 }

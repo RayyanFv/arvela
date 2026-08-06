@@ -14,14 +14,10 @@ import {
 import {
     Video,
     Calendar,
-    Clock,
     Plus,
     Loader2,
-    CalendarDays,
     ArrowRight,
-    MapPin,
     Users,
-    ChevronRight,
     CalendarRange
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -65,19 +61,19 @@ export default function CandidateInterviewBox({ application, templates = [], int
     }
 
     return (
-        <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm space-y-6 relative overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-md p-6 space-y-5">
              {/* Header */}
              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wide flex items-center gap-2">
                     <Video className="w-4 h-4 text-primary" />
                     Jadwal Interview
                 </h2>
                 {!isScheduling && (
-                    <Button 
-                        variant="secondary" 
-                        size="sm" 
+                    <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => setIsScheduling(true)}
-                        className="rounded-xl h-8 text-[10px] font-black uppercase tracking-widest gap-1.5"
+                        className="rounded-md h-8 text-[10px] font-semibold uppercase gap-1.5"
                     >
                         <Plus className="w-3.5 h-3.5" /> Jadwalkan
                     </Button>
@@ -86,25 +82,25 @@ export default function CandidateInterviewBox({ application, templates = [], int
 
             {/* List Existing */}
             {!isScheduling && interviews.length > 0 && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {interviews.map(iv => (
-                        <div key={iv.id} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between group hover:border-primary/20 transition-all transition-shadow hover:shadow-md">
-                            <div className="flex gap-4">
+                        <div key={iv.id} className="bg-slate-50 border border-slate-100 rounded-md p-4 flex items-center justify-between hover:border-primary/20 transition-colors">
+                            <div className="flex gap-3">
                                 <div className={cn(
-                                    "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border",
-                                    iv.status === 'scheduled' ? "bg-primary/5 border-primary/10 text-primary" : "bg-emerald-50 border-emerald-100 text-emerald-600"
+                                    "w-10 h-10 rounded-md flex items-center justify-center shrink-0 border",
+                                    iv.status === 'scheduled' ? "bg-brand-50 border-primary/10 text-primary" : "bg-emerald-50 border-emerald-100 text-emerald-600"
                                 )}>
-                                    <Video className="w-6 h-6" />
+                                    <Video className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0">
-                                    <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest leading-none mb-1.5">{iv.format} Interview</h4>
-                                    <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide leading-none mb-1">{iv.format} Interview</h4>
+                                    <p className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
                                         <Calendar className="w-3.5 h-3.5 text-slate-400" />
                                         {iv.scheduled_date} &bull; {iv.scheduled_time}
                                     </p>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className={cn(
-                                            "text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded",
+                                            "text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded",
                                             iv.status === 'scheduled' ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
                                         )}>
                                             {iv.status}
@@ -112,9 +108,9 @@ export default function CandidateInterviewBox({ application, templates = [], int
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <Link href={`/dashboard/interviews/${iv.id}/session`}>
-                                <Button size="sm" className="rounded-xl h-9 font-black text-[10px] uppercase gap-2 shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+                                <Button size="sm" className="rounded-md h-9 font-semibold text-[10px] uppercase gap-2">
                                     Start Session <ArrowRight className="w-3.5 h-3.5" />
                                 </Button>
                             </Link>
@@ -124,10 +120,10 @@ export default function CandidateInterviewBox({ application, templates = [], int
             )}
 
             {!isScheduling && interviews.length === 0 && (
-                <div className="py-10 text-center space-y-4 bg-slate-50/50 rounded-[24px] border border-dashed border-slate-200">
-                    <CalendarRange className="w-10 h-10 text-slate-300 mx-auto" />
+                <div className="py-8 text-center space-y-3 bg-slate-50 rounded-md border border-dashed border-slate-200">
+                    <CalendarRange className="w-9 h-9 text-slate-300 mx-auto" />
                     <div className="space-y-1">
-                        <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Belum Ada Jadwal</p>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Belum Ada Jadwal</p>
                         <p className="text-[10px] text-slate-400 font-medium">Klik 'Jadwalkan' untuk mengatur sesi wawancara.</p>
                     </div>
                 </div>
@@ -135,73 +131,73 @@ export default function CandidateInterviewBox({ application, templates = [], int
 
             {/* Schedule Form */}
             {isScheduling && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Tanggal</label>
-                            <Input 
-                                type="date" 
-                                value={date} 
+                            <label className="text-[10px] font-semibold text-slate-400 uppercase">Tanggal</label>
+                            <Input
+                                type="date"
+                                value={date}
                                 onChange={(e) => setDate(e.target.value)}
-                                className="h-10 rounded-xl"
+                                className="h-10 rounded-md"
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Waktu</label>
-                            <Input 
-                                type="time" 
-                                value={time} 
+                            <label className="text-[10px] font-semibold text-slate-400 uppercase">Waktu</label>
+                            <Input
+                                type="time"
+                                value={time}
                                 onChange={(e) => setTime(e.target.value)}
-                                className="h-10 rounded-xl"
+                                className="h-10 rounded-md"
                             />
                         </div>
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Format</label>
+                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Format</label>
                         <Select value={format} onValueChange={setFormat}>
-                            <SelectTrigger className="h-10 rounded-xl font-bold text-xs">
+                            <SelectTrigger className="h-10 rounded-md font-medium text-xs">
                                 <SelectValue placeholder="Format" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl">
-                                <SelectItem value="online_internal" className="text-xs font-bold">Online — Jitsi Embedded (Internal)</SelectItem>
-                                <SelectItem value="online_external" className="text-xs font-bold">Online — External Link (Zoom/Meet)</SelectItem>
-                                <SelectItem value="offline" className="text-xs font-bold">Offline — Tatap Muka</SelectItem>
+                            <SelectContent>
+                                <SelectItem value="online_internal" className="text-xs font-medium">Online — Jitsi Embedded (Internal)</SelectItem>
+                                <SelectItem value="online_external" className="text-xs font-medium">Online — External Link (Zoom/Meet)</SelectItem>
+                                <SelectItem value="offline" className="text-xs font-medium">Offline — Tatap Muka</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
                     {format === 'online_external' && (
-                        <div className="space-y-1.5 animate-in slide-in-from-top-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Link Meeting (Zoom/Meet)</label>
-                            <Input 
-                                placeholder="https://zoom.us/j/..." 
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-semibold text-slate-400 uppercase">Link Meeting (Zoom/Meet)</label>
+                            <Input
+                                placeholder="https://zoom.us/j/..."
                                 value={locationLink}
                                 onChange={(e) => setLocationLink(e.target.value)}
-                                className="h-10 rounded-xl text-xs font-bold"
+                                className="h-10 rounded-md text-xs font-medium"
                             />
                         </div>
                     )}
 
                     {format === 'offline' && (
-                        <div className="space-y-1.5 animate-in slide-in-from-top-1">
-                            <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Lokasi Kantor</label>
-                            <Input 
-                                placeholder="Masukkan alamat kantor..." 
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-semibold text-slate-400 uppercase">Lokasi Kantor</label>
+                            <Input
+                                placeholder="Masukkan alamat kantor..."
                                 value={locationLink}
                                 onChange={(e) => setLocationLink(e.target.value)}
-                                className="h-10 rounded-xl text-xs font-bold"
+                                className="h-10 rounded-md text-xs font-medium"
                             />
                         </div>
                     )}
 
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Template Interview</label>
+                        <label className="text-[10px] font-semibold text-slate-400 uppercase">Template Interview</label>
                         <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                            <SelectTrigger className="h-10 rounded-xl">
+                            <SelectTrigger className="h-10 rounded-md">
                                 <SelectValue placeholder="Pilih Template (Opsional)" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl">
+                            <SelectContent>
                                 <SelectItem value="none">Tanpa Template</SelectItem>
                                 {templates.map(t => (
                                     <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
@@ -210,20 +206,20 @@ export default function CandidateInterviewBox({ application, templates = [], int
                         </Select>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-2">
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
+                    <div className="flex items-center gap-2 pt-1">
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => setIsScheduling(false)}
-                            className="flex-1 rounded-xl h-10 font-bold text-slate-500"
+                            className="flex-1 rounded-md h-10 font-semibold text-slate-500"
                         >
                             Batal
                         </Button>
-                        <Button 
-                            size="sm" 
+                        <Button
+                            size="sm"
                             onClick={handleSchedule}
                             disabled={!date || !time || loading}
-                            className="flex-1 rounded-xl h-10 font-black uppercase tracking-widest gap-2"
+                            className="flex-1 rounded-md h-10 font-semibold uppercase tracking-wide gap-2"
                         >
                             {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                             Simpan Jadwal

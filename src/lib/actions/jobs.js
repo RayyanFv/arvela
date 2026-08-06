@@ -21,6 +21,7 @@ export async function createJob(formData) {
     const employmentType = formData.get('employment_type')
     const deadline = formData.get('deadline') || null
     const shouldPublish = formData.get('publish') === '1'
+    const visibility = formData.get('visibility') || 'public'
 
     if (shouldPublish) {
         await checkJobQuota(profile.company_id, supabase)
@@ -65,6 +66,7 @@ export async function createJob(formData) {
         salary_max: salaryMax,
         salary_currency: salaryCurrency,
         show_salary: showSalary,
+        visibility,
     }
 
     const { data: job, error } = await supabase
@@ -90,7 +92,8 @@ export async function updateJob(jobId, formData) {
     const employmentType = formData.get('employment_type')
     const deadline = formData.get('deadline') || null
     const newStatus = formData.get('status')
-    
+    const visibility = formData.get('visibility') || 'public'
+
     // Salary fields
     const salaryMin = formData.get('salary_min') ? parseFloat(formData.get('salary_min')) : null
     const salaryMax = formData.get('salary_max') ? parseFloat(formData.get('salary_max')) : null
@@ -130,6 +133,7 @@ export async function updateJob(jobId, formData) {
         salary_max: salaryMax,
         salary_currency: salaryCurrency,
         show_salary: showSalary,
+        visibility,
     }
 
     if (newStatus === 'published' && existing.status !== 'published') {

@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useProfile } from '@/hooks/use-profile'
+import { useToast } from '@/hooks/use-toast'
+import { ToastBanner } from '@/components/ui/ToastBanner'
 import {
     GraduationCap, Plus, Search, MonitorPlay, Users, BookOpen,
     BarChart3, X, Save, Loader2, Link2, FileText, Video,
@@ -12,6 +15,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+
+const COURSE_LIST_LIMIT = 300
+const CERTIFICATE_LIST_LIMIT = 300
+const EMPLOYEE_LIST_LIMIT = 500
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function getYouTubeId(url) {
@@ -77,13 +84,13 @@ function SectionEditor({ section, onDelete, onUpdate, courseId }) {
     const selectedType = CONTENT_TYPES.find(t => t.value === newContent.content_type)
 
     return (
-        <div className="border border-slate-200 rounded-xl overflow-hidden">
+        <div className="border border-slate-200 rounded-md overflow-hidden">
             <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => setOpen(o => !o)}>
                 <div className="flex-1">
-                    <span className="text-sm font-bold text-slate-700">{section.title}</span>
+                    <span className="text-sm font-semibold text-slate-700">{section.title}</span>
                     <span className="ml-2 text-[10px] text-slate-400 font-medium">{contents.length} konten</span>
                 </div>
-                <button onClick={e => { e.stopPropagation(); onDelete(section.id) }} className="w-6 h-6 text-slate-300 hover:text-red-400 transition-colors flex items-center justify-center rounded">
+                <button onClick={e => { e.stopPropagation(); onDelete(section.id) }} aria-label="Hapus section" className="w-6 h-6 text-slate-300 hover:text-rose-500 transition-colors flex items-center justify-center rounded-md">
                     <Trash2 className="w-3.5 h-3.5" />
                 </button>
                 {open ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
@@ -93,17 +100,17 @@ function SectionEditor({ section, onDelete, onUpdate, courseId }) {
                 <div className="divide-y divide-slate-100">
                     {contents.map((c, i) => (
                         <div key={c.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 group">
-                            <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-                                {c.content_type === 'video' ? <Video className="w-3 h-3 text-blue-400" /> :
-                                    c.content_type === 'pdf' ? <FileText className="w-3 h-3 text-red-400" /> :
-                                        <BookOpen className="w-3 h-3 text-emerald-400" />}
+                            <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center shrink-0">
+                                {c.content_type === 'video' ? <Video className="w-3 h-3 text-blue-500" /> :
+                                    c.content_type === 'pdf' ? <FileText className="w-3 h-3 text-rose-500" /> :
+                                        <BookOpen className="w-3 h-3 text-emerald-500" />}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-slate-700 truncate">{c.title}</p>
+                                <p className="text-xs font-semibold text-slate-700 truncate">{c.title}</p>
                                 {c.content_url && <p className="text-[10px] text-slate-400 truncate">{c.content_url}</p>}
-                                {c.duration_mins && <span className="text-[10px] text-slate-300">{c.duration_mins} menit</span>}
+                                {c.duration_mins && <span className="text-[10px] text-slate-400">{c.duration_mins} menit</span>}
                             </div>
-                            <button onClick={() => deleteContent(c.id)} className="opacity-0 group-hover:opacity-100 w-6 h-6 text-slate-300 hover:text-red-400 transition-all flex items-center justify-center">
+                            <button onClick={() => deleteContent(c.id)} aria-label="Hapus konten" className="opacity-0 group-hover:opacity-100 w-6 h-6 text-slate-300 hover:text-rose-500 transition-all flex items-center justify-center">
                                 <X className="w-3 h-3" />
                             </button>
                         </div>
@@ -111,40 +118,40 @@ function SectionEditor({ section, onDelete, onUpdate, courseId }) {
 
                     {/* Add Content Form */}
                     {adding ? (
-                        <div className="p-4 bg-blue-50/30 space-y-3">
+                        <div className="p-4 bg-slate-50 space-y-3">
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="col-span-2">
                                     <Input value={newContent.title} onChange={e => setNewContent({ ...newContent, title: e.target.value })}
-                                        placeholder="Judul konten" className="h-8 text-xs" />
+                                        placeholder="Judul konten" className="h-8 text-xs rounded-md" />
                                 </div>
                                 <select value={newContent.content_type} onChange={e => setNewContent({ ...newContent, content_type: e.target.value })}
-                                    className="h-8 text-xs border border-slate-200 rounded-md px-2 bg-white">
+                                    className="h-8 text-xs border border-slate-200 rounded-md px-2 bg-white outline-none">
                                     {CONTENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                 </select>
                             </div>
                             {newContent.content_type !== 'text' && (
                                 <Input value={newContent.content_url} onChange={e => setNewContent({ ...newContent, content_url: e.target.value })}
-                                    placeholder={selectedType?.placeholder} className="h-8 text-xs" />
+                                    placeholder={selectedType?.placeholder} className="h-8 text-xs rounded-md" />
                             )}
                             {newContent.content_type === 'text' && (
                                 <textarea value={newContent.content_body} onChange={e => setNewContent({ ...newContent, content_body: e.target.value })}
                                     placeholder="Isi teks materi..." rows={3}
-                                    className="w-full text-xs border border-slate-200 rounded-md p-2 bg-white resize-none outline-none" />
+                                    className="w-full text-xs border border-slate-200 rounded-md p-2 bg-white resize-none outline-none focus-visible:ring-2 focus-visible:ring-primary/30" />
                             )}
                             {newContent.content_type === 'video' && (
                                 <Input type="number" value={newContent.duration_mins} onChange={e => setNewContent({ ...newContent, duration_mins: e.target.value })}
-                                    placeholder="Durasi (menit, opsional)" className="h-8 text-xs w-48" />
+                                    placeholder="Durasi (menit, opsional)" className="h-8 text-xs w-48 rounded-md" />
                             )}
                             <div className="flex gap-2 items-center flex-wrap">
-                                <Button size="sm" onClick={addContent} disabled={saving} className="h-7 text-xs font-bold">
+                                <Button size="sm" onClick={addContent} disabled={saving || !newContent.title} className="h-7 text-xs font-semibold rounded-md">
                                     {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Simpan'}
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => { setAdding(false); setSaveError('') }} className="h-7 text-xs text-slate-400">Batal</Button>
-                                {saveError && <p className="text-[10px] text-red-500 font-bold flex-1 min-w-full">{saveError}</p>}
+                                <Button size="sm" variant="ghost" onClick={() => { setAdding(false); setSaveError('') }} className="h-7 text-xs text-slate-400 rounded-md">Batal</Button>
+                                {saveError && <p className="text-[10px] text-rose-600 font-semibold flex-1 min-w-full">{saveError}</p>}
                             </div>
                         </div>
                     ) : (
-                        <button onClick={() => setAdding(true)} className="w-full py-2.5 text-[11px] font-bold text-slate-300 hover:text-primary hover:bg-slate-50 flex items-center justify-center gap-1 transition-colors">
+                        <button onClick={() => setAdding(true)} className="w-full py-2.5 text-[11px] font-semibold text-slate-400 hover:text-primary hover:bg-slate-50 flex items-center justify-center gap-1 transition-colors">
                             <Plus className="w-3 h-3" /> Tambah Konten
                         </button>
                     )}
@@ -155,8 +162,9 @@ function SectionEditor({ section, onDelete, onUpdate, courseId }) {
 }
 
 // ─── Course Create/Edit Modal ─────────────────────────────────────────────────
-function CourseModal({ course, companyId, onClose, onSaved }) {
+function CourseModal({ course, companyId, onClose, onSaved, showToast }) {
     const supabase = createClient()
+    const isEditingExisting = !!course?.id
     const [form, setForm] = useState({
         title: course?.title ?? '',
         description: course?.description ?? '',
@@ -187,13 +195,25 @@ function CourseModal({ course, companyId, onClose, onSaved }) {
     async function saveCourse() {
         setSaving(true)
         if (!courseId) {
-            const { data } = await supabase.from('lms_courses').insert({ ...form, company_id: companyId }).select().single()
-            if (data) setCourseId(data.id)
+            const { data, error } = await supabase.from('lms_courses').insert({ ...form, company_id: companyId }).select().single()
+            if (error) {
+                showToast('Gagal membuat kursus: ' + error.message, 'error')
+            } else if (data) {
+                setCourseId(data.id)
+                onSaved()
+            }
         } else {
-            await supabase.from('lms_courses').update({ ...form, updated_at: new Date().toISOString() }).eq('id', courseId)
+            const { error } = await supabase.from('lms_courses').update({ ...form, updated_at: new Date().toISOString() }).eq('id', courseId)
+            if (error) {
+                showToast('Gagal menyimpan perubahan: ' + error.message, 'error')
+            } else {
+                onSaved()
+                // Editing an existing course: close the modal, the create-flow stays
+                // open so the admin can continue on to adding sections.
+                if (isEditingExisting) onClose()
+            }
         }
         setSaving(false)
-        onSaved()
     }
 
     async function addSection() {
@@ -212,17 +232,17 @@ function CourseModal({ course, companyId, onClose, onSaved }) {
     const ytThumb = form.thumbnail_url ? getYouTubeThumbnail(form.thumbnail_url) : null
 
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-6 bg-black/40 backdrop-blur-sm overflow-y-auto">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl animate-in zoom-in-95 duration-200 mb-8">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-6 bg-black/40 overflow-y-auto">
+            <div className="bg-white rounded-md shadow-lg w-full max-w-2xl mb-8">
                 {/* Header */}
-                <div className="sticky top-0 bg-white p-6 border-b border-slate-100 flex items-center justify-between rounded-t-3xl z-10">
+                <div className="sticky top-0 bg-white p-6 border-b border-slate-100 flex items-center justify-between rounded-t-md z-10">
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
                             {courseId ? 'Edit Course' : 'Kursus Baru'}
                         </p>
-                        <h3 className="text-base font-black text-slate-900">{form.title || 'Untitled Course'}</h3>
+                        <h3 className="text-base font-bold text-slate-900">{form.title || 'Untitled Course'}</h3>
                     </div>
-                    <button onClick={onClose} className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
+                    <button onClick={onClose} aria-label="Tutup" className="w-8 h-8 rounded-md bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
                         <X className="w-4 h-4 text-slate-500" />
                     </button>
                 </div>
@@ -231,56 +251,58 @@ function CourseModal({ course, companyId, onClose, onSaved }) {
                     {/* Basic Info */}
                     <div className="grid grid-cols-1 gap-3">
                         <div>
-                            <Label className="text-[10px] font-black text-slate-400 uppercase">Judul Kursus *</Label>
+                            <Label className="text-[10px] font-semibold text-slate-400 uppercase">Judul Kursus *</Label>
                             <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
-                                placeholder="Contoh: Onboarding Karyawan Baru" className="mt-1 h-9 text-sm" />
+                                placeholder="Contoh: Onboarding Karyawan Baru" className="mt-1 h-9 text-sm rounded-md" />
                         </div>
                         <div>
-                            <Label className="text-[10px] font-black text-slate-400 uppercase">Deskripsi</Label>
+                            <Label className="text-[10px] font-semibold text-slate-400 uppercase">Deskripsi</Label>
                             <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
                                 placeholder="Deskripsi singkat tentang kursus ini..."
-                                rows={2} className="mt-1 w-full text-sm border border-slate-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-primary/20 resize-none" />
+                                rows={2} className="mt-1 w-full text-sm border border-slate-200 rounded-md p-2.5 outline-none focus-visible:ring-2 focus-visible:ring-primary/30 resize-none" />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <Label className="text-[10px] font-black text-slate-400 uppercase">Kategori</Label>
+                                <Label className="text-[10px] font-semibold text-slate-400 uppercase">Kategori</Label>
                                 <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
-                                    className="mt-1 w-full h-9 text-sm border border-slate-200 rounded-lg px-2.5 bg-white outline-none">
+                                    className="mt-1 w-full h-9 text-sm border border-slate-200 rounded-md px-2.5 bg-white outline-none">
                                     <option value="">Pilih kategori</option>
                                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <Label className="text-[10px] font-black text-slate-400 uppercase">Level</Label>
+                                <Label className="text-[10px] font-semibold text-slate-400 uppercase">Level</Label>
                                 <select value={form.level} onChange={e => setForm({ ...form, level: e.target.value })}
-                                    className="mt-1 w-full h-9 text-sm border border-slate-200 rounded-lg px-2.5 bg-white outline-none capitalize">
+                                    className="mt-1 w-full h-9 text-sm border border-slate-200 rounded-md px-2.5 bg-white outline-none capitalize">
                                     {LEVELS.map(l => <option key={l} value={l} className="capitalize">{l}</option>)}
                                 </select>
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <Label className="text-[10px] font-black text-slate-400 uppercase">Thumbnail URL</Label>
+                                <Label className="text-[10px] font-semibold text-slate-400 uppercase">Thumbnail URL</Label>
                                 <Input value={form.thumbnail_url} onChange={e => setForm({ ...form, thumbnail_url: e.target.value })}
-                                    placeholder="https://..." className="mt-1 h-9 text-xs" />
+                                    placeholder="https://..." className="mt-1 h-9 text-xs rounded-md" />
                             </div>
                             <div>
-                                <Label className="text-[10px] font-black text-slate-400 uppercase">Status</Label>
+                                <Label className="text-[10px] font-semibold text-slate-400 uppercase">Status</Label>
                                 <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
-                                    className="mt-1 w-full h-9 text-sm border border-slate-200 rounded-lg px-2.5 bg-white outline-none">
+                                    className="mt-1 w-full h-9 text-sm border border-slate-200 rounded-md px-2.5 bg-white outline-none">
                                     <option value="draft">Draft</option>
                                     <option value="published">Published</option>
                                     <option value="archived">Archived</option>
                                 </select>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                        <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-md border border-amber-100">
                             <div className="flex-1">
-                                <Label className="text-xs font-black text-slate-700">Dapatkan Sertifikat</Label>
+                                <Label className="text-xs font-semibold text-slate-700">Dapatkan Sertifikat</Label>
                                 <p className="text-[10px] text-slate-500 font-medium">Berikan sertifikat otomatis jika karyawan menyelesaikan kursus ini.</p>
                             </div>
                             <button
                                 onClick={() => setForm({ ...form, has_certificate: !form.has_certificate })}
+                                role="switch"
+                                aria-checked={form.has_certificate}
                                 className={`w-12 h-6 rounded-full transition-colors relative ${form.has_certificate ? 'bg-primary' : 'bg-slate-200'}`}
                             >
                                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${form.has_certificate ? 'left-7' : 'left-1'}`} />
@@ -290,7 +312,7 @@ function CourseModal({ course, companyId, onClose, onSaved }) {
 
                     {/* Save basic info first */}
                     <Button onClick={saveCourse} disabled={saving || !form.title}
-                        className="w-full h-10 font-bold rounded-xl bg-primary text-white gap-2">
+                        className="w-full h-10 font-semibold rounded-md bg-primary text-white gap-2">
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         {courseId ? 'Simpan Perubahan' : 'Buat & Lanjutkan ke Sections'}
                     </Button>
@@ -299,9 +321,9 @@ function CourseModal({ course, companyId, onClose, onSaved }) {
                     {courseId && (
                         <div className="space-y-3 pt-2 border-t border-slate-100">
                             <div className="flex items-center justify-between">
-                                <h4 className="text-xs font-black text-slate-700 uppercase tracking-widest">Sections / Bab</h4>
+                                <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Sections / Bab</h4>
                                 <button onClick={() => setAddingSection(true)}
-                                    className="text-[11px] font-bold text-primary hover:text-brand-600 flex items-center gap-1">
+                                    className="text-[11px] font-semibold text-primary hover:text-brand-600 flex items-center gap-1">
                                     <Plus className="w-3 h-3" /> Tambah Section
                                 </button>
                             </div>
@@ -312,16 +334,16 @@ function CourseModal({ course, companyId, onClose, onSaved }) {
                             ))}
 
                             {sections.length === 0 && !addingSection && (
-                                <p className="text-center text-[11px] text-slate-300 font-medium py-4">Belum ada section. Tambah section untuk mulai upload konten.</p>
+                                <p className="text-center text-[11px] text-slate-400 font-medium py-4">Belum ada section. Tambah section untuk mulai upload konten.</p>
                             )}
 
                             {addingSection && (
                                 <div className="flex gap-2">
                                     <Input value={newSectionTitle} onChange={e => setNewSectionTitle(e.target.value)}
                                         placeholder="Nama section (mis: Bab 1 - Pengenalan)" onKeyDown={e => e.key === 'Enter' && addSection()}
-                                        className="h-9 text-sm flex-1" autoFocus />
-                                    <Button size="sm" onClick={addSection} className="h-9 font-bold">Tambah</Button>
-                                    <Button size="sm" variant="ghost" onClick={() => setAddingSection(false)} className="h-9">Batal</Button>
+                                        className="h-9 text-sm flex-1 rounded-md" autoFocus />
+                                    <Button size="sm" onClick={addSection} disabled={!newSectionTitle} className="h-9 font-semibold rounded-md">Tambah</Button>
+                                    <Button size="sm" variant="ghost" onClick={() => setAddingSection(false)} className="h-9 rounded-md">Batal</Button>
                                 </div>
                             )}
                         </div>
@@ -333,9 +355,10 @@ function CourseModal({ course, companyId, onClose, onSaved }) {
 }
 
 // ─── Assign Modal ─────────────────────────────────────────────────────────────
-function AssignModal({ courseId, companyId, onClose }) {
+function AssignModal({ courseId, companyId, onClose, showToast }) {
     const supabase = createClient()
     const [employees, setEmployees] = useState([])
+    const [loadingEmployees, setLoadingEmployees] = useState(true)
     const [selected, setSelected] = useState([])
     const [deadline, setDeadline] = useState('')
     const [saving, setSaving] = useState(false)
@@ -344,7 +367,12 @@ function AssignModal({ courseId, companyId, onClose }) {
     useEffect(() => {
         supabase.from('employees').select('id, job_title, profiles!employees_profile_id_fkey(full_name, email)')
             .eq('company_id', companyId)
-            .then(({ data }) => setEmployees(data || []))
+            .limit(EMPLOYEE_LIST_LIMIT)
+            .then(({ data, error }) => {
+                if (error) showToast('Gagal memuat daftar karyawan: ' + error.message, 'error')
+                setEmployees(data || [])
+                setLoadingEmployees(false)
+            })
     }, [companyId])
 
     async function handleAssign() {
@@ -357,7 +385,7 @@ function AssignModal({ courseId, companyId, onClose }) {
         }))
         const { error } = await supabase.from('lms_course_assignments').upsert(rows, { onConflict: 'course_id,employee_id' })
         if (error) {
-            alert('Gagal assign kursus: ' + error.message)
+            showToast('Gagal assign kursus: ' + error.message, 'error')
             setSaving(false)
         } else {
             setSaving(false)
@@ -367,39 +395,47 @@ function AssignModal({ courseId, companyId, onClose }) {
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+            <div className="bg-white rounded-md shadow-lg w-full max-w-md">
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                    <h3 className="text-sm font-black text-slate-900">Assign ke Karyawan</h3>
-                    <button onClick={onClose}><X className="w-4 h-4 text-slate-400" /></button>
+                    <h3 className="text-sm font-bold text-slate-900">Assign ke Karyawan</h3>
+                    <button onClick={onClose} aria-label="Tutup"><X className="w-4 h-4 text-slate-400" /></button>
                 </div>
                 <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
                     {done ? (
                         <div className="py-8 text-center">
-                            <p className="text-emerald-500 font-black text-sm">✅ Berhasil di-assign!</p>
+                            <p className="text-emerald-600 font-semibold text-sm">Berhasil di-assign!</p>
                         </div>
                     ) : (
                         <>
                             <div className="space-y-2">
-                                {employees.map(emp => (
-                                    <label key={emp.id} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
-                                        <input type="checkbox" checked={selected.includes(emp.id)}
-                                            onChange={e => setSelected(e.target.checked ? [...selected, emp.id] : selected.filter(x => x !== emp.id))}
-                                            className="w-4 h-4 accent-orange-500" />
-                                        <div>
-                                            <p className="text-sm font-bold text-slate-800">{emp.profiles?.full_name}</p>
-                                            <p className="text-[10px] text-slate-400">{emp.job_title} · {emp.profiles?.email}</p>
-                                        </div>
-                                    </label>
-                                ))}
-                                {employees.length === 0 && <p className="text-center text-slate-300 text-sm py-4">Tidak ada karyawan tersedia.</p>}
+                                {loadingEmployees ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <Loader2 className="w-5 h-5 animate-spin text-slate-300" />
+                                    </div>
+                                ) : (
+                                    <>
+                                        {employees.map(emp => (
+                                            <label key={emp.id} className="flex items-center gap-3 p-3 rounded-md cursor-pointer hover:bg-slate-50 transition-colors">
+                                                <input type="checkbox" checked={selected.includes(emp.id)}
+                                                    onChange={e => setSelected(e.target.checked ? [...selected, emp.id] : selected.filter(x => x !== emp.id))}
+                                                    className="w-4 h-4 accent-primary" />
+                                                <div>
+                                                    <p className="text-sm font-semibold text-slate-800">{emp.profiles?.full_name}</p>
+                                                    <p className="text-[10px] text-slate-400">{emp.job_title} · {emp.profiles?.email}</p>
+                                                </div>
+                                            </label>
+                                        ))}
+                                        {employees.length === 0 && <p className="text-center text-slate-400 text-sm py-4">Tidak ada karyawan tersedia.</p>}
+                                    </>
+                                )}
                             </div>
                             <div>
-                                <Label className="text-[10px] font-black text-slate-400 uppercase">Deadline (opsional)</Label>
-                                <Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="mt-1 h-9" />
+                                <Label className="text-[10px] font-semibold text-slate-400 uppercase">Deadline (opsional)</Label>
+                                <Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="mt-1 h-9 rounded-md" />
                             </div>
                             <Button onClick={handleAssign} disabled={saving || selected.length === 0}
-                                className="w-full h-10 font-bold bg-primary text-white rounded-xl gap-2">
+                                className="w-full h-10 font-semibold bg-primary text-white rounded-md gap-2">
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                                 Assign ke {selected.length} Karyawan
                             </Button>
@@ -413,9 +449,10 @@ function AssignModal({ courseId, companyId, onClose }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function LMSDashboardPage() {
+    const { profile } = useProfile()
+    const { toast, showToast } = useToast()
     const [activeTab, setActiveTab] = useState('courses') // 'courses' or 'certificates'
     const [certificates, setCertificates] = useState([])
-    const [companyId, setCompanyId] = useState(null)
     const [courses, setCourses] = useState([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
@@ -423,48 +460,51 @@ export default function LMSDashboardPage() {
     const [showModal, setShowModal] = useState(false)
     const [editingCourse, setEditingCourse] = useState(null)
     const [assignCourseId, setAssignCourseId] = useState(null)
+    const [deletingCourseId, setDeletingCourseId] = useState(null)
     const supabase = createClient()
+    const companyId = profile?.company_id
 
-    const fetchCertificates = useCallback(async (compId) => {
-        const { data } = await supabase
-            .from('lms_certificates')
-            .select(`
-                *,
-                employee:employees(profiles(full_name)),
-                course:lms_courses(title)
-            `)
-            .eq('employee:employees.company_id', compId) // This join filter is slightly complex in Supabase, better filter by results or use a view
-            .order('issued_at', { ascending: false })
-
-        // Manual filter because of deep join complexity in simple query
-        setCertificates(data || [])
-    }, [supabase])
-
-    const fetchCourses = useCallback(async () => {
-        const { data: { user } } = await supabase.auth.getUser()
-        const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).single()
-        if (profile?.company_id) {
-            setCompanyId(profile.company_id)
-            const { data } = await supabase.from('lms_courses')
+    const fetchCourses = useCallback(async (isInitial = false) => {
+        if (!companyId) return
+        if (isInitial) setLoading(true)
+        const [coursesRes, certsRes] = await Promise.all([
+            supabase.from('lms_courses')
                 .select('*, lms_course_assignments(count)')
-                .eq('company_id', profile.company_id)
+                .eq('company_id', companyId)
                 .order('created_at', { ascending: false })
-            setCourses(data || [])
-            fetchCertificates(profile.company_id)
-        }
+                .limit(COURSE_LIST_LIMIT),
+            supabase.from('lms_certificates')
+                .select(`
+                    *,
+                    employee:employees!inner(profiles!employees_profile_id_fkey(full_name)),
+                    course:lms_courses(title)
+                `)
+                .eq('employees.company_id', companyId)
+                .order('issued_at', { ascending: false })
+                .limit(CERTIFICATE_LIST_LIMIT),
+        ])
+        if (coursesRes.error) showToast('Gagal memuat kursus: ' + coursesRes.error.message, 'error')
+        if (certsRes.error) showToast('Gagal memuat sertifikat: ' + certsRes.error.message, 'error')
+        setCourses(coursesRes.data || [])
+        setCertificates(certsRes.data || [])
         setLoading(false)
-    }, [supabase, fetchCertificates])
+    }, [supabase, companyId])
 
-    useEffect(() => { fetchCourses() }, [fetchCourses])
+    useEffect(() => { fetchCourses(true) }, [fetchCourses])
 
     async function toggleStatus(courseId, currentStatus) {
         const newStatus = currentStatus === 'published' ? 'draft' : 'published'
         await supabase.from('lms_courses').update({ status: newStatus }).eq('id', courseId)
+        showToast(newStatus === 'published' ? 'Kursus dipublikasikan.' : 'Kursus dijadikan draft.')
         fetchCourses()
     }
     async function deleteCourse(id) {
         if (!confirm('Hapus kursus ini?')) return
-        await supabase.from('lms_courses').delete().eq('id', id)
+        setDeletingCourseId(id)
+        const { error } = await supabase.from('lms_courses').delete().eq('id', id)
+        if (error) showToast(error.message, 'error')
+        else showToast('Kursus dihapus.')
+        setDeletingCourseId(null)
         fetchCourses()
     }
 
@@ -482,13 +522,16 @@ export default function LMSDashboardPage() {
     ]
 
     return (
-        <div className="space-y-8 pb-20">
+        <div className="space-y-6 pb-20">
+            <ToastBanner toast={toast} />
+
             {showModal && (
                 <CourseModal
                     course={editingCourse}
                     companyId={companyId}
                     onClose={() => { setShowModal(false); setEditingCourse(null) }}
                     onSaved={fetchCourses}
+                    showToast={showToast}
                 />
             )}
             {assignCourseId && (
@@ -496,49 +539,53 @@ export default function LMSDashboardPage() {
                     courseId={assignCourseId}
                     companyId={companyId}
                     onClose={() => setAssignCourseId(null)}
+                    showToast={showToast}
                 />
             )}
 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Learning <span className="text-primary italic">Management</span></h1>
-                    <p className="text-slate-500 font-medium">Kelola materi pelatihan dan pengembangan skill karyawan.</p>
+                    <h1 className="text-xl font-bold text-slate-900">Learning Management</h1>
+                    <p className="text-sm text-slate-500 font-medium">Kelola materi pelatihan dan pengembangan skill karyawan.</p>
                 </div>
 
-                <div className="flex bg-slate-100/50 p-1 rounded-2xl border border-slate-200/50">
-                    <button
-                        onClick={() => setActiveTab('courses')}
-                        className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${activeTab === 'courses' ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                        Katalog Kursus
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('certificates')}
-                        className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${activeTab === 'certificates' ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                        Daftar Sertifikat
-                    </button>
-                </div>
+                <div className="flex items-center gap-3">
+                    <div className="flex gap-1 bg-slate-100 p-1 rounded-md">
+                        <button
+                            onClick={() => setActiveTab('courses')}
+                            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${activeTab === 'courses' ? 'bg-white text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
+                        >
+                            Katalog Kursus
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('certificates')}
+                            className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${activeTab === 'certificates' ? 'bg-white text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
+                        >
+                            Daftar Sertifikat
+                        </button>
+                    </div>
 
-                {activeTab === 'courses' && (
                     <Button onClick={() => { setEditingCourse(null); setShowModal(true) }}
-                        className="h-11 rounded-xl bg-primary text-white font-black gap-2 shadow-lg shadow-primary/20">
+                        className={`h-11 rounded-md bg-primary text-white font-semibold gap-2 ${activeTab !== 'courses' ? 'invisible' : ''}`}
+                        tabIndex={activeTab !== 'courses' ? -1 : undefined}
+                        aria-hidden={activeTab !== 'courses'}
+                    >
                         <Plus className="w-4 h-4" /> Kursus Baru
                     </Button>
-                )}
+                </div>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((s, i) => (
-                    <Card key={i} className="p-5 border-none shadow-sm rounded-3xl flex items-center gap-4">
-                        <div className={`w-11 h-11 ${s.bg} rounded-2xl flex items-center justify-center shrink-0`}>
+                    <Card key={i} className="p-5 border border-slate-200 rounded-md flex items-center gap-4">
+                        <div className={`w-11 h-11 ${s.bg} rounded-md flex items-center justify-center shrink-0`}>
                             <s.icon className={`w-5 h-5 ${s.color}`} />
                         </div>
                         <div>
-                            <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1">{s.label}</p>
-                            <p className="text-xl font-black text-slate-900">{s.value}</p>
+                            <p className="text-[10px] font-semibold uppercase text-slate-400 tracking-wide leading-none mb-1">{s.label}</p>
+                            <p className="text-xl font-bold text-slate-900">{s.value}</p>
                         </div>
                     </Card>
                 ))}
@@ -547,13 +594,13 @@ export default function LMSDashboardPage() {
             {/* Filters (only for courses) */}
             {activeTab === 'courses' && (
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex items-center gap-2 bg-white flex-1 p-2 pr-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="flex items-center gap-2 bg-white flex-1 p-2 pr-4 rounded-md border border-slate-200">
                         <Search className="w-4 h-4 ml-2 text-slate-400 shrink-0" />
-                        <input placeholder="Cari kursus..." className="flex-1 border-none bg-transparent text-sm font-medium outline-none p-1"
+                        <input placeholder="Cari kursus..." aria-label="Cari kursus" className="flex-1 border-none bg-transparent text-sm font-medium outline-none p-1"
                             value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
                     <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                        className="bg-white border border-slate-100 rounded-2xl px-4 py-2 text-sm font-bold text-slate-600 outline-none shadow-sm">
+                        className="bg-white border border-slate-200 rounded-md px-4 py-2 text-sm font-semibold text-slate-600 outline-none">
                         <option value="">Semua Status</option>
                         <option value="draft">Draft</option>
                         <option value="published">Published</option>
@@ -566,47 +613,46 @@ export default function LMSDashboardPage() {
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {Array(3).fill(0).map((_, i) => (
-                        <div key={i} className="h-64 bg-slate-100 rounded-3xl animate-pulse" />
+                        <div key={i} className="h-64 bg-slate-100 rounded-md animate-pulse" />
                     ))}
                 </div>
             ) : activeTab === 'courses' ? (
                 <>
                     {filtered.length === 0 ? (
-                        <Card className="p-20 text-center border-none shadow-sm rounded-[40px] bg-white">
-                            <GraduationCap className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                            <h3 className="text-lg font-bold text-slate-400">Belum Ada Kursus</h3>
-                            <p className="text-slate-300 font-medium text-sm max-w-xs mx-auto mt-2">
+                        <Card className="p-16 text-center border-dashed border-slate-200 rounded-md bg-white">
+                            <GraduationCap className="w-14 h-14 text-slate-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-bold text-slate-500">Belum Ada Kursus</h3>
+                            <p className="text-slate-400 font-medium text-sm max-w-xs mx-auto mt-2">
                                 Buat kursus pertama untuk tim Anda. Bisa berupa video, PDF, atau materi teks.
                             </p>
-                            <Button onClick={() => setShowModal(true)} className="mt-6 rounded-xl bg-primary text-white font-bold gap-2">
+                            <Button onClick={() => setShowModal(true)} className="mt-6 rounded-md bg-primary text-white font-semibold gap-2">
                                 <Plus className="w-4 h-4" /> Buat Kursus
                             </Button>
                         </Card>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filtered.map(course => {
                                 const ytThumb = getYouTubeThumbnail(course.thumbnail_url)
                                 const hasCover = course.thumbnail_url || ytThumb
                                 return (
-                                    <Card key={course.id} className="overflow-hidden border-none shadow-xl shadow-slate-100/50 rounded-3xl bg-white group hover:shadow-2xl transition-all duration-300">
+                                    <Card key={course.id} className="overflow-hidden border border-slate-200 rounded-md bg-white group hover:border-slate-300 transition-colors">
                                         {/* Thumbnail */}
-                                        <div className="h-36 bg-gradient-to-br from-slate-100 to-slate-200 relative overflow-hidden">
+                                        <div className="h-36 bg-slate-100 relative overflow-hidden">
                                             {ytThumb ? (
-                                                <img src={ytThumb} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                <img src={ytThumb} className="w-full h-full object-cover" />
                                             ) : hasCover ? (
-                                                <img src={course.thumbnail_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                <img src={course.thumbnail_url} className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center">
                                                     <MonitorPlay className="w-12 h-12 text-slate-300" />
                                                 </div>
                                             )}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                                             <div className="absolute top-3 left-3 flex gap-1.5">
-                                                <Badge className={`text-[9px] font-black uppercase border-none ${course.status === 'published' ? 'bg-emerald-500 text-white' : course.status === 'archived' ? 'bg-slate-400 text-white' : 'bg-white/80 text-slate-600'}`}>
+                                                <Badge className={`text-[10px] font-semibold uppercase rounded-md ${course.status === 'published' ? 'bg-emerald-600 text-white' : course.status === 'archived' ? 'bg-slate-500 text-white' : 'bg-white text-slate-600'}`}>
                                                     {course.status}
                                                 </Badge>
                                                 {course.category && (
-                                                    <Badge className="text-[9px] font-black uppercase border-none bg-black/30 text-white">{course.category}</Badge>
+                                                    <Badge className="text-[10px] font-semibold uppercase rounded-md bg-black/60 text-white">{course.category}</Badge>
                                                 )}
                                             </div>
                                         </div>
@@ -614,31 +660,35 @@ export default function LMSDashboardPage() {
                                         {/* Info */}
                                         <div className="p-5 space-y-3">
                                             <div>
-                                                <h4 className="font-black text-slate-900 text-sm leading-tight line-clamp-1 group-hover:text-primary transition-colors">{course.title}</h4>
+                                                <h4 className="font-bold text-slate-900 text-sm leading-tight line-clamp-1 group-hover:text-primary transition-colors">{course.title}</h4>
                                                 <p className="text-[11px] text-slate-400 font-medium line-clamp-2 mt-1">{course.description || 'Tidak ada deskripsi.'}</p>
                                             </div>
-                                            <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                                                <span className="text-[10px] font-black text-slate-300 uppercase capitalize">{course.level}</span>
+                                            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                                                <span className="text-[10px] font-semibold text-slate-400 uppercase capitalize">{course.level}</span>
                                                 <div className="flex items-center gap-1">
                                                     <Button size="sm" variant="ghost"
                                                         onClick={() => toggleStatus(course.id, course.status)}
-                                                        className="h-7 w-7 p-0 rounded-lg text-slate-300 hover:text-amber-500">
+                                                        aria-label={course.status === 'published' ? 'Jadikan draft' : 'Publikasikan'}
+                                                        className="h-7 w-7 p-0 rounded-md text-slate-400 hover:text-amber-600">
                                                         {course.status === 'published' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                                     </Button>
                                                     <Button size="sm" variant="ghost"
                                                         onClick={() => setAssignCourseId(course.id)}
-                                                        className="h-7 w-7 p-0 rounded-lg text-slate-300 hover:text-violet-500">
+                                                        aria-label="Assign ke karyawan"
+                                                        className="h-7 w-7 p-0 rounded-md text-slate-400 hover:text-violet-600">
                                                         <Users className="w-3.5 h-3.5" />
                                                     </Button>
                                                     <Button size="sm" variant="ghost"
                                                         onClick={() => { setEditingCourse(course); setShowModal(true) }}
-                                                        className="h-7 px-3 rounded-lg text-slate-500 hover:text-primary font-bold text-[11px]">
+                                                        className="h-7 px-3 rounded-md text-slate-500 hover:text-primary font-semibold text-[11px]">
                                                         Edit
                                                     </Button>
                                                     <Button size="sm" variant="ghost"
                                                         onClick={() => deleteCourse(course.id)}
-                                                        className="h-7 w-7 p-0 rounded-lg text-slate-200 hover:text-red-400">
-                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                        disabled={deletingCourseId === course.id}
+                                                        aria-label="Hapus kursus"
+                                                        className="h-7 w-7 p-0 rounded-md text-slate-300 hover:text-rose-500">
+                                                        {deletingCourseId === course.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                                                     </Button>
                                                 </div>
                                             </div>
@@ -651,30 +701,30 @@ export default function LMSDashboardPage() {
                 </>
             ) : (
                 <div className="col-span-full">
-                    <Card className="border-none shadow-sm rounded-[32px] overflow-hidden bg-white">
+                    <Card className="border border-slate-200 rounded-md overflow-hidden bg-white">
                         <table className="w-full text-left border-collapse">
-                            <thead className="bg-slate-50 border-b border-slate-100">
+                            <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Penerima</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Kursus</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">No. Sertifikat</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Tgl Terbit</th>
+                                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Penerima</th>
+                                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Kursus</th>
+                                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-wide text-slate-400">No. Sertifikat</th>
+                                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-wide text-slate-400 text-right">Tgl Terbit</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-slate-100">
                                 {certificates.map(cert => (
-                                    <tr key={cert.id} className="hover:bg-slate-50/50 transition-colors">
+                                    <tr key={cert.id} className="hover:bg-slate-50 transition-colors">
                                         <td className="px-6 py-4">
-                                            <p className="text-sm font-bold text-slate-700">{cert.employee?.profiles?.full_name}</p>
+                                            <p className="text-sm font-semibold text-slate-700">{cert.employee?.profiles?.full_name}</p>
                                         </td>
                                         <td className="px-6 py-4">
                                             <p className="text-xs font-medium text-slate-600">{cert.course?.title}</p>
                                         </td>
-                                        <td className="px-6 py-4 font-mono text-[10px] text-slate-400 font-bold">
+                                        <td className="px-6 py-4 font-mono text-[10px] text-slate-400 font-semibold">
                                             {cert.certificate_no}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <p className="text-[11px] font-bold text-slate-500">
+                                            <p className="text-[11px] font-semibold text-slate-500">
                                                 {new Date(cert.issued_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                             </p>
                                         </td>
@@ -683,8 +733,8 @@ export default function LMSDashboardPage() {
                                 {certificates.length === 0 && (
                                     <tr>
                                         <td colSpan={4} className="px-6 py-12 text-center">
-                                            <BarChart3 className="w-10 h-10 text-slate-100 mx-auto mb-3" />
-                                            <p className="text-xs font-bold text-slate-300">Belum ada sertifikat yang terbit.</p>
+                                            <BarChart3 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                                            <p className="text-xs font-semibold text-slate-400">Belum ada sertifikat yang terbit.</p>
                                         </td>
                                     </tr>
                                 )}

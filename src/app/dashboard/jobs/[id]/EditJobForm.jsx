@@ -14,10 +14,13 @@ import {
     Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from '@/components/ui/form'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
-import { ArrowLeft, Save, Send, XCircle, RotateCcw, Trash2, ExternalLink, Banknote } from 'lucide-react'
+import { ArrowLeft, Save, Send, XCircle, RotateCcw, Trash2, ExternalLink, Banknote, Copy } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { updateJob, deleteJob } from '@/lib/actions/jobs'
 import ScreeningQuestionsBuilder from '@/components/jobs/ScreeningQuestionsBuilder'
+import JobInvitesPanel from './JobInvitesPanel'
+import { useToast } from '@/hooks/use-toast'
+import { ToastBanner } from '@/components/ui/ToastBanner'
 
 const schema = z.object({
     title: z.string().min(3, 'Judul minimal 3 karakter'),
@@ -33,9 +36,11 @@ const schema = z.object({
     salary_max: z.string().optional(),
     salary_currency: z.string().optional(),
     show_salary: z.boolean().default(false),
+    visibility: z.string().default('public'),
 })
 
-export default function EditJobForm({ job, companySlug }) {
+export default function EditJobForm({ job, companySlug, initialInvites }) {
+    const { toast, showToast } = useToast()
     const form = useForm({
         resolver: zodResolver(schema),
         defaultValues: {
@@ -52,8 +57,19 @@ export default function EditJobForm({ job, companySlug }) {
             salary_max: job.salary_max?.toString() ?? '',
             salary_currency: job.salary_currency ?? 'IDR',
             show_salary: !!job.show_salary,
+            visibility: job.visibility ?? 'public',
         },
     })
+
+    const visibility = form.watch('visibility')
+
+    function copyPublicLink() {
+        const url = visibility === 'link_only'
+            ? `${window.location.origin}/${companySlug}/${job.slug}?t=${job.access_token}`
+            : `${window.location.origin}/${companySlug}/${job.slug}`
+        navigator.clipboard.writeText(url)
+        showToast('Link disalin.')
+    }
 
     const formatNumber = (num) => {
         if (!num) return ''
@@ -91,6 +107,7 @@ export default function EditJobForm({ job, companySlug }) {
 
     return (
         <div>
+            <ToastBanner toast={toast} />
             <div className="mb-6">
                 <Link href="/dashboard/jobs" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
                     <ArrowLeft className="w-4 h-4" /> Kembali ke Lowongan
@@ -311,10 +328,39 @@ export default function EditJobForm({ job, companySlug }) {
                                     )} />
                                 </div>
                             </div>
+
+                            {visibility === 'invited' && (
+                                <JobInvitesPanel jobId={job.id} companySlug={companySlug} jobSlug={job.slug} initialInvites={initialInvites} />
+                            )}
                         </div>
 
                         {/* Kolom Kanan — Sidebar Aksi & Status */}
                         <div className="w-full lg:w-80 space-y-4 order-1 lg:order-2 sticky lg:top-6">
+                            {/* Visibilitas */}
+                            <div className="bg-white border border-slate-200 rounded-md p-6 space-y-4">
+                                <FormField control={form.control} name="visibility" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-xs font-semibold text-slate-600">Visibilitas</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value ?? 'public'}>
+                                            <FormControl>
+                                                <SelectTrigger className="h-10 rounded-md"><SelectValue /></SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="public">Publik — tampil di halaman karir</SelectItem>
+                                                <SelectItem value="link_only">Siapa saja yang punya link</SelectItem>
+                                                <SelectItem value="invited">Hanya yang diundang (email)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                {(visibility === 'link_only' || (visibility === 'public' && job.status === 'published')) && companySlug && (
+                                    <Button type="button" variant="outline" className="w-full h-9 rounded-md font-semibold text-xs gap-2" onClick={copyPublicLink}>
+                                        <Copy className="w-3.5 h-3.5" /> Salin Link {visibility === 'link_only' ? 'Rahasia' : 'Publik'}
+                                    </Button>
+                                )}
+                            </div>
+
                             {/* Aksi & Save */}
                             <div className="bg-white border border-slate-200 rounded-md p-6 space-y-5">
                                 <div className="space-y-3">

@@ -78,7 +78,7 @@ export default function BulkAssigner({ assessmentId, candidates = [] }) {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <Input
                             placeholder="Cari nama, email, atau posisi..."
-                            className="pl-9 h-10 rounded-xl"
+                            className="pl-9 h-10 rounded-md"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
@@ -86,7 +86,7 @@ export default function BulkAssigner({ assessmentId, candidates = [] }) {
                     <Button
                         disabled={selectedIds.length === 0 || loading}
                         onClick={handleBulkAssign}
-                        className="h-10 px-6 rounded-xl gap-2 font-bold shadow-lg shadow-primary/20"
+                        className="h-10 px-6 rounded-md gap-2 font-semibold"
                     >
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3 h-3" />}
                         Kirim Undangan ({selectedIds.length})
@@ -95,26 +95,26 @@ export default function BulkAssigner({ assessmentId, candidates = [] }) {
             </div>
 
             {result && (
-                <div className={`p-4 rounded-2xl border flex items-center gap-4 animate-in fade-in slide-in-from-top-2 ${result.failed === 0 ? 'bg-green-50 border-green-100 text-green-800' : 'bg-amber-50 border-amber-100 text-amber-800'}`}>
+                <div className={`p-4 rounded-md border flex items-center gap-4 ${result.failed === 0 ? 'bg-green-50 border-green-200 text-green-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${result.failed === 0 ? 'bg-green-100' : 'bg-amber-100'}`}>
                         {result.failed === 0 ? <CheckCircle2 className="w-5 h-5 text-green-600" /> : <AlertCircle className="w-5 h-5 text-amber-600" />}
                     </div>
                     <div>
-                        <p className="font-bold">Proses Selesai</p>
+                        <p className="font-semibold">Proses Selesai</p>
                         <p className="text-sm opacity-90">
                             Berhasil mengirim: <strong>{result.success}</strong>.
                             Gagal: <strong>{result.failed}</strong>.
                         </p>
                     </div>
-                    <button onClick={() => setResult(null)} className="ml-auto text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100">Tutup</button>
+                    <button onClick={() => setResult(null)} className="ml-auto text-xs font-semibold uppercase tracking-wide opacity-50 hover:opacity-100">Tutup</button>
                 </div>
             )}
 
-            <div className="bg-white border border-border rounded-2xl overflow-hidden shadow-sm">
+            <div className="bg-white border border-border rounded-md overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-50/50 border-b border-border">
+                            <tr className="bg-slate-50 border-b border-border">
                                 <th className="p-4 w-12 text-center">
                                     <Checkbox
                                         checked={selectedIds.length > 0 && selectedIds.length === filtered.length}
@@ -122,9 +122,9 @@ export default function BulkAssigner({ assessmentId, candidates = [] }) {
                                         className="rounded-md"
                                     />
                                 </th>
-                                <th className="p-4 text-xs font-black text-slate-400 uppercase tracking-widest">Kandidat</th>
-                                <th className="p-4 text-xs font-black text-slate-400 uppercase tracking-widest">Posisi Melamar</th>
-                                <th className="p-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Status</th>
+                                <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Kandidat</th>
+                                <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wide">Posisi Melamar</th>
+                                <th className="p-4 text-xs font-semibold text-slate-400 uppercase tracking-wide text-right">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -136,7 +136,7 @@ export default function BulkAssigner({ assessmentId, candidates = [] }) {
                                 </tr>
                             ) : (
                                 filtered.map(c => (
-                                    <tr key={c.id} className={`hover:bg-slate-50/50 transition-colors ${selectedIds.includes(c.id) ? 'bg-primary/5' : ''}`}>
+                                    <tr key={c.id} className={`hover:bg-slate-50 transition-colors ${selectedIds.includes(c.id) ? 'bg-primary/5' : ''}`}>
                                         <td className="p-4 text-center">
                                             <Checkbox
                                                 checked={selectedIds.includes(c.id)}
@@ -150,7 +150,7 @@ export default function BulkAssigner({ assessmentId, candidates = [] }) {
                                                     <UserCircle className="w-5 h-5 text-slate-400" />
                                                 </div>
                                                 <div>
-                                                    <p className="font-bold text-sm text-slate-900">{c.full_name}</p>
+                                                    <p className="font-semibold text-sm text-slate-900">{c.full_name}</p>
                                                     <p className="text-[11px] text-slate-500 flex items-center gap-1">
                                                         <Mail className="w-3 h-3" /> {c.email}
                                                     </p>
@@ -161,7 +161,7 @@ export default function BulkAssigner({ assessmentId, candidates = [] }) {
                                             <p className="text-sm font-medium text-slate-700">{c.jobs?.title}</p>
                                         </td>
                                         <td className="p-4 text-right">
-                                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded bg-slate-100 text-slate-500">
+                                            <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded bg-slate-100 text-slate-500">
                                                 {c.stage}
                                             </span>
                                         </td>

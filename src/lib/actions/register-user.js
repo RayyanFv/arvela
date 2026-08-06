@@ -21,6 +21,7 @@ export async function registerUser(payload) {
         home_unit_id,
         work_unit_id,
         job_grade_id,
+        contract_type_id,
         manager_id,
         application_id,
         password,
@@ -93,6 +94,7 @@ export async function registerUser(payload) {
             home_unit_id:   home_unit_id || null,
             work_unit_id:   work_unit_id || null,
             job_grade_id:   job_grade_id || null,
+            contract_type_id: contract_type_id || null,
             manager_id:     manager_id || null,
             status:         'active',
         }, { onConflict: 'profile_id' })
@@ -195,6 +197,13 @@ export async function getRegisterableRoles() {
         .eq('company_id', companyId)
         .order('level', { ascending: false })
 
+    // Fetch contract types (PKWT/PKWTT master data)
+    const { data: contractTypes } = await admin
+        .from('contract_types')
+        .select('id, name, code')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: true })
+
     // Fetch potential managers in company
     const { data: managers } = await admin
         .from('profiles')
@@ -215,6 +224,7 @@ export async function getRegisterableRoles() {
             levelLabel: levelMap[u.level] || `Level ${u.level}`
         })),
         grades: grades || [],
+        contractTypes: contractTypes || [],
         managers: managers || [],
     }
 }
@@ -233,6 +243,7 @@ export async function updateUser(payload) {
         home_unit_id,
         work_unit_id,
         job_grade_id,
+        contract_type_id,
         manager_id,
     } = payload
 
@@ -242,7 +253,8 @@ export async function updateUser(payload) {
 
     // 1. Update profiles table
     const profileUpdate = { full_name }
-    if (targetRole && canRegisterRole(profile.role, targetRole)) {
+    const roleChanged = targetRole && canRegisterRole(profile.role, targetRole)
+    if (roleChanged) {
         profileUpdate.role = targetRole
     }
 
@@ -252,6 +264,17 @@ export async function updateUser(payload) {
         .eq('id', profile_id)
 
     if (profErr) throw new Error('Gagal memperbarui profil: ' + profErr.message)
+
+    // Sync role into the auth user's JWT metadata — middleware.js reads
+    // user_metadata.role (not profiles.role) to gate /dashboard access,
+    // so a role change that skips this leaves the user locked out/redirected
+    // until their session token is refreshed.
+    if (roleChanged) {
+        const { error: metaErr } = await admin.auth.admin.updateUserById(profile_id, {
+            user_metadata: { role: targetRole }
+        })
+        if (metaErr) throw new Error('Gagal menyinkronkan role sesi: ' + metaErr.message)
+    }
 
     // 2. Update employee table if exists or if role is employee
     const { data: existingEmp } = await admin
@@ -266,6 +289,7 @@ export async function updateUser(payload) {
             home_unit_id: home_unit_id || null,
             work_unit_id: work_unit_id || null,
             job_grade_id: job_grade_id || null,
+            contract_type_id: contract_type_id || null,
             manager_id: manager_id || null,
         }
 

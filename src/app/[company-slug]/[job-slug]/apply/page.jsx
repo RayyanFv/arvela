@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Briefcase, MapPin, Building2 } from 'lucide-react'
 import ApplyForm from './ApplyForm'
+import { canAccessJob } from '@/lib/job-visibility'
 
 export async function generateMetadata({ params }) {
     const { 'company-slug': companySlug, 'job-slug': jobSlug } = await params
@@ -18,14 +19,16 @@ export async function generateMetadata({ params }) {
 
 const WORK_TYPE_LABEL = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'On-site' }
 
-export default async function ApplyPage({ params }) {
+export default async function ApplyPage({ params, searchParams }) {
     const { 'company-slug': companySlug, 'job-slug': jobSlug } = await params
+    const { t: token } = await searchParams
     const supabase = createAdminSupabaseClient()
 
     const { data: job } = await supabase
         .from('jobs')
         .select(`
             id, title, slug, location, work_type, employment_type, deadline, status, screening_questions,
+            visibility, access_token,
             companies!inner (id, name, logo_url, slug)
         `)
         .eq('slug', jobSlug)
@@ -35,6 +38,18 @@ export default async function ApplyPage({ params }) {
 
     if (!job || job.companies.slug !== companySlug) notFound()
 
+    let hasAccess = canAccessJob(job, token)
+    if (!hasAccess && job.visibility === 'invited' && token) {
+        const { data: invite } = await supabase
+            .from('job_invites')
+            .select('id')
+            .eq('job_id', job.id)
+            .eq('token', token)
+            .maybeSingle()
+        hasAccess = !!invite
+    }
+    if (!hasAccess) notFound()
+
     // Cek deadline
     const isExpired = job.deadline && new Date(job.deadline) < new Date()
 
@@ -43,7 +58,7 @@ export default async function ApplyPage({ params }) {
             {/* Topbar */}
             <div className="bg-sidebar-bg border-b border-sidebar-border">
                 <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <Link href={`/${companySlug}/${jobSlug}`}
+                    <Link href={token ? `/${companySlug}/${jobSlug}?t=${token}` : `/${companySlug}/${jobSlug}`}
                         className="inline-flex items-center gap-1.5 text-sm text-sidebar-muted hover:text-sidebar-text transition-colors">
                         <ArrowLeft className="w-4 h-4" /> Kembali ke Detail Lowongan
                     </Link>

@@ -145,11 +145,11 @@ export default function InterviewSessionInterface({ interview: initialInterview,
              {/* Main: Video Area */}
              <div className="flex-1 flex flex-col bg-slate-900 overflow-hidden relative">
                 {/* Header */}
-                <div className="h-14 bg-slate-950/50 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 shrink-0 absolute top-0 left-0 right-0 z-10 transition-all">
+                <div className="h-14 bg-slate-950 border-b border-white/5 flex items-center justify-between px-6 shrink-0 absolute top-0 left-0 right-0 z-10">
                     <div className="flex items-center gap-4">
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => router.back()}
                             className="text-slate-400 hover:text-white px-0 h-auto"
                         >
@@ -159,13 +159,13 @@ export default function InterviewSessionInterface({ interview: initialInterview,
                         <div className="h-4 w-px bg-white/10" />
                         <div className="flex items-center gap-2">
                              <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
-                             <span className="text-xs font-black text-white uppercase tracking-widest">Live Now</span>
+                             <span className="text-xs font-semibold text-white uppercase tracking-wide">Live Now</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
                          <div className="text-right">
-                             <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Interviewing</h2>
-                             <p className="text-sm font-bold text-white uppercase">{interview?.applications?.full_name || 'Candidate'}</p>
+                             <h2 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide leading-none mb-1">Interviewing</h2>
+                             <p className="text-sm font-semibold text-white">{interview?.applications?.full_name || 'Candidate'}</p>
                          </div>
                     </div>
                 </div>
@@ -207,46 +207,46 @@ export default function InterviewSessionInterface({ interview: initialInterview,
                         />
                     ) : (
                         <div className="max-w-2xl w-full">
-                             <div className="bg-white/5 border border-white/10 rounded-[48px] p-12 text-center space-y-8 backdrop-blur-2xl">
-                                 <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                                     <User className="w-10 h-10 text-primary" />
+                             <div className="bg-white/5 border border-white/10 rounded-md p-10 text-center space-y-6">
+                                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                                     <User className="w-8 h-8 text-primary" />
                                  </div>
-                                 <div className="space-y-4">
-                                     <h2 className="text-3xl font-black text-white tracking-tight">{interview?.applications?.full_name}</h2>
-                                     <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-bold text-slate-400">
-                                         <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/5">
+                                 <div className="space-y-3">
+                                     <h2 className="text-2xl font-bold text-white tracking-tight">{interview?.applications?.full_name}</h2>
+                                     <div className="flex flex-wrap items-center justify-center gap-4 text-sm font-medium text-slate-400">
+                                         <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-md border border-white/5">
                                              <Briefcase className="w-4 h-4 text-slate-500" /> {interview?.applications?.jobs?.title}
                                          </div>
-                                         <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/5">
+                                         <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-md border border-white/5">
                                              <Calendar className="w-4 h-4 text-slate-500" /> {interview?.scheduled_date ? new Date(interview.scheduled_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' }) : '-'}
                                          </div>
                                      </div>
                                  </div>
 
-                                 <div className="pt-8 border-t border-white/5 max-w-sm mx-auto">
-                                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Sesi Non-Internal Video</p>
-                                     <div className="bg-slate-950/50 rounded-3xl p-6 border border-white/5 space-y-4">
+                                 <div className="pt-6 border-t border-white/5 max-w-sm mx-auto">
+                                     <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-3">Sesi Non-Internal Video</p>
+                                     <div className="bg-slate-950/50 rounded-md p-5 border border-white/5 space-y-3">
                                          {interview.location_link ? (
                                              <div className="space-y-3">
-                                                 <div className="flex items-center gap-3 text-emerald-400 text-xs font-black uppercase">
+                                                 <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold uppercase">
                                                      {interview.location_link.startsWith('http') ? <><ExternalLink className="w-4 h-4" /> Link External</> : <><MapPin className="w-4 h-4" /> Lokasi Offline</>}
                                                  </div>
-                                                 <p className="text-sm font-bold text-white leading-relaxed break-all">
+                                                 <p className="text-sm font-medium text-white leading-relaxed break-all">
                                                      {interview.location_link}
                                                  </p>
                                                  {interview.location_link.startsWith('http') && (
-                                                     <Button asChild size="sm" className="w-full mt-2 rounded-xl bg-white text-slate-950 hover:bg-slate-200 font-bold">
+                                                     <Button asChild size="sm" className="w-full mt-2 rounded-md bg-white text-slate-950 hover:bg-slate-200 font-semibold">
                                                          <a href={interview.location_link} target="_blank" rel="noopener noreferrer">Buka Meeting Link</a>
                                                      </Button>
                                                  )}
                                              </div>
                                          ) : (
-                                             <p className="text-xs font-bold text-slate-400 italic">No link/location specified</p>
+                                             <p className="text-xs font-medium text-slate-400 italic">No link/location specified</p>
                                          )}
                                      </div>
                                  </div>
 
-                                 <div className="pt-6">
+                                 <div className="pt-4">
                                      <p className="text-[11px] text-slate-500 font-medium max-w-xs mx-auto">
                                          Catat hasil wawancara di panel sebelah kanan secara real-time.
                                      </p>
@@ -259,149 +259,146 @@ export default function InterviewSessionInterface({ interview: initialInterview,
 
              {/* Right: Interactive Form Panel */}
              <div className={cn(
-                 "bg-white border-l border-slate-200 flex flex-col transition-all duration-300 shadow-2xl z-20 overflow-hidden",
+                 "bg-white border-l border-slate-200 flex flex-col transition-all duration-300 z-20 overflow-hidden",
                  sidebarCollapsed ? "w-0 opacity-0" : "w-[500px] opacity-100"
              )}>
-                <div className="h-14 border-b border-slate-100 flex items-center justify-between px-6 shrink-0 bg-slate-50/50">
+                <div className="h-14 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 bg-slate-50">
                     <div className="flex gap-1 h-full">
-                        <button 
+                        <button
                             onClick={() => setActiveTab('questions')}
                             className={cn(
-                                "h-full px-6 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all relative",
-                                activeTab === 'questions' ? "text-primary bg-white border-x border-slate-100" : "text-slate-400 hover:text-slate-600"
+                                "h-full px-6 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide transition-colors relative",
+                                activeTab === 'questions' ? "text-primary bg-white border-x border-slate-200" : "text-slate-400 hover:text-slate-600"
                             )}
                         >
                             <MessageSquare className="w-4 h-4" />
                             Wawancara
-                            {activeTab === 'questions' && <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />}
+                            {activeTab === 'questions' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary" />}
                         </button>
-                        <button 
+                        <button
                             onClick={() => setActiveTab('scorecard')}
                             className={cn(
-                                "h-full px-6 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all relative",
-                                activeTab === 'scorecard' ? "text-amber-600 bg-white border-x border-slate-100" : "text-slate-400 hover:text-slate-600"
+                                "h-full px-6 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide transition-colors relative",
+                                activeTab === 'scorecard' ? "text-amber-600 bg-white border-x border-slate-200" : "text-slate-400 hover:text-slate-600"
                             )}
                         >
                             <Star className="w-4 h-4" />
                             Scorecard
-                            {activeTab === 'scorecard' && <div className="absolute top-0 left-0 right-0 h-1 bg-amber-500" />}
+                            {activeTab === 'scorecard' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-amber-500" />}
                         </button>
                     </div>
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setSidebarCollapsed(true)}
-                        className="rounded-full hover:bg-slate-100"
+                        className="rounded-md hover:bg-slate-100"
                     >
                         <X className="w-4 h-4 text-slate-400" />
                     </Button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
                     {activeTab === 'questions' ? (
                         <>
                             {/* Header Info */}
-                            <div className="bg-primary/5 rounded-3xl p-5 border border-primary/10 relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full -mr-12 -mt-12" />
-                                <div className="relative space-y-4">
-                                    <h4 className="text-xs font-black text-primary uppercase tracking-widest flex items-center gap-2">
-                                        <Info className="w-3.5 h-3.5" /> Panduan Wawancara
-                                    </h4>
-                                    <p className="text-sm font-bold text-slate-700 leading-snug">
-                                        {interview.interview_templates?.title || 'General Interview'}
-                                    </p>
-                                    <div className="bg-white/50 backdrop-blur-sm rounded-xl p-3 border border-white/50 text-[11px] text-slate-500 leading-relaxed font-medium flex items-start gap-2">
-                                        <div className="flex-1">
-                                            Gunakan template di bawah ini untuk mencatat jawaban kandidat secara real-time.
-                                        </div>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            onClick={handleResetTemplate}
-                                            className="h-7 px-2 text-[9px] font-black uppercase tracking-tighter hover:bg-white text-primary"
-                                        >
-                                            <RotateCcw className="w-3 h-3 mr-1" /> Tarik Ulang
-                                        </Button>
+                            <div className="bg-brand-50 rounded-md p-4 border border-primary/10 space-y-3">
+                                <h4 className="text-xs font-semibold text-primary uppercase tracking-wide flex items-center gap-2">
+                                    <Info className="w-3.5 h-3.5" /> Panduan Wawancara
+                                </h4>
+                                <p className="text-sm font-semibold text-slate-700 leading-snug">
+                                    {interview.interview_templates?.title || 'General Interview'}
+                                </p>
+                                <div className="bg-white rounded-md p-3 border border-slate-100 text-[11px] text-slate-500 leading-relaxed font-medium flex items-start gap-2">
+                                    <div className="flex-1">
+                                        Gunakan template di bawah ini untuk mencatat jawaban kandidat secara real-time.
                                     </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleResetTemplate}
+                                        className="h-7 px-2 text-[9px] font-semibold uppercase hover:bg-slate-50 text-primary rounded-md"
+                                    >
+                                        <RotateCcw className="w-3 h-3 mr-1" /> Tarik Ulang
+                                    </Button>
                                 </div>
                             </div>
 
                             {/* Questions List */}
-                            <div className="space-y-6">
+                            <div className="space-y-5">
                                 {questions.map((q, idx) => (
                                     <div key={q.id} className={cn(
-                                        "space-y-3 group",
+                                        "space-y-2 group",
                                         q.is_incidental ? "pl-4 border-l-2 border-amber-400" : "pl-4 border-l-2 border-slate-200"
                                     )}>
                                         <div className="flex items-start justify-between">
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">
                                                     Pertanyaan {idx + 1} {q.is_incidental && "• SPONTAN"}
                                                 </span>
-                                                <p className="text-sm font-bold text-slate-800 leading-tight">{q.text}</p>
+                                                <p className="text-sm font-semibold text-slate-800 leading-tight">{q.text}</p>
                                             </div>
                                         </div>
-                                        <Textarea 
+                                        <Textarea
                                             placeholder="Input jawaban kandidat..."
                                             value={q.answer}
                                             onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
-                                            className="min-h-[100px] rounded-2xl bg-slate-50 border-slate-100 text-sm focus:bg-white transition-all shadow-inner focus:ring-4 focus:ring-primary/10"
+                                            className="min-h-[100px] rounded-md bg-slate-50 border-slate-200 text-sm focus:bg-white transition-colors"
                                         />
                                     </div>
                                 ))}
                             </div>
 
                             {/* Incidental Adder */}
-                            <div className="pt-6 border-t border-slate-100">
-                                <div className="bg-slate-50 rounded-[32px] p-2 flex gap-2 border border-slate-100 focus-within:ring-4 focus-within:ring-primary/10 transition-all">
-                                    <Input 
+                            <div className="pt-4 border-t border-slate-100">
+                                <div className="bg-slate-50 rounded-md p-2 flex gap-2 border border-slate-200 focus-within:border-primary/40 transition-colors">
+                                    <Input
                                         placeholder="Tambahkan pertanyaan baru..."
                                         value={newQuestion}
                                         onChange={(e) => setNewQuestion(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleAddQuestion()}
-                                        className="border-none bg-transparent shadow-none h-11 text-xs font-bold"
+                                        className="border-none bg-transparent shadow-none h-10 text-xs font-semibold"
                                     />
-                                    <Button 
+                                    <Button
                                         onClick={handleAddQuestion}
                                         disabled={!newQuestion.trim()}
-                                        className="h-11 w-11 rounded-full p-0 shrink-0 shadow-lg"
+                                        className="h-10 w-10 rounded-md p-0 shrink-0"
                                     >
-                                        <Plus className="w-5 h-5" />
+                                        <Plus className="w-4 h-4" />
                                     </Button>
                                 </div>
                             </div>
                         </>
                     ) : (
-                        <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
+                        <div className="space-y-8">
                              {/* Scorecard Tab */}
-                             <div className="space-y-6">
+                             <div className="space-y-5">
                                  <div className="flex items-center justify-between">
-                                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Kriteria Penilaian</h4>
+                                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Kriteria Penilaian</h4>
                                      <div className="text-right">
-                                         <p className="text-lg font-black text-primary leading-none">
+                                         <p className="text-lg font-bold text-primary leading-none">
                                              {Object.values(scorecard?.scores || {}).reduce((a, b) => a + b, 0).toFixed(1)}
                                              <span className="text-[10px] text-slate-400">/{(scorecard?.criteria?.length || 0) * 5}</span>
                                          </p>
                                      </div>
                                  </div>
-                                 
-                                 <div className="space-y-8">
+
+                                 <div className="space-y-6">
                                      {scorecard.criteria?.map(c => (
-                                         <div key={c.key} className="space-y-4">
+                                         <div key={c.key} className="space-y-3">
                                              <div>
-                                                 <p className="text-sm font-black text-slate-800 mb-0.5">{c.label}</p>
-                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{c.desc}</p>
+                                                 <p className="text-sm font-semibold text-slate-800 mb-0.5">{c.label}</p>
+                                                 <p className="text-[10px] font-medium text-slate-400">{c.desc}</p>
                                              </div>
                                              <div className="flex gap-2">
                                                  {[1, 2, 3, 4, 5].map(n => (
-                                                     <button 
+                                                     <button
                                                         key={n}
                                                         onClick={() => handleUpdateScore(c.key, n)}
                                                         className={cn(
-                                                            "flex-1 h-10 rounded-xl border-2 font-black text-sm transition-all",
-                                                            scorecard.scores[c.key] === n 
-                                                                ? "bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20" 
-                                                                : "bg-slate-50 border-slate-100 text-slate-300 hover:border-amber-200"
+                                                            "flex-1 h-9 rounded-md border font-semibold text-sm transition-colors",
+                                                            scorecard.scores[c.key] === n
+                                                                ? "bg-amber-500 border-amber-500 text-white"
+                                                                : "bg-slate-50 border-slate-200 text-slate-400 hover:border-amber-300"
                                                         )}
                                                      >
                                                          {n}
@@ -413,18 +410,18 @@ export default function InterviewSessionInterface({ interview: initialInterview,
                                  </div>
                              </div>
 
-                             <div className="pt-10 border-t border-slate-100 space-y-4">
-                                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Rekomendasi Akhir</h4>
-                                 <div className="grid grid-cols-2 gap-3">
+                             <div className="pt-6 border-t border-slate-100 space-y-3">
+                                 <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Rekomendasi Akhir</h4>
+                                 <div className="grid grid-cols-2 gap-2">
                                      {['Strong Yes', 'Yes', 'Maybe', 'No'].map(rec => (
                                          <button
                                             key={rec}
                                             onClick={() => handleUpdateRecommendation(rec)}
                                             className={cn(
-                                                "h-12 rounded-2xl border-2 font-black text-xs uppercase tracking-widest transition-all",
+                                                "h-10 rounded-md border font-semibold text-xs uppercase tracking-wide transition-colors",
                                                 scorecard.recommendation === rec
-                                                    ? "bg-slate-900 border-slate-900 text-white shadow-xl"
-                                                    : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
+                                                    ? "bg-slate-900 border-slate-900 text-white"
+                                                    : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"
                                             )}
                                          >
                                              {rec}
@@ -436,31 +433,31 @@ export default function InterviewSessionInterface({ interview: initialInterview,
                     )}
 
                     {/* Final Notes (Global) */}
-                    <div className="pt-10 border-t border-slate-100 space-y-4">
-                         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <div className="pt-6 border-t border-slate-100 space-y-3">
+                         <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-2">
                             <History className="w-3.5 h-3.5" /> Kesimpulan & Rekomendasi
                          </h3>
-                         <Textarea 
+                         <Textarea
                             placeholder="Tulis kesimpulan hasil wawancara di sini..."
                             value={finalNotes}
                             onChange={(e) => setFinalNotes(e.target.value)}
-                            className="min-h-[150px] rounded-3xl bg-slate-50 border-slate-100 text-sm italic font-medium"
+                            className="min-h-[130px] rounded-md bg-slate-50 border-slate-200 text-sm italic font-medium"
                          />
                     </div>
                 </div>
 
                 {/* Footer Actions */}
-                <div className="h-24 px-6 border-t border-slate-100 flex items-center justify-between bg-white shrink-0">
+                <div className="h-20 px-6 border-t border-slate-200 flex items-center justify-between bg-white shrink-0">
                     <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <span className="text-[9px] font-semibold text-emerald-600 uppercase tracking-wide flex items-center gap-1.5">
                             <Save className="w-3 h-3" /> Auto-saved
                         </span>
-                        <p className="text-[10px] text-slate-400 font-bold">Semua catatan tersimpan otomatis ke cloud.</p>
+                        <p className="text-[10px] text-slate-400 font-medium">Semua catatan tersimpan otomatis ke cloud.</p>
                     </div>
-                    <Button 
+                    <Button
                         onClick={handleComplete}
                         disabled={saving}
-                        className="h-12 px-8 rounded-2xl font-black bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all"
+                        className="h-10 px-6 rounded-md font-semibold bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
                     >
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                         Selesaikan Interview
@@ -470,11 +467,11 @@ export default function InterviewSessionInterface({ interview: initialInterview,
 
              {/* Sidebar Toggle for Mobile/Tablet */}
              {sidebarCollapsed && (
-                 <button 
+                 <button
                     onClick={() => setSidebarCollapsed(false)}
-                    className="fixed right-6 bottom-6 w-14 h-14 bg-white border border-slate-200 rounded-2xl shadow-2xl flex items-center justify-center text-primary z-30 hover:scale-110 active:scale-90 transition-all animate-bounce"
+                    className="fixed right-6 bottom-6 w-12 h-12 bg-white border border-slate-200 rounded-md shadow-md flex items-center justify-center text-primary z-30 hover:bg-slate-50 transition-colors"
                  >
-                    <Sidebar className="w-6 h-6" />
+                    <Sidebar className="w-5 h-5" />
                  </button>
              )}
         </div>

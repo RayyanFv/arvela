@@ -38,11 +38,14 @@ export default async function CareerPage({ params }) {
     if (!company) notFound()
 
     // Fetch published jobs — satu query, no N+1
+    // Only 'public' visibility jobs appear in the listing; link_only/invited
+    // jobs are reachable directly via their (token-gated) URL but stay hidden here.
     const { data: jobs } = await supabase
         .from('jobs')
         .select('id, title, slug, location, work_type, employment_type, deadline, published_at')
         .eq('company_id', company.id)
         .eq('status', 'published')
+        .eq('visibility', 'public')
         .order('published_at', { ascending: false })
 
     const activeJobsCount = jobs?.length ?? 0

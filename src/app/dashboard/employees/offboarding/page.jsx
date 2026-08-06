@@ -1,6 +1,6 @@
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getUserPermissions } from '@/lib/permissions'
+import { isAdminRole } from '@/lib/constants/roles'
 import OffboardingClient from './OffboardingClient'
 
 export const metadata = { title: 'Manajemen Resign & Offboarding — Arvela HR' }
@@ -16,34 +16,36 @@ export default async function OffboardingPage() {
 
     if (!profile) redirect('/login')
 
-    const perms = await getUserPermissions(user.id)
-    if (!perms.has('employee.manage')) redirect('/dashboard')
+    if (!isAdminRole(profile.role)) redirect('/dashboard')
 
-    // Fetch all offboarding requests for this company
-    const { data: offboardings } = await supabase
-        .from('offboardings')
-        .select(`
-            *,
-            employee:employee_id (
-                id, job_title, department,
-                profiles!employees_profile_id_fkey ( full_name, email, avatar_url )
-            )
-        `)
-        .eq('company_id', profile.company_id)
-        .order('created_at', { ascending: false })
+    const OFFBOARDING_LIST_LIMIT = 500
 
-    // Fetch approval requests for resignation entity type
-    const { data: approvalRequests } = await supabase
-        .from('approval_requests')
-        .select(`
-            *,
-            approval_steps (
-                id, step_number, status, notes, action_at,
-                approver:approver_id ( full_name, email )
-            )
-        `)
-        .eq('company_id', profile.company_id)
-        .eq('entity_type', 'resignation')
+    const [{ data: offboardings }, { data: approvalRequests }] = await Promise.all([
+        supabase
+            .from('offboardings')
+            .select(`
+                *,
+                employee:employee_id (
+                    id, job_title, department,
+                    profiles!employees_profile_id_fkey ( full_name, email, avatar_url )
+                )
+            `)
+            .eq('company_id', profile.company_id)
+            .order('created_at', { ascending: false })
+            .limit(OFFBOARDING_LIST_LIMIT),
+        supabase
+            .from('approval_requests')
+            .select(`
+                *,
+                approval_steps (
+                    id, step_number, status, notes, action_at,
+                    approver:approver_id ( full_name, email )
+                )
+            `)
+            .eq('company_id', profile.company_id)
+            .eq('entity_type', 'resignation')
+            .limit(OFFBOARDING_LIST_LIMIT),
+    ])
 
     return (
         <OffboardingClient

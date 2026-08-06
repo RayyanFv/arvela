@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { StageBadge } from '@/components/candidates/StageBadge'
 import { STAGE_CONFIG, STAGE_ORDER } from '@/lib/constants/stages'
 import Link from 'next/link'
-import { Users, Briefcase, Mail, Phone, Clock, Download } from 'lucide-react'
+import { Users, Briefcase, Mail, Phone, Clock, Download, ChevronRight } from 'lucide-react'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { FilterTabs } from '@/components/ui/FilterTabs'
 import { Pagination } from '@/components/ui/Pagination'
@@ -103,46 +103,49 @@ export default async function CandidatesPage({ searchParams }) {
             ) : (
                 <div className="grid gap-2">
                     {applications.map(app => (
-                        <div
+                        <Link
                             key={app.id}
-                            className="group relative bg-card border border-border rounded-xl px-5 py-4 flex items-center justify-between hover:border-primary/40 hover:shadow-sm transition-all"
+                            href={`/dashboard/candidates/${app.id}`}
+                            className="group bg-card border border-border rounded-xl px-5 py-4 flex items-center justify-between gap-4 hover:border-primary/40 hover:shadow-sm transition-all"
                         >
-                            <Link href={`/dashboard/candidates/${app.id}`} className="absolute inset-0 z-0" />
-
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 min-w-0">
                                 {/* Avatar initials */}
                                 <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center shrink-0 text-primary font-semibold text-sm">
                                     {app.full_name.charAt(0).toUpperCase()}
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <div className="flex items-center gap-2 mb-0.5">
-                                        <span className="font-semibold text-sm text-foreground">{app.full_name}</span>
+                                        <span className="font-semibold text-sm text-foreground truncate">{app.full_name}</span>
                                         <StageBadge stage={app.stage} />
                                     </div>
-                                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                                         <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {app.email}</span>
                                         {app.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {app.phone}</span>}
                                         <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" /> {app.jobs?.title}</span>
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3 shrink-0 relative z-10">
+                            <div className="flex items-center gap-4 shrink-0">
                                 {app.cv_url && (
                                     <a
                                         href={app.cv_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex items-center gap-1 text-xs text-primary hover:underline"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="hidden sm:flex items-center gap-1 text-xs text-primary hover:underline relative z-10"
                                     >
                                         <Download className="w-3.5 h-3.5" /> CV
                                     </a>
                                 )}
-                                <span className="text-xs text-muted-foreground flex items-center gap-1 pointer-events-none">
+                                <span className="hidden md:flex text-xs text-muted-foreground items-center gap-1">
                                     <Clock className="w-3 h-3" />
                                     {formatDistanceToNow(new Date(app.created_at), { addSuffix: true, locale: localeID })}
                                 </span>
+                                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-muted-foreground group-hover:bg-primary group-hover:text-white transition-colors">
+                                    <ChevronRight className="w-4 h-4" />
+                                </div>
                             </div>
-                        </div>
+                        </Link>
                     ))}
                 </div>
             )}

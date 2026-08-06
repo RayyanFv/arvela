@@ -48,7 +48,7 @@ function StarRating({ value, onChange }) {
                 </button>
             ))}
             {value > 0 && (
-                <span className="ml-2 text-sm font-black text-foreground">
+                <span className="ml-2 text-sm font-semibold text-foreground">
                     {['', 'Sangat Kurang', 'Kurang', 'Cukup', 'Baik', 'Sangat Baik'][value]}
                 </span>
             )}
@@ -145,16 +145,16 @@ export default function ScorecardPage() {
             </Link>
 
             <div>
-                <h1 className="text-2xl font-black text-foreground tracking-tight">Interview Scorecard</h1>
+                <h1 className="text-xl font-bold text-foreground tracking-tight">Interview Scorecard</h1>
                 {app && (
                     <p className="text-muted-foreground text-sm mt-1">
-                        <span className="font-bold text-foreground">{app.full_name}</span> · {app.jobs?.title}
+                        <span className="font-semibold text-foreground">{app.full_name}</span> · {app.jobs?.title}
                     </p>
                 )}
             </div>
 
             {existing && (
-                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5">
+                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-md px-4 py-2.5">
                     <AlertCircle className="w-4 h-4 text-blue-500 shrink-0" />
                     <p className="text-xs font-semibold text-blue-700">
                         Scorecard sudah ada — edit dan simpan untuk memperbarui.
@@ -164,15 +164,15 @@ export default function ScorecardPage() {
             )}
 
             {/* Kompetensi */}
-            <Card className="p-6 border-none shadow-sm rounded-2xl space-y-6">
+            <Card className="p-6 rounded-md space-y-6">
                 <div className="flex items-center justify-between">
-                    <h2 className="font-black text-foreground">Penilaian Kompetensi</h2>
+                    <h2 className="font-semibold text-foreground">Penilaian Kompetensi</h2>
                     {filledCount > 0 && (
                         <div className="text-right">
-                            <p className={`text-2xl font-black ${scoreColor(totalAvg)}`}>
+                            <p className={`text-xl font-bold ${scoreColor(totalAvg)}`}>
                                 {totalAvg.toFixed(1)}<span className="text-sm font-semibold text-muted-foreground">/5</span>
                             </p>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Rata-rata</p>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Rata-rata</p>
                         </div>
                     )}
                 </div>
@@ -180,7 +180,7 @@ export default function ScorecardPage() {
                     {COMPETENCIES.map(c => (
                         <div key={c.key} className="space-y-2">
                             <div>
-                                <p className="font-bold text-foreground text-sm">{c.label}</p>
+                                <p className="font-semibold text-foreground text-sm">{c.label}</p>
                                 <p className="text-xs text-muted-foreground">{c.desc}</p>
                             </div>
                             <StarRating value={scores[c.key]} onChange={val => setScores(p => ({ ...p, [c.key]: val }))} />
@@ -189,7 +189,7 @@ export default function ScorecardPage() {
                 </div>
                 {filledCount > 0 && (
                     <div className="pt-2 border-t border-border">
-                        <div className="flex justify-between text-xs font-bold text-muted-foreground mb-1.5">
+                        <div className="flex justify-between text-xs font-semibold text-muted-foreground mb-1.5">
                             <span>Overall Score</span><span>{((totalAvg / 5) * 100).toFixed(0)}%</span>
                         </div>
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -200,12 +200,12 @@ export default function ScorecardPage() {
             </Card>
 
             {/* Rekomendasi */}
-            <Card className="p-6 border-none shadow-sm rounded-2xl">
-                <h2 className="font-black text-foreground mb-4">Rekomendasi Akhir</h2>
+            <Card className="p-6 rounded-md">
+                <h2 className="font-semibold text-foreground mb-4">Rekomendasi Akhir</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {RECOMMENDATIONS.map(r => (
                         <button key={r.value} type="button" onClick={() => setRecommendation(r.value)}
-                            className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 font-bold text-sm transition-all ${recommendation === r.value ? `${r.color} border-current scale-105 shadow-sm` : 'border-border text-muted-foreground hover:border-primary/30'}`}>
+                            className={`flex items-center gap-2 px-4 py-3 rounded-md border font-semibold text-sm transition-colors ${recommendation === r.value ? `${r.color} border-current` : 'border-border text-muted-foreground hover:border-primary/30'}`}>
                             <div className={`w-2 h-2 rounded-full shrink-0 ${recommendation === r.value ? r.dot : 'bg-muted-foreground/30'}`} />
                             {r.label}
                         </button>
@@ -214,19 +214,19 @@ export default function ScorecardPage() {
             </Card>
 
             {/* Catatan */}
-            <Card className="p-6 border-none shadow-sm rounded-2xl">
-                <h2 className="font-black text-foreground mb-3">Catatan Interviewer</h2>
+            <Card className="p-6 rounded-md">
+                <h2 className="font-semibold text-foreground mb-3">Catatan Interviewer</h2>
                 <Textarea
                     placeholder="Tuliskan observasi spesifik, kekuatan, area improvement, atau hal yang perlu dipertimbangkan..."
                     value={notes} onChange={e => setNotes(e.target.value)}
-                    className="rounded-xl min-h-[120px] text-sm resize-none"
+                    className="rounded-md min-h-[120px] text-sm resize-none"
                 />
             </Card>
 
             {/* Simpan */}
             <div className="flex items-center gap-3">
                 <Button onClick={handleSave} disabled={!isComplete || saving}
-                    className="h-11 px-8 rounded-xl bg-primary text-primary-foreground font-bold gap-2">
+                    className="h-10 px-6 rounded-md bg-primary text-primary-foreground font-semibold gap-2">
                     {saving
                         ? <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</>
                         : saved

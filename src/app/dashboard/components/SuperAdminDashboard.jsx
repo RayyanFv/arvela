@@ -97,7 +97,7 @@ export function SuperAdminDashboard({ profile, user }) {
             {/* ── Header ── */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight flex items-center gap-3">
+                    <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight flex items-center gap-3">
                         <ShieldCheck className="w-8 h-8 text-rose-500" /> System Control Panel
                     </h1>
                     <p className="text-muted-foreground text-sm mt-1 mb-2 max-w-lg">
@@ -133,7 +133,7 @@ export function SuperAdminDashboard({ profile, user }) {
             <Card className="p-6 md:p-8 rounded-md">
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h2 className="text-sm font-black text-foreground uppercase tracking-widest">Aktivitas Akun Terbaru</h2>
+                        <h2 className="text-sm font-semibold text-foreground uppercase tracking-widest">Aktivitas Akun Terbaru</h2>
                         <p className="text-xs font-medium text-muted-foreground mt-1">Daftar profil pengguna yang baru dibuat / terdaftar ke perusahaan ini.</p>
                     </div>
                     <Link href="/dashboard/settings/users">
@@ -166,7 +166,7 @@ export function SuperAdminDashboard({ profile, user }) {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3 justify-end sm:shrink-0 ml-14 sm:ml-0">
-                                    <Badge variant="outline" className={`px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md border text-center ${getRoleBadgeColor(u.role)}`}>
+                                    <Badge variant="outline" className={`px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider rounded-md border text-center ${getRoleBadgeColor(u.role)}`}>
                                         {ROLE_LABELS[u.role] || u.role}
                                     </Badge>
                                 </div>

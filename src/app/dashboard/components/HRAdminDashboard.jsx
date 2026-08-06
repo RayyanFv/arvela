@@ -16,7 +16,7 @@ import {
     Users, Briefcase, Trophy, TrendingUp,
     ArrowUpRight, Target,
     CheckCircle2, MapPin, Clock,
-    Timer, Zap, Info
+    Timer, Zap, Info, PlaneTakeoff, CalendarClock
 } from 'lucide-react'
 import {
     Tooltip,
@@ -80,6 +80,7 @@ const INITIAL_STATE = {
     lmsStats: { courses: 0, published: 0 },
     attendanceStats: { present: 0, early_leave: 0, leave: 0, sick: 0, absent: 0, holiday_present: 0 },
     overtimeStats: { pending: 0, approved: 0, totalHours: 0 },
+    whosOff: [],
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -93,7 +94,7 @@ export function HRAdminDashboard({ profile, user }) {
     const [pendingApprovals, setPendingApprovals] = useState({ items: [], totalCount: 0 })
 
     useEffect(() => {
-        getPendingApprovals({ limit: 4 }).then(setPendingApprovals).catch(() => {})
+        getPendingApprovals({ limit: 4 }).then(setPendingApprovals).catch(() => { })
     }, [])
 
     useEffect(() => {
@@ -103,10 +104,7 @@ export function HRAdminDashboard({ profile, user }) {
             if (!cid) { setLoading(false); return }
 
             // ── Solusi 3: Single RPC call ganti 7 query + semua client loops ──
-            const { data: stats, error } = await supabase.rpc(
-                'get_hr_dashboard_stats',
-                { p_company_id: cid }
-            )
+            const { data: stats, error } = await supabase.rpc('get_hr_dashboard_stats', { p_company_id: cid })
 
             let statsData = stats
             if (error || !statsData) {
@@ -135,12 +133,12 @@ export function HRAdminDashboard({ profile, user }) {
             // Parse attendance (RPC returns object keyed by status)
             const att = statsData.attendance_today || {}
             const attendanceStats = {
-                present:         att.present         || 0,
-                early_leave:     att.early_leave     || 0,
+                present: att.present || 0,
+                early_leave: att.early_leave || 0,
                 holiday_present: att.holiday_present || 0,
-                leave:           att.leave           || 0,
-                sick:            att.sick            || 0,
-                absent:          att.absent          || 0,
+                leave: att.leave || 0,
+                sick: att.sick || 0,
+                absent: att.absent || 0,
             }
 
             // Parse weekly apps (DB returns [{date, count}], map to chart format)
@@ -151,28 +149,29 @@ export function HRAdminDashboard({ profile, user }) {
 
             // ── Solusi 6: Single setState — 1 re-render, bukan 10+ ───────────
             setData({
-                activeJobs:         (statsData.active_jobs || []).slice(0, 5),
-                recentApps:         statsData.recent_apps  || [],
-                stageCounts:        statsData.stage_counts || {},
+                activeJobs: (statsData.active_jobs || []).slice(0, 5),
+                recentApps: statsData.recent_apps || [],
+                stageCounts: statsData.stage_counts || {},
                 weeklyApps,
                 jobApplicantCounts: statsData.job_applicant_counts || {},
-                totalApplicants:    statsData.total_applicants  || 0,
-                totalHired:         statsData.total_hired        || 0,
-                totalEmployees:     statsData.total_employees    || 0,
+                totalApplicants: statsData.total_applicants || 0,
+                totalHired: statsData.total_hired || 0,
+                totalEmployees: statsData.total_employees || 0,
                 okrStats: {
-                    total:       statsData.okr_stats?.total       || 0,
+                    total: statsData.okr_stats?.total || 0,
                     avgProgress: statsData.okr_stats?.avg_progress || 0,
                 },
                 lmsStats: {
-                    courses:   statsData.lms_stats?.courses   || 0,
-                    published: statsData.lms_stats?.published  || 0,
+                    courses: statsData.lms_stats?.courses || 0,
+                    published: statsData.lms_stats?.published || 0,
                 },
                 attendanceStats,
                 overtimeStats: {
-                    pending:    statsData.overtime_stats?.pending     || 0,
-                    approved:   statsData.overtime_stats?.approved    || 0,
+                    pending: statsData.overtime_stats?.pending || 0,
+                    approved: statsData.overtime_stats?.approved || 0,
                     totalHours: statsData.overtime_stats?.total_hours || 0,
                 },
+                whosOff: statsData.whos_off || [],
             })
 
             setLoading(false)
@@ -192,17 +191,17 @@ export function HRAdminDashboard({ profile, user }) {
     )
 
     const donutData = useMemo(() => [
-        { name: 'Hired',             value: data.stageCounts.hired || 0,                                           color: DONUT_COLORS.hired   },
-        { name: 'Interview / Offer', value: (data.stageCounts.interview || 0) + (data.stageCounts.offered || 0),   color: DONUT_COLORS.active  },
-        { name: 'Proses',            value: (data.stageCounts.screening || 0) + (data.stageCounts.assessment || 0), color: DONUT_COLORS.process },
-        { name: 'Applied',           value: data.stageCounts.applied || 0,                                          color: DONUT_COLORS.applied },
+        { name: 'Hired', value: data.stageCounts.hired || 0, color: DONUT_COLORS.hired },
+        { name: 'Interview / Offer', value: (data.stageCounts.interview || 0) + (data.stageCounts.offered || 0), color: DONUT_COLORS.active },
+        { name: 'Proses', value: (data.stageCounts.screening || 0) + (data.stageCounts.assessment || 0), color: DONUT_COLORS.process },
+        { name: 'Applied', value: data.stageCounts.applied || 0, color: DONUT_COLORS.applied },
     ], [data.stageCounts])
 
     const statCards = useMemo(() => [
-        { label: 'Lowongan Aktif',  value: data.activeJobs.length,    icon: Briefcase,    color: 'text-blue-500',    bg: 'bg-blue-50',    href: '/dashboard/jobs',       tooltip: 'Jumlah lowongan pekerjaan yang masih terbuka dan sedang menerima pelamar.' },
-        { label: 'Total Pelamar',   value: data.totalApplicants,       icon: Users,        color: 'text-primary',     bg: 'bg-brand-50',   href: '/dashboard/candidates', tooltip: 'Total seluruh kandidat yang melamar di semua lowongan perusahaan.' },
-        { label: 'Karyawan Aktif',  value: data.totalEmployees,        icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50', href: '/dashboard/employees',  tooltip: 'Jumlah karyawan aktif yang terdaftar di dalam sistem saat ini.' },
-        { label: 'Total Hired',     value: data.totalHired,            icon: Trophy,       color: 'text-amber-500',   bg: 'bg-amber-50',   href: '/dashboard/candidates', tooltip: 'Jumlah kandidat yang berhasil direkrut dan dipekerjakan melalui platform ini.' },
+        { label: 'Lowongan Aktif', value: data.activeJobs.length, icon: Briefcase, color: 'text-blue-500', bg: 'bg-blue-50', href: '/dashboard/jobs', tooltip: 'Jumlah lowongan pekerjaan yang masih terbuka dan sedang menerima pelamar.' },
+        { label: 'Total Pelamar', value: data.totalApplicants, icon: Users, color: 'text-primary', bg: 'bg-brand-50', href: '/dashboard/candidates', tooltip: 'Total seluruh kandidat yang melamar di semua lowongan perusahaan.' },
+        { label: 'Karyawan Aktif', value: data.totalEmployees, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50', href: '/dashboard/employees', tooltip: 'Jumlah karyawan aktif yang terdaftar di dalam sistem saat ini.' },
+        { label: 'Total Hired', value: data.totalHired, icon: Trophy, color: 'text-amber-500', bg: 'bg-amber-50', href: '/dashboard/candidates', tooltip: 'Jumlah kandidat yang berhasil direkrut dan dipekerjakan melalui platform ini.' },
     ], [data.activeJobs.length, data.totalApplicants, data.totalEmployees, data.totalHired])
 
     const dateStr = useMemo(
@@ -215,34 +214,41 @@ export function HRAdminDashboard({ profile, user }) {
 
             <Breadcrumbs />
 
-            {/* ── Header ── */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div>
-                    <p className="text-xs font-bold text-muted-foreground mb-1">{dateStr}</p>
-                    <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
-                        Selamat datang,{' '}
-                        <span className="text-primary">{profile?.full_name?.split(' ')[0] ?? 'HR'}</span>
-                    </h1>
-                    <p className="text-muted-foreground text-sm mt-1">{profile?.companies?.name ?? ''} · Panel HR</p>
+            {/* ── Header / Greeting Card ── */}
+            <Card className="p-6 rounded-md">
+                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+                    <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-1">{dateStr}</p>
+                        <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
+                            Selamat datang,{' '}
+                            <span className="text-primary">{profile?.full_name?.split(' ')[0] ?? 'HR'}</span>
+                        </h1>
+                        <p className="text-muted-foreground text-sm mt-1">{profile?.companies?.name ?? ''} · Panel HR</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <Link href="/dashboard/attendance">
+                            <Button variant="outline" className="h-10 rounded-md font-semibold gap-2">
+                                <Clock className="w-4 h-4" /> Pantau Kehadiran
+                            </Button>
+                        </Link>
+                        <Link href="/dashboard/attendance/requests">
+                            <Button variant="outline" className="h-10 rounded-md font-semibold gap-2">
+                                <PlaneTakeoff className="w-4 h-4" /> Kelola Cuti
+                            </Button>
+                        </Link>
+                        <Link href="/dashboard/overtime">
+                            <Button variant="outline" className="h-10 rounded-md font-semibold gap-2">
+                                <Timer className="w-4 h-4" /> Kelola Lembur
+                            </Button>
+                        </Link>
+                        <Link href="/dashboard/jobs/new">
+                            <Button className="h-10 px-5 rounded-md bg-primary text-primary-foreground font-semibold text-sm gap-2 shrink-0">
+                                + Buat Lowongan
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Link href="/dashboard/overtime">
-                        <Button variant="outline" className="h-10 rounded-md font-semibold gap-2">
-                            <Timer className="w-4 h-4" /> Lembur
-                        </Button>
-                    </Link>
-                    <Link href="/dashboard/attendance">
-                        <Button variant="outline" className="h-10 rounded-md font-semibold gap-2">
-                            <Clock className="w-4 h-4" /> Kehadiran
-                        </Button>
-                    </Link>
-                    <Link href="/dashboard/jobs/new">
-                        <Button className="h-10 px-5 rounded-md bg-primary text-primary-foreground font-bold text-sm gap-2 shrink-0">
-                            + Buat Lowongan
-                        </Button>
-                    </Link>
-                </div>
-            </div>
+            </Card>
 
             {/* ── Quota & Subscription Widget ── */}
             <CompanyQuotaWidget companyId={profile?.company_id} />
@@ -252,13 +258,13 @@ export function HRAdminDashboard({ profile, user }) {
                 <Card className="p-6 rounded-md border-amber-200 bg-amber-50/40">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h2 className="font-black text-foreground flex items-center gap-2">
+                            <h2 className="font-bold text-foreground flex items-center gap-2">
                                 <Zap className="w-4 h-4 text-amber-500" /> Perlu Persetujuan
                             </h2>
                             <p className="text-xs font-medium text-muted-foreground mt-0.5">{pendingApprovals.totalCount} pengajuan karyawan menunggu tindakan Anda</p>
                         </div>
                         <Link href="/dashboard/attendance/requests">
-                            <Button variant="ghost" size="sm" className="text-primary font-bold rounded-md gap-1 hover:bg-white">
+                            <Button variant="ghost" size="sm" className="text-primary font-semibold rounded-md gap-1 hover:bg-white">
                                 Lihat Semua <ArrowUpRight className="w-3.5 h-3.5" />
                             </Button>
                         </Link>
@@ -282,6 +288,37 @@ export function HRAdminDashboard({ profile, user }) {
                     </div>
                 </Card>
             )}
+
+            {/* ── Yang Sedang / Akan Cuti Minggu Ini ── */}
+            <Card className="p-6 rounded-md">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-bold text-foreground flex items-center gap-2">
+                        <CalendarClock className="w-4 h-4 text-violet-500" /> Cuti Minggu Ini
+                    </h2>
+                </div>
+                {loading ? (
+                    <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
+                ) : data.whosOff.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">Tidak ada karyawan yang cuti minggu ini.</p>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {data.whosOff.map(item => (
+                            <div key={item.id} className="flex items-center gap-3 p-3 bg-muted/40 rounded-md">
+                                <div className="w-9 h-9 rounded-full bg-brand-50 text-primary flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
+                                    {item.avatar_url ? <img src={item.avatar_url} alt="" className="w-full h-full object-cover" /> : item.employee_name?.charAt(0)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-bold text-foreground truncate">{item.employee_name}</p>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                        {item.reason_label} · {new Date(item.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                                        {item.start_date !== item.end_date && ` – ${new Date(item.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </Card>
 
             {/* ── Stat Cards (doubles as quick-nav) ── */}
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
@@ -569,11 +606,11 @@ export function HRAdminDashboard({ profile, user }) {
                 {/* Pelamar Terbaru */}
                 <div className="lg:col-span-3 space-y-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="font-black text-foreground flex items-center gap-2">
+                        <h2 className="font-bold text-foreground flex items-center gap-2">
                             <TrendingUp className="w-4 h-4 text-primary" /> Pelamar Terbaru
                         </h2>
                         <Link href="/dashboard/candidates">
-                            <Button variant="ghost" size="sm" className="text-primary font-bold rounded-xl hover:bg-brand-50">
+                            <Button variant="ghost" size="sm" className="text-primary font-semibold rounded-md hover:bg-brand-50">
                                 Lihat Semua
                             </Button>
                         </Link>
@@ -586,13 +623,13 @@ export function HRAdminDashboard({ profile, user }) {
                         ) : data.recentApps.length === 0 ? (
                             <div className="py-16 text-center">
                                 <Users className="w-10 h-10 text-muted mx-auto mb-3" />
-                                <p className="text-sm font-bold text-muted-foreground">Belum ada pelamar</p>
+                                <p className="text-sm font-semibold text-muted-foreground">Belum ada pelamar</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-border">
                                 {data.recentApps.map((app) => (
                                     <div key={app.id} className="px-5 py-4 flex items-center gap-4 hover:bg-muted/30 transition-colors group">
-                                        <div className="w-9 h-9 bg-muted rounded-xl flex items-center justify-center font-black text-muted-foreground text-sm shrink-0 group-hover:bg-brand-50 group-hover:text-primary transition-colors">
+                                        <div className="w-9 h-9 bg-muted rounded-md flex items-center justify-center font-bold text-muted-foreground text-sm shrink-0 group-hover:bg-brand-50 group-hover:text-primary transition-colors">
                                             {app.full_name?.charAt(0)}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -603,7 +640,7 @@ export function HRAdminDashboard({ profile, user }) {
                                             <StageBadge stage={app.stage} />
                                         </div>
                                         <Link href={`/dashboard/candidates/${app.id}`}>
-                                            <Button variant="ghost" size="icon" className="w-8 h-8 shrink-0 rounded-xl text-muted-foreground hover:text-primary hover:bg-brand-50">
+                                            <Button variant="ghost" size="icon" className="w-8 h-8 shrink-0 rounded-md text-muted-foreground hover:text-primary hover:bg-brand-50">
                                                 <ArrowUpRight className="w-4 h-4" />
                                             </Button>
                                         </Link>
@@ -617,38 +654,38 @@ export function HRAdminDashboard({ profile, user }) {
                 {/* Lowongan Aktif */}
                 <div className="lg:col-span-2 space-y-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="font-black text-foreground flex items-center gap-2">
+                        <h2 className="font-bold text-foreground flex items-center gap-2">
                             <Briefcase className="w-4 h-4 text-primary" /> Lowongan Aktif
                         </h2>
                         <Link href="/dashboard/jobs">
-                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary rounded-xl">
+                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary rounded-md">
                                 Semua <ArrowUpRight className="w-3.5 h-3.5 ml-0.5" />
                             </Button>
                         </Link>
                     </div>
                     <div className="space-y-3">
                         {loading
-                            ? [...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl" />)
+                            ? [...Array(3)].map((_, i) => <Skeleton key={i} className="h-20 rounded-md" />)
                             : data.activeJobs.length === 0 ? (
                                 <Card className="py-12 text-center border-dashed border-2 border-border shadow-none rounded-md">
                                     <Briefcase className="w-8 h-8 text-muted mx-auto mb-2" />
-                                    <p className="text-sm font-bold text-muted-foreground">Tidak ada lowongan aktif</p>
+                                    <p className="text-sm font-semibold text-muted-foreground">Tidak ada lowongan aktif</p>
                                 </Card>
                             ) : data.activeJobs.map(job => (
                                 <Link key={job.id} href={`/dashboard/jobs/${job.id}`}>
                                     <Card className="p-4 rounded-md hover:border-slate-300 transition-colors group mb-3">
                                         <div className="flex items-start justify-between gap-2 mb-2">
                                             <h4 className="font-bold text-foreground text-sm line-clamp-1 group-hover:text-primary transition-colors flex-1">{job.title}</h4>
-                                            <div className="flex items-center gap-1 bg-brand-50 text-primary rounded-lg px-2 py-1 shrink-0">
+                                            <div className="flex items-center gap-1 bg-brand-50 text-primary rounded-md px-2 py-1 shrink-0">
                                                 <Users className="w-3 h-3" />
-                                                <span className="text-[10px] font-black">{data.jobApplicantCounts[job.id] ?? 0}</span>
+                                                <span className="text-[10px] font-bold">{data.jobApplicantCounts[job.id] ?? 0}</span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <span className="text-xs font-medium text-muted-foreground flex items-center gap-1 truncate">
                                                 <MapPin className="w-3 h-3 shrink-0" />{job.location}
                                             </span>
-                                            <Badge variant="secondary" className="bg-muted text-muted-foreground border-none text-[9px] font-black uppercase shrink-0 ml-auto">
+                                            <Badge variant="secondary" className="bg-muted text-muted-foreground border-none text-[9px] font-semibold uppercase shrink-0 ml-auto">
                                                 {job.work_type}
                                             </Badge>
                                         </div>

@@ -1,6 +1,6 @@
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getUserPermissions } from '@/lib/permissions'
+import { isAdminRole } from '@/lib/constants/roles'
 import ImportClient from './ImportClient'
 
 export const metadata = { title: 'Import Karyawan — Arvela HR' }
@@ -19,8 +19,7 @@ export default async function EmployeeImportPage() {
 
     if (!profile) redirect('/login')
 
-    const perms = await getUserPermissions(user.id)
-    if (!perms.has('employee.manage')) redirect('/dashboard/employees')
+    if (!isAdminRole(profile.role)) redirect('/dashboard/employees')
 
     return <ImportClient companyId={profile.company_id} />
 }

@@ -69,7 +69,7 @@ export default async function JobsPage({ searchParams }) {
 
     let query = supabase
         .from('jobs')
-        .select('id, title, slug, status, work_type, employment_type, location, deadline, created_at, published_at', { count: 'exact' })
+        .select('id, title, slug, status, work_type, employment_type, location, deadline, created_at, published_at, visibility', { count: 'exact' })
         .eq('company_id', profile.company_id)
         .order('created_at', { ascending: false })
 
@@ -197,6 +197,11 @@ export default async function JobsPage({ searchParams }) {
                                             <Badge className={`text-[10px] h-5 px-2 border shrink-0 ${cfg.className}`}>
                                                 {cfg.label}
                                             </Badge>
+                                            {job.visibility && job.visibility !== 'public' && (
+                                                <Badge variant="outline" className="text-[10px] h-5 px-2 border-slate-200 text-slate-500 shrink-0">
+                                                    {job.visibility === 'link_only' ? 'Link Only' : 'Diundang'}
+                                                </Badge>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                                             {job.location && (

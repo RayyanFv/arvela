@@ -159,6 +159,16 @@ async function updateEntityStatus(supabase, entityType, entityId, newStatus) {
                 }
             }
         }
+    } else if (entityType === 'promotion') {
+        await supabase.from('promotion_requests').update({ status: newStatus }).eq('id', entityId)
+
+        // If promotion approved, apply the new grade to the employee record.
+        if (newStatus === 'approved') {
+            const { data: promo } = await supabase.from('promotion_requests').select('employee_id, target_grade_id').eq('id', entityId).single()
+            if (promo) {
+                await supabase.from('employees').update({ job_grade_id: promo.target_grade_id }).eq('id', promo.employee_id)
+            }
+        }
     }
 }
 

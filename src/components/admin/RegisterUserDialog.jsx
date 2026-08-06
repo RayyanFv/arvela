@@ -17,6 +17,7 @@ export function RegisterUserDialog() {
     const [companies, setCompanies] = useState([])
     const [units, setUnits] = useState([])
     const [grades, setGrades] = useState([])
+    const [contractTypes, setContractTypes] = useState([])
     const [managers, setManagers] = useState([])
     const [isSuperAdmin, setIsSuperAdmin] = useState(false)
     const [isPending, startTransition] = useTransition()
@@ -33,6 +34,7 @@ export function RegisterUserDialog() {
     const [homeUnitId, setHomeUnitId] = useState('')
     const [workUnitId, setWorkUnitId] = useState('')
     const [jobGradeId, setJobGradeId] = useState('')
+    const [contractTypeId, setContractTypeId] = useState('')
     const [managerId, setManagerId] = useState('')
     const [password, setPassword] = useState('')
     const [applicationId, setApplicationId] = useState('')
@@ -46,6 +48,7 @@ export function RegisterUserDialog() {
                 setCompanies(data.companies || [])
                 setUnits(data.units || [])
                 setGrades(data.grades || [])
+                setContractTypes(data.contractTypes || [])
                 setManagers(data.managers || [])
                 setIsSuperAdmin(data.isSuperAdmin || false)
             }).catch(() => {
@@ -53,6 +56,7 @@ export function RegisterUserDialog() {
                 setCompanies([])
                 setUnits([])
                 setGrades([])
+                setContractTypes([])
                 setManagers([])
             })
             // Reset form
@@ -66,6 +70,7 @@ export function RegisterUserDialog() {
             setHomeUnitId('')
             setWorkUnitId('')
             setJobGradeId('')
+            setContractTypeId('')
             setPassword('')
             setApplicationId('')
 
@@ -107,6 +112,7 @@ export function RegisterUserDialog() {
                     home_unit_id: homeUnitId || null,
                     work_unit_id: workUnitId || homeUnitId || null,
                     job_grade_id: jobGradeId || null,
+                    contract_type_id: contractTypeId || null,
                     manager_id: managerId || null,
                     password,
                     application_id: applicationId
@@ -264,6 +270,26 @@ export function RegisterUserDialog() {
                             )}
                         </div>
 
+                        {!isSuperAdmin && (
+                            <div>
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 block">
+                                    Tipe Kontrak <span className="text-slate-300">(opsional)</span>
+                                </label>
+                                <select
+                                    value={contractTypeId}
+                                    onChange={e => setContractTypeId(e.target.value)}
+                                    className="w-full h-11 rounded-xl border border-slate-200 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all bg-white"
+                                >
+                                    <option value="">— Pilih Tipe Kontrak —</option>
+                                    {contractTypes.map(ct => (
+                                        <option key={ct.id} value={ct.id}>
+                                            {ct.code ? `${ct.code} - ` : ''}{ct.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         {/* Additional fields for Employee role or standard user */}
                         <div className="pt-2 border-t border-slate-100 space-y-4">
                             <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
@@ -345,23 +371,42 @@ export function RegisterUserDialog() {
                             </div>
 
                             {isSuperAdmin && (
-                                <div>
-                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 block">
-                                        Pangkat / Golongan Struktural
-                                    </label>
-                                    <select
-                                        value={jobGradeId}
-                                        onChange={e => setJobGradeId(e.target.value)}
-                                        className="w-full h-11 rounded-xl border border-slate-200 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all bg-white"
-                                    >
-                                        <option value="">— Pilih Pangkat —</option>
-                                        {grades.map(g => (
-                                            <option key={g.id} value={g.id}>
-                                                Lv.{g.level} - {g.name} {g.code ? `(${g.code})` : ''}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                                <>
+                                    <div>
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 block">
+                                            Pangkat / Golongan Struktural
+                                        </label>
+                                        <select
+                                            value={jobGradeId}
+                                            onChange={e => setJobGradeId(e.target.value)}
+                                            className="w-full h-11 rounded-xl border border-slate-200 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all bg-white"
+                                        >
+                                            <option value="">— Pilih Pangkat —</option>
+                                            {grades.map(g => (
+                                                <option key={g.id} value={g.id}>
+                                                    Lv.{g.level} - {g.name} {g.code ? `(${g.code})` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 block">
+                                            Tipe Kontrak
+                                        </label>
+                                        <select
+                                            value={contractTypeId}
+                                            onChange={e => setContractTypeId(e.target.value)}
+                                            className="w-full h-11 rounded-xl border border-slate-200 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all bg-white"
+                                        >
+                                            <option value="">— Pilih Tipe Kontrak —</option>
+                                            {contractTypes.map(ct => (
+                                                <option key={ct.id} value={ct.id}>
+                                                    {ct.code ? `${ct.code} - ` : ''}{ct.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </>
                             )}
 
                             <div>

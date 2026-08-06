@@ -10,6 +10,9 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useProfile } from '@/hooks/use-profile'
+import { useToast } from '@/hooks/use-toast'
+import { ToastBanner } from '@/components/ui/ToastBanner'
 import {
     Plus, Trash2, ChevronDown, ChevronUp,
     GripVertical, BookOpen, ClipboardList, Pencil, CheckCircle2
@@ -25,10 +28,13 @@ import {
     AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
 
+const TEMPLATE_LIST_LIMIT = 300
+
 export default function OnboardingTemplatePage() {
     const supabase = createClient()
+    const { profile } = useProfile()
+    const { toast, showToast } = useToast()
     const [loading, setLoading] = useState(true)
-    const [profile, setProfile] = useState(null)
     const [templates, setTemplates] = useState([])
     const [expanded, setExpanded] = useState(null)
     const [newTemplateName, setNewTemplateName] = useState('')
@@ -45,33 +51,33 @@ export default function OnboardingTemplatePage() {
             .select('id, name, created_at, onboarding_tasks(id, title, description, due_days, order_index)')
             .eq('company_id', cid)
             .order('created_at', { ascending: false })
+            .limit(TEMPLATE_LIST_LIMIT)
         setTemplates(data || [])
     }
 
     useEffect(() => {
-        async function init() {
-            const { data: { user } } = await supabase.auth.getUser()
-            const { data: prof } = await supabase
-                .from('profiles').select('id, company_id, full_name').eq('id', user.id).single()
-            setProfile(prof)
-            if (prof?.company_id) await loadTemplates(prof.company_id)
-            setLoading(false)
+        if (profile?.company_id) {
+            loadTemplates(profile.company_id).then(() => setLoading(false))
         }
-        init()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [profile?.company_id])
 
     async function createTemplate() {
         if (!newTemplateName.trim()) return
         setCreatingTemplate(true)
-        await supabase.from('onboarding_templates').insert({
+        const { error } = await supabase.from('onboarding_templates').insert({
             company_id: profile.company_id,
             created_by: profile.id,
             name: newTemplateName.trim(),
         })
-        setNewTemplateName('')
-        setShowTemplateForm(false)
-        await loadTemplates(profile.company_id)
+        if (error) {
+            showToast('Gagal membuat template: ' + error.message, 'error')
+        } else {
+            setNewTemplateName('')
+            setShowTemplateForm(false)
+            showToast('Template berhasil dibuat.')
+            await loadTemplates(profile.company_id)
+        }
         setCreatingTemplate(false)
     }
 
@@ -80,6 +86,7 @@ export default function OnboardingTemplatePage() {
         await supabase.from('onboarding_templates').delete().eq('id', id)
         await loadTemplates(profile.company_id)
         if (expanded === id) setExpanded(null)
+        showToast('Template dihapus.')
     }
 
     async function addTask(templateId) {
@@ -96,8 +103,7 @@ export default function OnboardingTemplatePage() {
         })
 
         if (error) {
-
-            alert('Gagal menambah tugas: ' + error.message)
+            showToast('Gagal menambah tugas: ' + error.message, 'error')
         }
 
         setNewTask(prev => ({ ...prev, [templateId]: { title: '', description: '', due_days: '' } }))
@@ -118,11 +124,12 @@ export default function OnboardingTemplatePage() {
 
     return (
         <div className="max-w-3xl mx-auto space-y-8 pb-24">
+            <ToastBanner toast={toast} />
 
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-foreground tracking-tight flex items-center gap-2">
+                    <h1 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
                         <ClipboardList className="w-6 h-6 text-primary" />
                         Onboarding Templates
                     </h1>
@@ -141,7 +148,7 @@ export default function OnboardingTemplatePage() {
             {/* Create Template Form */}
             {showTemplateForm && (
                 <Card className="p-5 border-none shadow-sm rounded-2xl border-l-4 border-l-primary">
-                    <p className="text-sm font-black text-foreground mb-3">Nama Template Baru</p>
+                    <p className="text-sm font-semibold text-foreground mb-3">Nama Template Baru</p>
                     <div className="flex gap-3">
                         <Input
                             placeholder="cth: Onboarding Engineering, Onboarding Sales..."
@@ -169,7 +176,7 @@ export default function OnboardingTemplatePage() {
             {templates.length === 0 ? (
                 <Card className="p-16 border-none shadow-sm rounded-2xl text-center">
                     <BookOpen className="w-12 h-12 text-muted mx-auto mb-4" />
-                    <h3 className="font-black text-foreground mb-1">Belum ada template onboarding</h3>
+                    <h3 className="font-bold text-foreground mb-1">Belum ada template onboarding</h3>
                     <p className="text-muted-foreground text-sm">Buat template pertama untuk mulai menyusun checklist karyawan baru.</p>
                 </Card>
             ) : (
@@ -264,7 +271,7 @@ export default function OnboardingTemplatePage() {
 
                                         {/* Add Task Form */}
                                         <div className="px-5 py-4 bg-muted/20 space-y-2">
-                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tambah Tugas</p>
+                                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Tambah Tugas</p>
                                             <Input
                                                 placeholder="Judul tugas, cth: Lengkapi Data Diri"
                                                 value={taskForm.title}

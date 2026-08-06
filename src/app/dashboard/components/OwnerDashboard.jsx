@@ -97,16 +97,14 @@ export function OwnerDashboard({ profile, user }) {
             <Breadcrumbs />
 
             {/* ── Header ── */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div>
-                    <p className="text-xs font-bold text-muted-foreground mb-1">{dateStr}</p>
-                    <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">
-                        Executive Overview,{' '}
-                        <span className="text-primary">{profile?.full_name?.split(' ')[0] ?? 'Owner'}</span>
-                    </h1>
-                    <p className="text-muted-foreground text-sm mt-1">{profile?.companies?.name ?? 'Perusahaan'} · Panel Eksekutif</p>
-                </div>
-            </div>
+            <Card className="p-6 rounded-md">
+                <p className="text-xs font-semibold text-muted-foreground mb-1">{dateStr}</p>
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
+                    Executive Overview,{' '}
+                    <span className="text-primary">{profile?.full_name?.split(' ')[0] ?? 'Owner'}</span>
+                </h1>
+                <p className="text-muted-foreground text-sm mt-1">{profile?.companies?.name ?? 'Perusahaan'} · Panel Eksekutif</p>
+            </Card>
 
             {/* ── Main Stats Row ── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -134,7 +132,7 @@ export function OwnerDashboard({ profile, user }) {
                 {/* Distribusi Departemen (Pie Chart) */}
                 <Card className="p-8 rounded-md flex flex-col justify-between">
                     <div>
-                        <h2 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-2">
                             <Users className="w-3.5 h-3.5" /> Distribusi Departemen
                         </h2>
                         <p className="text-sm font-medium text-foreground mb-6">Sebaran tenaga kerja berdasarkan departemen.</p>
@@ -163,7 +161,7 @@ export function OwnerDashboard({ profile, user }) {
                                             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
                                             <span className="font-bold text-muted-foreground truncate max-w-[100px]">{dept.name}</span>
                                         </div>
-                                        <span className="font-black text-foreground">{dept.value}</span>
+                                        <span className="font-bold text-foreground">{dept.value}</span>
                                     </div>
                                 ))}
                             </div>
@@ -175,7 +173,7 @@ export function OwnerDashboard({ profile, user }) {
                 <Card className="p-8 rounded-md">
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h2 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-2">
+                            <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-2">
                                 <TrendingUp className="w-3.5 h-3.5" /> Top Performers (OKR)
                             </h2>
                             <p className="text-sm font-medium text-foreground">Karyawan dengan pencapaian OKR tertinggi.</p>
@@ -195,19 +193,19 @@ export function OwnerDashboard({ profile, user }) {
                             {data.topEmployees.map((emp, idx) => (
                                 <div key={idx} className="flex items-center justify-between group">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-8 h-8 rounded-full bg-brand-50 text-primary flex items-center justify-center font-black text-xs shrink-0">
+                                        <div className="w-8 h-8 rounded-full bg-brand-50 text-primary flex items-center justify-center font-bold text-xs shrink-0">
                                             {idx + 1}
                                         </div>
                                         <div>
                                             <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{emp.name}</p>
-                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">{emp.dept || 'General'}</p>
+                                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{emp.dept || 'General'}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden hidden sm:block">
                                             <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${emp.avg}%` }} />
                                         </div>
-                                        <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 font-black text-xs min-w-[3rem] justify-center">
+                                        <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 font-bold text-xs min-w-[3rem] justify-center">
                                             {emp.avg}%
                                         </Badge>
                                     </div>

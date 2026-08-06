@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Briefcase, Clock, Building2, ArrowLeft, Globe, CalendarDays, Share2, Banknote } from 'lucide-react'
 import Image from 'next/image'
+import { canAccessJob } from '@/lib/job-visibility'
 
 export async function generateMetadata({ params }) {
     const { 'company-slug': companySlug, 'job-slug': jobSlug } = await params
@@ -64,8 +65,9 @@ export async function generateMetadata({ params }) {
 const WORK_TYPE_LABEL = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'On-site' }
 const EMPLOYMENT_TYPE_LABEL = { fulltime: 'Full-time', parttime: 'Part-time', contract: 'Kontrak', internship: 'Magang' }
 
-export default async function JobDetailPage({ params }) {
+export default async function JobDetailPage({ params, searchParams }) {
     const { 'company-slug': companySlug, 'job-slug': jobSlug } = await params
+    const { t: token } = await searchParams
     const supabase = createAdminSupabaseClient()
 
     const { data: job } = await supabase
@@ -74,6 +76,7 @@ export default async function JobDetailPage({ params }) {
             id, title, slug, description, requirements,
             location, work_type, employment_type, deadline, published_at,
             salary_min, salary_max, salary_currency, show_salary,
+            visibility, access_token,
             companies!inner (id, name, logo_url, industry, website, slug)
         `)
         .eq('slug', jobSlug)
@@ -82,6 +85,23 @@ export default async function JobDetailPage({ params }) {
         .single()
 
     if (!job || job.companies.slug !== companySlug) notFound()
+
+    let hasAccess = canAccessJob(job, token)
+    if (!hasAccess && job.visibility === 'invited' && token) {
+        const { data: invite } = await supabase
+            .from('job_invites')
+            .select('id')
+            .eq('job_id', job.id)
+            .eq('token', token)
+            .maybeSingle()
+        hasAccess = !!invite
+        if (invite) {
+            await supabase.from('job_invites').update({ opened_at: new Date().toISOString() }).eq('id', invite.id).is('opened_at', null)
+        }
+    }
+    if (!hasAccess) notFound()
+
+    const applyHref = token ? `/${companySlug}/${jobSlug}/apply?t=${token}` : `/${companySlug}/${jobSlug}/apply`
 
     // Generate valid ISO8601 string for deadlines / posted dates
     const postedDate = job.published_at || new Date().toISOString()
@@ -191,7 +211,7 @@ export default async function JobDetailPage({ params }) {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <Link href={`/${companySlug}/${jobSlug}/apply`} className="w-full sm:w-auto">
+                            <Link href={applyHref} className="w-full sm:w-auto">
                                 <Button size="lg" className="w-full sm:w-auto h-12 px-8 rounded-lg font-bold bg-primary hover:bg-brand-600 text-white shadow-lg shadow-primary/10">
                                     Lamar Posisi Ini
                                 </Button>

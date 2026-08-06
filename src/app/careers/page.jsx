@@ -33,6 +33,7 @@ export default async function CandidatePortalPage({ searchParams }) {
             companies (name, slug, logo_url)
         `)
         .eq('status', 'published')
+        .eq('visibility', 'public')
         .order('published_at', { ascending: false })
 
     let applications = []

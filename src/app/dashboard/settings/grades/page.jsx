@@ -1,6 +1,6 @@
 import { createAdminSupabaseClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getUserPermissions } from '@/lib/permissions'
+import { isAdminRole } from '@/lib/constants/roles'
 import { getEffectiveProfileServer } from '@/lib/actions/impersonate'
 import GradesClient from './GradesClient'
 
@@ -20,8 +20,7 @@ export default async function GradesPage() {
 
     const supabase = createAdminSupabaseClient()
 
-    const perms = await getUserPermissions(res.user.id)
-    if (!perms.isAdmin) redirect('/dashboard')
+    if (!isAdminRole(profile.role)) redirect('/dashboard')
 
     const { data: grades } = await supabase
         .from('job_grades')

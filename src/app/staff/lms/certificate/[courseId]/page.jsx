@@ -3,13 +3,14 @@
 // ──────────────────────────────────────────────────
 // MODULE  : LMS Certificate (Staff Side)
 // FILE    : app/staff/lms/certificate/[courseId]/page.jsx
-// TABLES  : lms_courses, lms_enrollments, lms_certificates, employees
+// TABLES  : lms_courses, lms_course_assignments, lms_certificates, employees
 // ACCESS  : PROTECTED — employee
 // ──────────────────────────────────────────────────
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
+import { issueCourseCertificate } from '@/lib/actions/lms-certificates'
 import { Award, GraduationCap, CheckCircle2, Download, ArrowLeft, Loader2, EyeOff } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,103 +24,96 @@ export default function CertificatePage() {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [issuing, setIssuing] = useState(false)
+    const [issueError, setIssueError] = useState('')
     const [cert, setCert] = useState(null)
     const [employee, setEmployee] = useState(null)
 
-    useEffect(() => {
-        async function load() {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return
+    const load = useCallback(async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
 
-            let finalEmp = emp
-            if (!finalEmp) {
-                // If no employee record found (maybe because Super Admin), mock it for UI testing
-                finalEmp = {
-                    id: '00000000-0000-0000-0000-000000000000',
-                    profiles: { full_name: user.email?.split('@')[0] || 'Tester' }
-                }
-            }
-            setEmployee(finalEmp)
+        const { data: emp } = await supabase
+            .from('employees')
+            .select('id, company_id, profiles!employees_profile_id_fkey(full_name)')
+            .eq('profile_id', user.id)
+            .single()
 
-            // Get course
-            const { data: course } = await supabase
-                .from('lms_courses')
-                .select('id, title, description, thumbnail_url, has_certificate, companies(name)')
-                .eq('id', courseId)
-                .single()
+        if (!emp) { setLoading(false); return }
+        setEmployee(emp)
 
-            // Get enrollment to check completion
-            const { data: enrollment } = await supabase
-                .from('lms_enrollments')
-                .select('id, completed_at')
-                .eq('course_id', courseId)
-                .eq('employee_id', emp?.id)
-                .maybeSingle()
+        const { data: course } = await supabase
+            .from('lms_courses')
+            .select('id, title, description, thumbnail_url, has_certificate, companies(name)')
+            .eq('id', courseId)
+            .single()
 
-            // Calculate progress dynamically (Explicitly to avoid join issues)
-            const { data: sections } = await supabase
-                .from('lms_course_sections')
+        const { data: assignment } = await supabase
+            .from('lms_course_assignments')
+            .select('id, completed_at')
+            .eq('course_id', courseId)
+            .eq('employee_id', emp.id)
+            .maybeSingle()
+
+        // Calculate progress
+        const { data: sections } = await supabase
+            .from('lms_course_sections')
+            .select('id')
+            .eq('course_id', courseId)
+
+        const sectionIds = sections?.map(s => s.id) || []
+        let allContentIds = []
+
+        if (sectionIds.length > 0) {
+            const { data: contents } = await supabase
+                .from('lms_course_contents')
                 .select('id')
-                .eq('course_id', courseId)
-
-            const sectionIds = sections?.map(s => s.id) || []
-            let allContentIds = []
-
-            if (sectionIds.length > 0) {
-                const { data: contents } = await supabase
-                    .from('lms_course_contents')
-                    .select('id')
-                    .in('section_id', sectionIds)
-                allContentIds = contents?.map(c => c.id) || []
-            }
-
-            const totalContents = allContentIds.length
-            let currentPct = 0
-
-            if (totalContents > 0) {
-                const { count } = await supabase
-                    .from('lms_content_progress')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('employee_id', emp?.id)
-                    .in('content_id', allContentIds)
-                    .eq('is_completed', true)
-                currentPct = Math.round((count / totalContents) * 100)
-            }
-
-            // Get existing certificate
-            const { data: existingCert } = await supabase
-                .from('lms_certificates')
-                .select('*')
-                .eq('course_id', courseId)
-                .eq('employee_id', emp?.id)
-                .maybeSingle()
-
-            setData({
-                course,
-                enrollment: {
-                    ...enrollment,
-                    progress: currentPct,
-                    completed_at: (currentPct === 100 && totalContents > 0) ? (enrollment?.completed_at || new Date().toISOString()) : null
-                }
-            })
-            setCert(existingCert)
-            setLoading(false)
+                .in('section_id', sectionIds)
+            allContentIds = contents?.map(c => c.id) || []
         }
-        load()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [courseId])
+
+        const totalContents = allContentIds.length
+        let currentPct = 0
+
+        if (totalContents > 0) {
+            const { count } = await supabase
+                .from('lms_content_progress')
+                .select('*', { count: 'exact', head: true })
+                .eq('employee_id', emp.id)
+                .in('content_id', allContentIds)
+                .eq('is_completed', true)
+            currentPct = Math.round((count / totalContents) * 100)
+        }
+
+        const { data: existingCert } = await supabase
+            .from('lms_certificates')
+            .select('*')
+            .eq('course_id', courseId)
+            .eq('employee_id', emp.id)
+            .maybeSingle()
+
+        setData({
+            course,
+            enrollment: {
+                progress: currentPct,
+                completed_at: (currentPct === 100 && totalContents > 0) ? assignment?.completed_at : null,
+            },
+        })
+        setCert(existingCert)
+        setLoading(false)
+    }, [courseId, supabase])
+
+    useEffect(() => { load() }, [load])
 
     async function issueCertificate() {
         setIssuing(true)
-        // Simulation mode: Don't actually hit DB, just show the UI
-        setTimeout(() => {
-            setCert({
-                id: 'mock-cert-id',
-                certificate_no: 'ARVELA-TEST-' + Math.random().toString(36).substring(7).toUpperCase(),
-                issued_at: new Date().toISOString()
-            })
-            setIssuing(false)
-        }, 800)
+        setIssueError('')
+        try {
+            const issued = await issueCourseCertificate(courseId)
+            setCert(issued)
+        } catch (err) {
+            setIssueError(err.message)
+        }
+        setIssuing(false)
     }
 
     function handlePrint() {
@@ -133,11 +127,13 @@ export default function CertificatePage() {
         </div>
     )
 
-    const isCompleted = true // Force true for testing without constraints
+    const isCompleted = (data?.enrollment?.progress ?? 0) === 100
     const courseName = data?.course?.title ?? 'Kursus'
     const employeeName = employee?.profiles?.full_name ?? 'Karyawan'
     const companyName = data?.course?.companies?.name ?? ''
-    const completedDate = new Date(data?.enrollment?.completed_at || new Date()).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+    const completedDate = data?.enrollment?.completed_at
+        ? new Date(data.enrollment.completed_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+        : ''
 
     return (
         <div className="max-w-3xl mx-auto space-y-6 pb-24">
@@ -150,7 +146,13 @@ export default function CertificatePage() {
                 <p className="text-muted-foreground text-sm mt-1">{courseName}</p>
             </div>
 
-            {(data?.course?.has_certificate === false) ? (
+            {!employee ? (
+                <Card className="p-12 border-none shadow-sm rounded-2xl text-center bg-slate-50">
+                    <GraduationCap className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                    <h3 className="font-bold text-slate-500 mb-1">Data Karyawan Tidak Ditemukan</h3>
+                    <p className="text-slate-400 text-sm">Akun ini tidak terhubung ke data karyawan manapun.</p>
+                </Card>
+            ) : (data?.course?.has_certificate === false) ? (
                 <Card className="p-12 border-none shadow-sm rounded-2xl text-center bg-slate-50">
                     <EyeOff className="w-12 h-12 text-slate-200 mx-auto mb-4" />
                     <h3 className="font-bold text-slate-500 mb-1">Sertifikat Tidak Tersedia</h3>
@@ -173,7 +175,7 @@ export default function CertificatePage() {
                     <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
                     <h3 className="font-bold text-foreground mb-2">Kursus Selesai!</h3>
                     <p className="text-muted-foreground text-sm mb-6">
-                        Selamat! Kamu telah menyelesaikan <strong>{courseName}</strong> pada {completedDate}.
+                        Selamat! Kamu telah menyelesaikan <strong>{courseName}</strong>{completedDate ? ` pada ${completedDate}` : ''}.
                         Klik tombol di bawah untuk menerbitkan sertifikat resmi.
                     </p>
                     <Button
@@ -183,6 +185,7 @@ export default function CertificatePage() {
                     >
                         {issuing ? <><Loader2 className="w-4 h-4 animate-spin" /> Menerbitkan...</> : <><Award className="w-4 h-4" /> Terbitkan Sertifikat</>}
                     </Button>
+                    {issueError && <p className="text-rose-500 text-xs font-semibold mt-3">{issueError}</p>}
                 </Card>
             ) : (
                 <>
@@ -252,7 +255,7 @@ export default function CertificatePage() {
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                        Gunakan Ctrl+P (Windows) atau Cmd+P (Mac) dan pilih "Save as PDF" untuk menyimpan sertifikat.
+                        Gunakan Ctrl+P (Windows) atau Cmd+P (Mac) dan pilih &quot;Save as PDF&quot; untuk menyimpan sertifikat.
                     </p>
                 </>
             )}

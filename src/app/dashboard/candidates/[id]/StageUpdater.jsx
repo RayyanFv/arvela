@@ -122,7 +122,7 @@ export default function StageUpdater({ application, userRole }) {
                                 type="button"
                                 disabled={!canEdit || loadingStage}
                                 onClick={() => { setNewStage(s); setShowPreview(false); }}
-                                className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${isCurrent
+                                className={`px-2.5 py-1.5 rounded-lg text-[9px] font-semibold uppercase tracking-wide transition-all border ${isCurrent
                                         ? 'bg-white text-primary border-primary/20 shadow-sm ring-1 ring-primary/10'
                                         : 'text-slate-400 border-transparent hover:text-slate-600 hover:bg-white/50'
                                     }`}
@@ -179,7 +179,7 @@ export default function StageUpdater({ application, userRole }) {
                                 </h4>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-black uppercase text-slate-400">Gaji Bulanan</label>
+                                        <label className="text-[10px] font-semibold uppercase text-slate-400">Gaji Bulanan</label>
                                         <input
                                             type="number"
                                             value={offerData.salary}
@@ -189,7 +189,7 @@ export default function StageUpdater({ application, userRole }) {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-black uppercase text-slate-400">Tgl Mulai Kerja</label>
+                                        <label className="text-[10px] font-semibold uppercase text-slate-400">Tgl Mulai Kerja</label>
                                         <input
                                             type="date"
                                             value={offerData.startDate}
@@ -199,7 +199,7 @@ export default function StageUpdater({ application, userRole }) {
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black uppercase text-slate-400">Batas Waktu Respon</label>
+                                    <label className="text-[10px] font-semibold uppercase text-slate-400">Batas Waktu Respon</label>
                                     <input
                                         type="date"
                                         value={offerData.expiryDate}
@@ -259,7 +259,7 @@ export default function StageUpdater({ application, userRole }) {
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 px-2 text-[10px] font-black text-emerald-600 hover:bg-emerald-100/50 flex items-center gap-1.5"
+                                className="h-7 px-2 text-[10px] font-semibold text-emerald-600 hover:bg-emerald-100/50 flex items-center gap-1.5"
                                 onClick={async () => {
                                     try {
                                         const link = await getMagicLink({

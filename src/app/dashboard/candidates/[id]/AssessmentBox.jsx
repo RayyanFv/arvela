@@ -65,7 +65,7 @@ export default function CandidateAssessmentBox({ application, assessments = [], 
                                 <div className="min-w-0">
                                     <p className="text-xs font-bold text-slate-700 truncate">{asgn.assessments?.title}</p>
                                     <div className="flex items-center gap-2 mt-0.5">
-                                        <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${asgn.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                        <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${asgn.status === 'completed' ? 'bg-green-100 text-green-700' :
                                             asgn.status === 'expired' ? 'bg-red-100 text-red-700' :
                                                 'bg-blue-100 text-blue-700'
                                             }`}>
@@ -77,7 +77,7 @@ export default function CandidateAssessmentBox({ application, assessments = [], 
                                             </span>
                                         )}
                                         {asgn.proctoring_logs?.length > 0 && (
-                                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-rose-50 border border-rose-100 text-rose-600 rounded text-[10px] font-black">
+                                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-rose-50 border border-rose-100 text-rose-600 rounded text-[10px] font-semibold">
                                                 <ShieldAlert className="w-2.5 h-2.5" />
                                                 PROCTORING ALERT ({asgn.proctoring_logs.length})
                                             </div>

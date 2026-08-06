@@ -23,6 +23,7 @@ import {
     Medal,
     UserX,
     Globe,
+    TrendingUp,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -73,6 +74,7 @@ export function Sidebar({ isOpen, setIsOpen, profile, permissions }) {
                 { icon: ClipboardCheck, label: 'Kehadiran', href: '/dashboard/attendance', permission: 'attendance.view' },
                 { icon: CalendarDays, label: 'Izin & Eksepsi', href: '/dashboard/attendance/requests', permission: 'leave.approve' },
                 { icon: Clock, label: 'Pengajuan Lembur', href: '/dashboard/overtime', permission: 'attendance.approve' },
+                { icon: TrendingUp, label: 'Naik Pangkat', href: '/dashboard/employees/promotions', permission: 'employee.manage' },
                 { icon: UserX, label: 'Manajemen Resign', href: '/dashboard/employees/offboarding', permission: 'employee.manage' },
             ]
         },
@@ -100,6 +102,7 @@ export function Sidebar({ isOpen, setIsOpen, profile, permissions }) {
                 { icon: ShieldCheck, label: 'Manajemen Role',   href: '/dashboard/settings/roles',  roles: [ROLES.OWNER, ROLES.HR_ADMIN] },
                 { icon: Building2,   label: 'Manajemen Unit',   href: '/dashboard/settings/units',  roles: [ROLES.OWNER, ROLES.HR_ADMIN] },
                 { icon: Medal,       label: 'Manajemen Pangkat', href: '/dashboard/settings/grades', roles: [ROLES.OWNER, ROLES.HR_ADMIN] },
+                { icon: ClipboardCheck, label: 'Tipe Kontrak',  href: '/dashboard/settings/contract-types', roles: [ROLES.OWNER, ROLES.HR_ADMIN] },
                 { icon: Globe,       label: 'Halaman Karir',    href: '/dashboard/settings/career-page', roles: [ROLES.OWNER, ROLES.HR_ADMIN] },
             ]
         },

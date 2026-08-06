@@ -32,6 +32,7 @@ const schema = z.object({
     salary_max: z.string().optional(),
     salary_currency: z.string().optional(),
     show_salary: z.boolean().default(false),
+    visibility: z.string().default('public'),
 })
 
 export default function NewJobPage() {
@@ -42,6 +43,7 @@ export default function NewJobPage() {
             title: '', description: '', requirements: '',
             location: '', work_type: '', employment_type: '', deadline: '', screening_questions: '[]',
             salary_min: '', salary_max: '', salary_currency: 'IDR', show_salary: false,
+            visibility: 'public',
         },
     })
 
@@ -284,6 +286,27 @@ export default function NewJobPage() {
                             {/* Aksi & Save */}
                             <div className="bg-white border border-slate-200 rounded-md p-6 space-y-5">
                                 <div className="space-y-3">
+                                    <FormField control={form.control} name="visibility" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs font-semibold text-slate-600">Visibilitas</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value ?? 'public'}>
+                                                <FormControl>
+                                                    <SelectTrigger className="h-10 rounded-md"><SelectValue /></SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="public">Publik — tampil di halaman karir</SelectItem>
+                                                    <SelectItem value="link_only">Siapa saja yang punya link</SelectItem>
+                                                    <SelectItem value="invited">Hanya yang diundang (email)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            {field.value === 'invited' && (
+                                                <p className="text-[11px] text-slate-400 font-medium">Daftar email undangan bisa diatur setelah lowongan dibuat.</p>
+                                            )}
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
+                                <div className="space-y-3 pt-1 border-t border-slate-100">
                                     <h3 className="text-sm font-bold text-slate-900">Post Lowongan</h3>
                                     <div className="flex flex-col gap-1.5">
                                         <div className="flex items-center gap-2">
